@@ -1,6 +1,6 @@
 # Despliegue en Google Cloud Run
 
-Esta guía describe el despliegue previsto de F000. Ejecuta los pasos solo después de que la validación local, Docker y Supabase hayan pasado. No se incluyen valores de proyecto, región ni servicios que no hayan sido verificados.
+Esta guía describe el despliegue previsto de F000. Ejecuta los pasos solo después de que la validación local, Docker y Supabase hayan pasado. El usuario seleccionó `turniting-f000-20261015` y `southamerica-west1`; la creación y el despliegue quedan diferidos hasta la etapa final. Aún no hay URLs de producción verificadas.
 
 ## Componentes y exposición
 

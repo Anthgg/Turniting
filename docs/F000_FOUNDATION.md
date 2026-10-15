@@ -39,8 +39,8 @@ QA local y Docker ejecutado el 2026-10-15. El cierre completo de F000 queda pend
 | FastAPI | entorno virtual limpio; `ruff check .`, `pytest -q`, rutas `/health` y `/analyze/test` | PASS: Ruff; 6 tests; health y análisis HTTP 200. Prueba de texto: 26 caracteres y 6 palabras. |
 | PostgreSQL local | servicio Compose `db`, migración Prisma de arranque y `/api/health/db` | PASS: PostgreSQL 16 healthy, migración aplicada y `SELECT 1` confirmado por health HTTP 200. |
 | Docker Compose | `docker compose config --quiet`, `docker compose build --no-cache`, `docker compose up -d`, `docker compose ps` | PASS: `db`, `backend`, `ai-service` y `frontend` healthy. GET de salud y POST de análisis HTTP 200 también a través del proxy Nginx. El backend responde CORS al origen local permitido y no concede cabecera CORS a un origen no listado. |
-| Supabase | `supabase_list_projects`, organización Anthony elegida | BLOQUEADO: no hay proyecto Turniting. El conector no expuso la herramienta obligatoria de consulta de costo; no se solicitó confirmación ni se creó un proyecto. Conexión, migración y smoke no ejecutados. |
-| Cloud Run | `gcloud auth list`, `gcloud projects list`, configuración activa | BLOQUEADO: se eligió crear un proyecto dedicado, pero falta definir ID, región y cuenta de facturación. El proyecto activo pertenece a Cotizador Greda y no se utilizó. No se creó proyecto ni se desplegó. |
+| Supabase | Organización Anthony elegida; consulta `get_cost` intentada | PENDIENTE por instrucción del usuario: no se creó ni configuró un proyecto. El conector sigue devolviendo que la herramienta de costo no está disponible; no se solicitó confirmación. Conexión, migración y smoke no ejecutados. |
+| Cloud Run | ID y región elegidos por el usuario | PENDIENTE por instrucción del usuario: el usuario creará los recursos GCP al final. No se creó proyecto, no se vinculó facturación y no se desplegó. `cotizador-greda` no se utilizó ni modificó. |
 
 ## Docker
 
@@ -70,8 +70,8 @@ La guía está en [CLOUD_RUN_DEPLOYMENT.md](CLOUD_RUN_DEPLOYMENT.md). FastAPI de
 
 ## Pendientes
 
-- Restablecer la consulta de costo de Supabase, presentar el importe para confirmación y crear el proyecto Turniting en la organización Anthony; después configurar las URLs reales solo en backend, aplicar `migrate deploy`, comprobar `SELECT 1` y realizar smoke.
-- Confirmar que la cuenta activa identificada en la consola es la que debe pagar Turniting; después crear el proyecto GCP dedicado autorizado, vincular esa cuenta, preparar Artifact Registry, desplegar los tres servicios, aplicar mínimos permisos de invocación y completar QA de producción, sin cambiar Cotizador Greda.
+- El usuario aprovisionará Supabase al final. Antes de conectarlo, consultar el costo de la organización Anthony y obtener la confirmación requerida; después configurar las URLs reales solo en backend, aplicar `migrate deploy`, comprobar `SELECT 1` y realizar smoke.
+- El usuario aprovisionará Cloud Run al final. El destino elegido es `turniting-f000-20261015` en `southamerica-west1`; después completar Artifact Registry, despliegues, permisos mínimos de invocación y QA de producción, sin modificar `cotizador-greda`.
 - No comenzar F001 hasta que F000 esté cerrada por separado.
 
 ## Commit final
