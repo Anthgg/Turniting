@@ -26,7 +26,7 @@ React solo consume NestJS. NestJS es responsable de acceso a datos y orquestaci�
 
 ## Variables
 
-La raíz y los servicios incluyen plantillas `.env.example`. Los valores del repositorio son ilustrativos y locales. Producción utiliza secretos fuera de Git. Las variables principales son `DATABASE_URL`, `DIRECT_URL`, `AI_SERVICE_URL`, `AI_SERVICE_AUTH_MODE`, `CORS_ORIGINS`, `VITE_API_URL`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `PYTHON_ENV` y `PORT`.
+La raíz y los servicios incluyen plantillas `.env.example`. Los valores del repositorio son ilustrativos y locales. Producción utiliza secretos fuera de Git. Las variables principales son `DATABASE_URL`, `DIRECT_URL`, `AI_SERVICE_URL`, `AI_SERVICE_AUTH_MODE`, `CORS_ORIGIN` (lista de orígenes separados por comas), `VITE_API_URL`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `PYTHON_ENV` y `PORT`.
 
 ## Pruebas y resultados
 
@@ -38,9 +38,9 @@ QA local y Docker ejecutado el 2026-10-15. El cierre completo de F000 queda pend
 | Frontend | `npm run lint`, `npm run build`; navegador real en `http://localhost:8080` | PASS: lint/build; UI muestra API, PostgreSQL e IA como operativos. |
 | FastAPI | entorno virtual limpio; `ruff check .`, `pytest -q`, rutas `/health` y `/analyze/test` | PASS: Ruff; 6 tests; health y análisis HTTP 200. Prueba de texto: 26 caracteres y 6 palabras. |
 | PostgreSQL local | servicio Compose `db`, migración Prisma de arranque y `/api/health/db` | PASS: PostgreSQL 16 healthy, migración aplicada y `SELECT 1` confirmado por health HTTP 200. |
-| Docker Compose | `docker compose config --quiet`, `docker compose build --no-cache`, `docker compose up -d`, `docker compose ps` | PASS: `db`, `backend`, `ai-service` y `frontend` healthy. GET de salud y POST de análisis HTTP 200 también a través del proxy Nginx. |
-| Supabase | `supabase_list_projects` (solo lectura) | BLOQUEADO: no hay proyecto Turniting. La creación requiere elegir la organización conectada y confirmar el costo indicado por Supabase; conexión, migración y smoke no ejecutados. |
-| Cloud Run | `gcloud auth list`, `gcloud projects list`, configuración activa | BLOQUEADO: no hay proyecto Turniting ni región configurada. El proyecto activo pertenece a Cotizador Greda y no se utilizó. No se desplegó ni se cambió facturación. |
+| Docker Compose | `docker compose config --quiet`, `docker compose build --no-cache`, `docker compose up -d`, `docker compose ps` | PASS: `db`, `backend`, `ai-service` y `frontend` healthy. GET de salud y POST de análisis HTTP 200 también a través del proxy Nginx. El backend responde CORS al origen local permitido y no concede cabecera CORS a un origen no listado. |
+| Supabase | `supabase_list_projects`, organización Anthony elegida | BLOQUEADO: no hay proyecto Turniting. El conector no expuso la herramienta obligatoria de consulta de costo; no se solicitó confirmación ni se creó un proyecto. Conexión, migración y smoke no ejecutados. |
+| Cloud Run | `gcloud auth list`, `gcloud projects list`, configuración activa | BLOQUEADO: se eligió crear un proyecto dedicado, pero falta definir ID, región y cuenta de facturación. El proyecto activo pertenece a Cotizador Greda y no se utilizó. No se creó proyecto ni se desplegó. |
 
 ## Docker
 
@@ -56,21 +56,22 @@ La guía está en [CLOUD_RUN_DEPLOYMENT.md](CLOUD_RUN_DEPLOYMENT.md). FastAPI de
 
 ## Git
 
-`feat/f000-foundation` está publicada en `https://github.com/Anthgg/Turniting.git` en cuatro commits lógicos. No se creó PR ni se hizo merge a `main`.
+`feat/f000-foundation` está publicada en `https://github.com/Anthgg/Turniting.git` con los commits de implementación y cierre documental. No se creó PR ni se hizo merge a `main`.
 
 ## Problemas encontrados y soluciones
 
 - `npm ci` falló inicialmente con `Missing: magicast@0.3.5 from lock file` bajo Node 22/npm 10. Se regeneró `package-lock.json` y se comprobó `npm ci` en la misma familia de Node 22/npm 10.
 - `npm audit` encontró avisos altos en dependencias transitivas de Prisma y en el paquete de desarrollo no usado `@nestjs/mau`. Se actualizaron `deepmerge-ts` a 8.0.2 y `effect` a 3.20.0 mediante overrides, se retiró `@nestjs/mau` y se repitieron pruebas/build. El audit completo final reportó cero vulnerabilidades.
-- El nombre `CORS_ORIGIN` no coincidía con la variable validada por NestJS (`CORS_ORIGINS`). Se unificaron Compose, `.env.example` y documentación en `CORS_ORIGINS`.
+- La plantilla especifica `CORS_ORIGIN`; el backend y Compose quedaron alineados a ese nombre. Su valor puede incluir varios orígenes separados por comas, sin comodines.
 - La plantilla raíz inicial pasaba URLs `localhost` del host al contenedor y tenía una contraseña fija de desarrollo. Compose ahora construye URLs internas hacia `db`, exige `POSTGRES_PASSWORD` en `.env` y la plantilla pide un valor local aleatorio. La configuración se validó sin mostrar la contraseña.
 - El primer smoke encontró que Nginx escuchaba en 8080 dentro del contenedor, mientras Compose publicaba el puerto 80. Se cambió Nginx y su healthcheck al puerto 80; el proxy web y las rutas API pasaron en el smoke final.
-- Las credenciales externas disponibles no identifican un proyecto Turniting. Se evitó usar proyectos de otros productos y no se crearon recursos Supabase/GCP ni se alteró facturación.
+- Supabase no tiene un proyecto Turniting. Se eligió la organización Anthony, pero el conector no ofreció la herramienta de consulta de costo necesaria para pedir confirmación antes de crear el proyecto.
+- Se eligió un proyecto GCP dedicado para Turniting. Faltan ID, región y cuenta de facturación; el proyecto activo de Cotizador Greda no se usó ni se modificó.
 
 ## Pendientes
 
-- Elegir la organización de Supabase para Turniting y confirmar el costo de creación que informe Supabase; después configurar las URLs reales solo en backend, aplicar `migrate deploy`, comprobar `SELECT 1` y realizar smoke.
-- Seleccionar o crear un proyecto GCP dedicado a Turniting, definir región y facturación; después preparar Artifact Registry, desplegar los tres servicios, aplicar mínimos permisos de invocación y completar QA de producción.
+- Restablecer la herramienta Supabase de consulta de costo y confirmar ese costo antes de crear el proyecto Turniting en la organización Anthony; después configurar las URLs reales solo en backend, aplicar `migrate deploy`, comprobar `SELECT 1` y realizar smoke.
+- Definir ID, región y cuenta de facturación del proyecto GCP dedicado a Turniting; después preparar Artifact Registry, desplegar los tres servicios, aplicar mínimos permisos de invocación y completar QA de producción.
 - No comenzar F001 hasta que F000 esté cerrada por separado.
 
 ## Commit final

@@ -6,7 +6,7 @@ export type Environment = {
   AI_SERVICE_URL: string;
   AI_SERVICE_TIMEOUT_MS: number;
   AI_SERVICE_AUTH_MODE: 'none' | 'google-id-token';
-  CORS_ORIGINS: string;
+  CORS_ORIGIN: string;
 };
 
 function requiredString(value: unknown, key: string): string {
@@ -54,7 +54,7 @@ function validateCorsOrigins(value: string, nodeEnv: Environment['NODE_ENV']): s
     .map((origin) => origin.trim())
     .filter(Boolean);
   if (origins.length === 0 || origins.some((origin) => origin === '*' || origin.includes('*'))) {
-    throw new Error('Configuration validation failed: CORS_ORIGINS must contain explicit origins and cannot use wildcards');
+    throw new Error('Configuration validation failed: CORS_ORIGIN must contain explicit origins and cannot use wildcards');
   }
 
   for (const origin of origins) {
@@ -64,7 +64,7 @@ function validateCorsOrigins(value: string, nodeEnv: Environment['NODE_ENV']): s
         throw new Error('invalid');
       }
     } catch {
-      throw new Error('Configuration validation failed: CORS_ORIGINS must contain valid origins');
+      throw new Error('Configuration validation failed: CORS_ORIGIN must contain valid origins');
     }
   }
 
@@ -92,7 +92,7 @@ export function validateEnvironment(config: Record<string, unknown>): Environmen
   }
 
   const corsOrigins = validateCorsOrigins(
-    requiredString(config.CORS_ORIGINS ?? 'http://localhost:5173', 'CORS_ORIGINS'),
+    requiredString(config.CORS_ORIGIN ?? 'http://localhost:5173', 'CORS_ORIGIN'),
     nodeEnv,
   );
 
@@ -105,6 +105,6 @@ export function validateEnvironment(config: Record<string, unknown>): Environmen
     AI_SERVICE_URL: aiUrl.toString().replace(/\/$/, ''),
     AI_SERVICE_TIMEOUT_MS: parseInteger(config.AI_SERVICE_TIMEOUT_MS, 'AI_SERVICE_TIMEOUT_MS', 3000, 100, 30000),
     AI_SERVICE_AUTH_MODE: authMode,
-    CORS_ORIGINS: corsOrigins,
+    CORS_ORIGIN: corsOrigins,
   };
 }

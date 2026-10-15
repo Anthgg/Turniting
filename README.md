@@ -68,6 +68,31 @@ docker compose down
 
 El volumen local persiste entre reinicios. `docker compose down -v` lo elimina y debe usarse solo cuando se desee borrar esa base local.
 
+## Variables de entorno
+
+La plantilla raíz `.env.example` configura PostgreSQL local y `CORS_ORIGIN` para Docker Compose. Copia esa plantilla a `.env` y reemplaza `POSTGRES_PASSWORD` por un valor aleatorio antes de iniciar los servicios. `CORS_ORIGIN` acepta varios orígenes explícitos separados por comas; no admite comodines.
+
+Para ejecutar servicios individualmente, consulta `backend/.env.example`, `frontend/.env.example` y `ai-service/.env.example`. Los valores de ejemplo son locales. Mantén URLs de base de datos, contraseñas y tokens fuera del frontend, del repositorio y de las imágenes Docker.
+
+## Comandos frecuentes
+
+```powershell
+docker compose config --quiet
+docker compose up --build -d
+docker compose ps
+docker compose logs -f backend ai-service db frontend
+docker compose down
+```
+
+`docker compose down` conserva el volumen `turniting_pgdata`. No uses `docker compose down -v` salvo que quieras borrar la base local.
+
+## Solución de problemas
+
+- Si Compose indica que falta `POSTGRES_PASSWORD`, crea `.env` desde `.env.example` y establece un valor aleatorio local.
+- Si un servicio no llega a `healthy`, revisa `docker compose ps` y `docker compose logs <servicio>` antes de reiniciarlo.
+- Si un puerto local ya está ocupado, detén el proceso que lo usa o cambia el puerto publicado correspondiente en `docker-compose.yml`.
+- Si falla la conexión a PostgreSQL después de cambiar la contraseña local, conserva la contraseña que inicializó el volumen o rota el rol de forma intencional. Borrar el volumen también borra los datos locales.
+
 ## Desarrollo y pruebas
 
 Los comandos de cada paquete y la preparación local están en [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md). La configuración no contiene credenciales reales; `.env.example` usa valores exclusivamente locales.

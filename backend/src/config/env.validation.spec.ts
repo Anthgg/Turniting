@@ -14,7 +14,7 @@ describe('validateEnvironment', () => {
     expect(config.PORT).toBe(3000);
     expect(config.AI_SERVICE_TIMEOUT_MS).toBe(3000);
     expect(config.AI_SERVICE_AUTH_MODE).toBe('none');
-    expect(config.CORS_ORIGINS).toBe('http://localhost:5173');
+    expect(config.CORS_ORIGIN).toBe('http://localhost:5173');
   });
 
   it('rejects a wildcard CORS origin in production', () => {
@@ -22,9 +22,9 @@ describe('validateEnvironment', () => {
       validateEnvironment({
         ...validEnvironment,
         NODE_ENV: 'production',
-        CORS_ORIGINS: '*',
+        CORS_ORIGIN: '*',
       }),
-    ).toThrow(/CORS_ORIGINS/);
+    ).toThrow(/CORS_ORIGIN/);
   });
 
   it('requires HTTPS when Google identity token authentication is enabled in production', () => {

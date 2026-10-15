@@ -47,7 +47,7 @@ services:
       DIRECT_URL: postgresql://${POSTGRES_USER:-turniting}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}@db:5432/${POSTGRES_DB:-turniting}?schema=public
       AI_SERVICE_URL: http://ai-service:8000
       AI_SERVICE_AUTH_MODE: none
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080,http://127.0.0.1:8080}
     command: ["npm", "run", "start:with-migrations"]
     ports:
       - "127.0.0.1:3000:3000"

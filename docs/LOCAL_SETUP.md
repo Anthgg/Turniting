@@ -1,5 +1,14 @@
 # Preparación local
 
+## Clonar el repositorio
+
+La Foundation está publicada en `feat/f000-foundation`; usa esa rama mientras F000 no se haya integrado en `main`:
+
+```powershell
+git clone --branch feat/f000-foundation https://github.com/Anthgg/Turniting.git
+Set-Location Turniting
+```
+
 ## Opción recomendada: Docker Compose
 
 Requisitos: Docker Desktop iniciado y Docker Compose v2.
@@ -22,6 +31,8 @@ Invoke-RestMethod http://localhost:3000/api/health/db
 Invoke-RestMethod http://localhost:3000/api/health/ai
 Invoke-RestMethod http://localhost:8000/health
 Invoke-RestMethod -Method Post -Uri http://localhost:8000/analyze/test -ContentType 'application/json' -Body '{"text":"Este es un texto de prueba"}'
+Invoke-RestMethod -Method Post -Uri http://localhost:3000/api/ai/analyze/test -ContentType 'application/json' -Body '{"text":"Este es un texto de prueba"}'
+Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/ai/analyze/test -ContentType 'application/json' -Body '{"text":"Este es un texto de prueba"}'
 ```
 
 Abre <http://localhost:8080> para la interfaz. En Docker, Nginx sirve el bundle y reenvía `/api/` a NestJS. La base local se conserva en el volumen `turniting_pgdata`.
@@ -47,7 +58,7 @@ npm run test:e2e
 npm run build
 ```
 
-Configura `DATABASE_URL`, `DIRECT_URL`, `AI_SERVICE_URL`, `CORS_ORIGINS`, `NODE_ENV` y `PORT` mediante `backend/.env.example`. Para ejecutar endpoints de salud de base de datos e IA, inicia PostgreSQL y FastAPI y aplica las migraciones Prisma.
+Configura `DATABASE_URL`, `DIRECT_URL`, `AI_SERVICE_URL`, `CORS_ORIGIN`, `NODE_ENV` y `PORT` mediante `backend/.env.example`. Para ejecutar endpoints de salud de base de datos e IA, inicia PostgreSQL y FastAPI y aplica las migraciones Prisma.
 
 ### Frontend
 

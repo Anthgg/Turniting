@@ -5,4 +5,4 @@ process.env.DIRECT_URL ??= process.env.DATABASE_URL;
 process.env.AI_SERVICE_URL ??= 'http://127.0.0.1:8000';
 process.env.AI_SERVICE_TIMEOUT_MS ??= '1000';
 process.env.AI_SERVICE_AUTH_MODE ??= 'none';
-process.env.CORS_ORIGINS ??= 'http://localhost:5173';
+process.env.CORS_ORIGIN ??= 'http://localhost:5173';

@@ -7,7 +7,7 @@ import { HttpExceptionFilter } from './filters/http-exception.filter.js';
 
 export function configureApplication(app: INestApplication): void {
   const config = app.get(ConfigService);
-  const origins = config.getOrThrow<string>('CORS_ORIGINS').split(',');
+  const origins = config.getOrThrow<string>('CORS_ORIGIN').split(',');
 
   app.setGlobalPrefix('api');
   app.use(helmet());
