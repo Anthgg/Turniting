@@ -1,0 +1,49 @@
+# Node
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment files; keep documented templates
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated or private model/data assets
+models/
+checkpoints/
+datasets/
+cache/
+*.pt
+*.pth
+
+# Local databases, logs, and credentials
+turniting_pgdata/
+postgres-data/
+logs/
+*.log
+*.pem
+*.key
+*service-account*.json
+*credentials*.json
+
+# Editors and operating systems
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
