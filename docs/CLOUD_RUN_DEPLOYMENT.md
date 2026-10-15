@@ -20,7 +20,7 @@ Cada servicio usa su propio Dockerfile. `PORT` debe ser el puerto inyectado por 
 - Una cuenta de servicio dedicada para el backend y otra para el servicio IA cuando las políticas lo requieran.
 - `DATABASE_URL` y `DIRECT_URL` en Secret Manager.
 
-No reutilices silenciosamente un proyecto GCP de otra aplicación. No crees proyecto, cambies facturación ni otorgues roles amplios como `Owner` para completar esta guía.
+Para F000, usa únicamente el proyecto dedicado autorizado `turniting-f000-20261015` en `southamerica-west1`, cuando se haya creado y se haya verificado su facturación. No reutilices un proyecto de otra aplicación ni vincules la cuenta activa hasta confirmar que debe asumir los cargos de Turniting. No otorgues roles amplios como `Owner`.
 
 ## Identidad servicio a servicio
 

@@ -26,7 +26,7 @@ function formatCheckedAt(timestamp: number) {
 export function ServiceStatusCard({ title, description, endpoint, icon, service, query }: ServiceStatusCardProps) {
   const healthy = isServiceHealthy(service, query.data)
   const state = query.isPending ? 'checking' : query.isError ? 'offline' : healthy ? 'online' : 'offline'
-  const stateLabel = query.isPending ? 'Comprobando' : healthy ? 'Operativo' : 'Sin conexión'
+  const stateLabel = state === 'checking' ? 'Comprobando' : state === 'online' ? 'Operativo' : 'Sin conexión'
   const detail = query.isError
     ? 'No se pudo consultar este servicio.'
     : query.isSuccess && !healthy

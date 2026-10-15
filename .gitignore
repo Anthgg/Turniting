@@ -25,6 +25,8 @@ __pycache__/
 
 # Generated or private model/data assets
 models/
+!ai-service/app/models/
+!ai-service/app/models/**
 checkpoints/
 datasets/
 cache/

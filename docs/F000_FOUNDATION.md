@@ -65,13 +65,13 @@ La guía está en [CLOUD_RUN_DEPLOYMENT.md](CLOUD_RUN_DEPLOYMENT.md). FastAPI de
 - La plantilla especifica `CORS_ORIGIN`; el backend y Compose quedaron alineados a ese nombre. Su valor puede incluir varios orígenes separados por comas, sin comodines.
 - La plantilla raíz inicial pasaba URLs `localhost` del host al contenedor y tenía una contraseña fija de desarrollo. Compose ahora construye URLs internas hacia `db`, exige `POSTGRES_PASSWORD` en `.env` y la plantilla pide un valor local aleatorio. La configuración se validó sin mostrar la contraseña.
 - El primer smoke encontró que Nginx escuchaba en 8080 dentro del contenedor, mientras Compose publicaba el puerto 80. Se cambió Nginx y su healthcheck al puerto 80; el proxy web y las rutas API pasaron en el smoke final.
-- Supabase no tiene un proyecto Turniting. Se eligió la organización Anthony, pero el conector no ofreció la herramienta de consulta de costo necesaria para pedir confirmación antes de crear el proyecto.
-- Se eligió un proyecto GCP dedicado para Turniting. Faltan ID, región y cuenta de facturación; el proyecto activo de Cotizador Greda no se usó ni se modificó.
+- No se creó un proyecto Supabase Turniting. Se eligió la organización Anthony; el conector no permitió consultar el costo, así que no se pudo presentar para confirmación antes de crear el proyecto.
+- Se eligió el proyecto GCP dedicado `turniting-f000-20261015` en `southamerica-west1`. El usuario indicó que la facturación existente ya está configurada y se observó una cuenta activa en la consola. No se creó ni vinculó el proyecto Turniting porque asociar facturación requiere confirmar que esa cuenta debe asumir los cargos. `cotizador-greda` no se modificó.
 
 ## Pendientes
 
-- Restablecer la herramienta Supabase de consulta de costo y confirmar ese costo antes de crear el proyecto Turniting en la organización Anthony; después configurar las URLs reales solo en backend, aplicar `migrate deploy`, comprobar `SELECT 1` y realizar smoke.
-- Definir ID, región y cuenta de facturación del proyecto GCP dedicado a Turniting; después preparar Artifact Registry, desplegar los tres servicios, aplicar mínimos permisos de invocación y completar QA de producción.
+- Restablecer la consulta de costo de Supabase, presentar el importe para confirmación y crear el proyecto Turniting en la organización Anthony; después configurar las URLs reales solo en backend, aplicar `migrate deploy`, comprobar `SELECT 1` y realizar smoke.
+- Confirmar que la cuenta activa identificada en la consola es la que debe pagar Turniting; después crear el proyecto GCP dedicado autorizado, vincular esa cuenta, preparar Artifact Registry, desplegar los tres servicios, aplicar mínimos permisos de invocación y completar QA de producción, sin cambiar Cotizador Greda.
 - No comenzar F001 hasta que F000 esté cerrada por separado.
 
 ## Commit final

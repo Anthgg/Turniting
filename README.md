@@ -70,7 +70,7 @@ El volumen local persiste entre reinicios. `docker compose down -v` lo elimina y
 
 ## Variables de entorno
 
-La plantilla raíz `.env.example` configura PostgreSQL local y `CORS_ORIGIN` para Docker Compose. Copia esa plantilla a `.env` y reemplaza `POSTGRES_PASSWORD` por un valor aleatorio antes de iniciar los servicios. `CORS_ORIGIN` acepta varios orígenes explícitos separados por comas; no admite comodines.
+La plantilla raíz `.env.example` reúne valores locales para PostgreSQL de Docker Compose y para NestJS ejecutado desde el host; Compose deriva las URLs internas de los contenedores. Copia esa plantilla a `.env` y reemplaza `POSTGRES_PASSWORD` por un valor aleatorio antes de iniciar los servicios. `CORS_ORIGIN` acepta varios orígenes explícitos separados por comas; no admite comodines.
 
 Para ejecutar servicios individualmente, consulta `backend/.env.example`, `frontend/.env.example` y `ai-service/.env.example`. Los valores de ejemplo son locales. Mantén URLs de base de datos, contraseñas y tokens fuera del frontend, del repositorio y de las imágenes Docker.
 
