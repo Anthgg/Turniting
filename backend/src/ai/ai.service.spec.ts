@@ -55,6 +55,44 @@ describe('AiService', () => {
     );
   });
 
+  it('sends uploaded bytes as a multipart file to the extraction contract', async () => {
+    const extraction = {
+      status: 'success',
+      fileType: 'txt',
+      text: 'normalized text',
+      pageCount: null,
+      wordCount: 2,
+      characterCount: 15,
+      requiresOcr: false,
+      warnings: [],
+    };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(extraction), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const service = new AiService(makeConfig(), new AiAuthService());
+    const buffer = Buffer.from('source text');
+
+    await expect(
+      service.extractDocument({ buffer, mimeType: 'text/plain', originalName: 'assignment.txt' }),
+    ).resolves.toEqual(extraction);
+
+    expect(fetchMock).toHaveBeenCalledWith('http://ai-service:8000/extract', expect.objectContaining({ method: 'POST' }));
+    const requestOptions = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(new Headers(requestOptions.headers).get('content-type')).toBeNull();
+    expect(requestOptions.body).toBeInstanceOf(FormData);
+    const submittedFile = (requestOptions.body as FormData).get('file');
+    expect(submittedFile).toBeInstanceOf(Blob);
+    expect((submittedFile as Blob).type).toBe('text/plain');
+    expect(Buffer.from(await (submittedFile as Blob).arrayBuffer())).toEqual(buffer);
+  });
+
+  it('returns a controlled 503 for an invalid extraction response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: 'success', text: 'private' }), { status: 200 })));
+    const service = new AiService(makeConfig(), new AiAuthService());
+    await expect(
+      service.extractDocument({ buffer: Buffer.from('text'), mimeType: 'text/plain', originalName: 'file.txt' }),
+    ).rejects.toMatchObject({ status: 503 });
+  });
+
   it('adds a Google ID token header only when authentication is enabled', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ status: 'ok', service: 'ai-service' }), { status: 200 }),

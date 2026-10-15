@@ -5,49 +5,62 @@
 ```mermaid
 flowchart TD
     U[Usuario] --> FE[React + Vite]
-    FE -->|/api| BE[NestJS]
-    BE -->|Prisma / PostgreSQL| DB[(PostgreSQL local o Supabase)]
-    BE -->|HTTP interno y, en Cloud Run, ID token| AI[FastAPI]
-    AI -.->|Fases posteriores| NLP[OCR / NLP / ML]
+    FE -->|/api/documents| BE[NestJS]
+    BE -->|Prisma| DB[(PostgreSQL local)]
+    BE -->|StorageService| FS[(filesystem / Docker volume)]
+    BE -->|multipart /extract| AI[FastAPI]
+    AI -->|texto y métricas| BE
+    AI -.->|Fases posteriores| OCR[OCR real / NLP / ML]
 ```
 
 ## Responsabilidades
 
 ### React + Vite
 
-- Presenta el estado de los servicios y la información de alcance de F000.
-- Llama únicamente a NestJS por medio de una capa HTTP centralizada.
+- Presenta el estado de los servicios y las rutas `/documents` y `/documents/:id`.
+- Envía cargas y demás solicitudes únicamente a NestJS por medio de una capa HTTP centralizada.
 - Usa una ruta relativa `/api` con el proxy de desarrollo o el reverse proxy local. En producción, `VITE_API_URL` se define al compilar el bundle.
-- No conoce credenciales ni establece conexiones con PostgreSQL, Supabase o FastAPI.
+- Valida extensión y tamaño en el cliente para orientar al usuario; NestJS repite las validaciones de seguridad.
+- No conoce credenciales ni establece conexiones con PostgreSQL, Supabase, almacenamiento o FastAPI.
 
 ### NestJS
 
-- Es la API principal y la única capa que accede a datos.
-- Valida la configuración y las solicitudes entrantes; aplica CORS restringido, Helmet y `ValidationPipe` global.
+- Es la API principal y la única capa que accede a PostgreSQL.
+- Valida extensión, MIME, firma del archivo y `MAX_UPLOAD_MB`; aplica CORS restringido, Helmet y `ValidationPipe` global.
+- Guarda los binarios con nombres UUID mediante `StorageService`; la implementación local usa `UPLOAD_DIR` y no guarda binarios en PostgreSQL.
+- Crea los metadatos/versiones y el texto extraído en PostgreSQL; los duplicados conservan documentos independientes con el mismo SHA-256.
+- Expone carga, listado paginado, detalle, texto, borrado y reprocesamiento de documentos.
 - Ejecuta comprobaciones reales de PostgreSQL y FastAPI en los endpoints de estado.
-- Usa un cliente Prisma compartido. `AI_SERVICE_URL` identifica FastAPI; `AI_SERVICE_AUTH_MODE` permite desactivar autenticación en local o solicitar un ID token de Google en Cloud Run.
+- Usa un cliente Prisma compartido. `AI_SERVICE_URL` identifica FastAPI y `AI_SERVICE_TIMEOUT_MS` limita la espera de extracción.
 
 ### FastAPI
 
-- Provee `/health` y `POST /analyze/test` para comprobar la conexión desde NestJS.
-- No accede a la base de datos y todavía no analiza documentos ni estima si un texto fue generado por IA.
-- Lee el puerto de escucha desde `PORT`, como requiere Cloud Run.
+- Provee `/health`, `POST /analyze/test` y `POST /extract` multipart.
+- Extrae PDF con PyMuPDF, DOCX con python-docx y TXT con decodificación UTF-8/BOM y fallback; devuelve texto normalizado y métricas.
+- Identifica PDF probablemente escaneados como `OCR_REQUIRED`; no ejecuta OCR.
+- No accede a la base de datos ni estima si un texto fue generado por IA.
+- Lee el puerto de escucha desde `PORT`.
+
+### Almacenamiento local
+
+- `UPLOAD_DIR` define el directorio de archivos en ejecución local.
+- Docker Compose monta el volumen nombrado `turniting_uploads` en `/data/uploads`.
+- `docker compose down` conserva los archivos; `docker compose down -v` elimina ese volumen.
+- `StorageService` aísla las operaciones `save`, `read`, `delete` y `exists` para permitir una implementación de almacenamiento futura.
 
 ### PostgreSQL y Supabase
 
 - PostgreSQL local corre como servicio Docker con volumen persistente y healthcheck `pg_isready`.
-- Supabase se usa como PostgreSQL gestionado. La conexión y las migraciones se configuran solo en el backend.
-- La URL de aplicación `DATABASE_URL` y la URL directa para migraciones `DIRECT_URL` dependen del modo de conexión real elegido en el panel Supabase. No se deriva ni se inventa un host de pooler.
+- F001 aplica migraciones incrementales solo a PostgreSQL local.
+- `SUPABASE = DEFERRED_TO_F011`; no existe conexión remota de F001.
 
 ### Cloud Run
 
-- Publica el frontend y la API principal; la API restringe CORS a los orígenes locales necesarios y al dominio del frontend.
-- Mantiene FastAPI privado. NestJS presenta un ID token cuya audiencia es la URL del servicio FastAPI y recibe `roles/run.invoker` con el mínimo alcance.
-- Los secretos de base de datos se inyectan desde Secret Manager y no se copian a las imágenes.
+- `CLOUD_RUN = DEFERRED_TO_F011`; F001 no crea recursos GCP ni despliega imágenes.
 
-## Datos de F000
+## Datos de F001
 
-Los modelos iniciales son `User`, `Document` y `Analysis`, con IDs UUID. El esquema no crea todavía tablas para segmentos, reportes de Turnitin, muestras de entrenamiento ni versiones de modelos.
+Los modelos son `User`, `Document`, `DocumentVersion` y `Analysis`, con IDs UUID. Los archivos binarios permanecen en almacenamiento local. `DocumentVersion` conserva la clave de almacenamiento, SHA-256, texto extraído, conteos, página y advertencias. No se guardan segmentos, reportes de Turnitin, muestras de entrenamiento ni versiones de modelos.
 
 ## Referencias técnicas
 

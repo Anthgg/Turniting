@@ -12,9 +12,11 @@ describe('validateEnvironment', () => {
     const config = validateEnvironment(validEnvironment);
     expect(config.NODE_ENV).toBe('development');
     expect(config.PORT).toBe(3000);
-    expect(config.AI_SERVICE_TIMEOUT_MS).toBe(3000);
+    expect(config.AI_SERVICE_TIMEOUT_MS).toBe(30000);
     expect(config.AI_SERVICE_AUTH_MODE).toBe('none');
     expect(config.CORS_ORIGIN).toBe('http://localhost:5173');
+    expect(config.UPLOAD_DIR).toBe('/data/uploads');
+    expect(config.MAX_UPLOAD_MB).toBe(20);
   });
 
   it('rejects a wildcard CORS origin in production', () => {

@@ -17,19 +17,45 @@ model User {
 }
 
 model Document {
-  id           String     @id @default(uuid()) @db.Uuid
-  userId       String?    @db.Uuid
-  originalName String
-  mimeType     String
-  size         Int
-  status       String     @default("pending")
-  createdAt    DateTime   @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime   @updatedAt @db.Timestamptz(6)
-  user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
-  analyses     Analysis[]
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String?          @db.Uuid
+  originalName   String
+  mimeType       String
+  size           Int
+  status         DocumentStatus   @default(UPLOADED)
+  createdAt      DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime         @updatedAt @db.Timestamptz(6)
+  user           User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  currentVersion DocumentVersion?
+  analyses       Analysis[]
 
   @@index([userId])
   @@index([status])
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  EXTRACTED
+  OCR_REQUIRED
+  FAILED
+}
+
+model DocumentVersion {
+  id              String   @id @default(uuid()) @db.Uuid
+  documentId      String   @unique @db.Uuid
+  storageKey      String   @unique
+  fileHash        String   @db.Char(64)
+  extractedText   String?  @db.Text
+  extractionError String?  @db.Text
+  pageCount       Int?
+  wordCount       Int?
+  characterCount  Int?
+  requiresOcr     Boolean  @default(false)
+  warnings        String[] @default([])
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
+  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 }
 
 model Analysis {

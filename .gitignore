@@ -36,6 +36,8 @@ cache/
 # Local databases, logs, and credentials
 turniting_pgdata/
 postgres-data/
+data/uploads/
+backend/data/uploads/
 logs/
 *.log
 *.pem

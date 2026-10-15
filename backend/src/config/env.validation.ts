@@ -7,6 +7,8 @@ export type Environment = {
   AI_SERVICE_TIMEOUT_MS: number;
   AI_SERVICE_AUTH_MODE: 'none' | 'google-id-token';
   CORS_ORIGIN: string;
+  UPLOAD_DIR: string;
+  MAX_UPLOAD_MB: number;
 };
 
 function requiredString(value: unknown, key: string): string {
@@ -103,8 +105,10 @@ export function validateEnvironment(config: Record<string, unknown>): Environmen
     DATABASE_URL: databaseUrl,
     DIRECT_URL: directUrl,
     AI_SERVICE_URL: aiUrl.toString().replace(/\/$/, ''),
-    AI_SERVICE_TIMEOUT_MS: parseInteger(config.AI_SERVICE_TIMEOUT_MS, 'AI_SERVICE_TIMEOUT_MS', 3000, 100, 30000),
+    AI_SERVICE_TIMEOUT_MS: parseInteger(config.AI_SERVICE_TIMEOUT_MS, 'AI_SERVICE_TIMEOUT_MS', 30000, 100, 30000),
     AI_SERVICE_AUTH_MODE: authMode,
     CORS_ORIGIN: corsOrigins,
+    UPLOAD_DIR: requiredString(config.UPLOAD_DIR ?? '/data/uploads', 'UPLOAD_DIR'),
+    MAX_UPLOAD_MB: parseInteger(config.MAX_UPLOAD_MB, 'MAX_UPLOAD_MB', 20, 1, 100),
   };
 }

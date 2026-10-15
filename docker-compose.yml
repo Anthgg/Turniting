@@ -26,6 +26,9 @@ services:
     environment:
       PORT: 8000
       PYTHON_ENV: ${PYTHON_ENV:-development}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-20}
+      OCR_MIN_CHARS_PER_PAGE: ${OCR_MIN_CHARS_PER_PAGE:-20}
+      OCR_MIN_LOW_TEXT_PAGE_RATIO: ${OCR_MIN_LOW_TEXT_PAGE_RATIO:-0.5}
     ports:
       - "127.0.0.1:8000:8000"
     healthcheck:
@@ -46,11 +49,16 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-turniting}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}@db:5432/${POSTGRES_DB:-turniting}?schema=public
       DIRECT_URL: postgresql://${POSTGRES_USER:-turniting}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}@db:5432/${POSTGRES_DB:-turniting}?schema=public
       AI_SERVICE_URL: http://ai-service:8000
+      AI_SERVICE_TIMEOUT_MS: ${AI_SERVICE_TIMEOUT_MS:-30000}
       AI_SERVICE_AUTH_MODE: none
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-20}
+      UPLOAD_DIR: /data/uploads
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080,http://127.0.0.1:8080}
     command: ["npm", "run", "start:with-migrations"]
     ports:
       - "127.0.0.1:3000:3000"
+    volumes:
+      - turniting_uploads:/data/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -66,6 +74,7 @@ services:
       context: ./frontend
       args:
         VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-20}
     container_name: turniting-frontend
     restart: unless-stopped
     ports:
@@ -82,3 +91,4 @@ services:
 
 volumes:
   turniting_pgdata:
+  turniting_uploads:

@@ -8,7 +8,9 @@ RUN npm ci
 COPY . .
 
 ARG VITE_API_URL=/api
+ARG VITE_MAX_UPLOAD_MB=20
 ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_MAX_UPLOAD_MB=${VITE_MAX_UPLOAD_MB}
 RUN npm run build
 
 FROM nginx:alpine AS runtime

@@ -18,6 +18,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = http.getResponse<Response>();
     const statusCode = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
     const message = this.safeMessage(exception, statusCode);
+    const code = this.safeCode(exception);
 
     if (statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(
@@ -33,11 +34,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     response.status(statusCode).json({
       statusCode,
+      ...(code ? { code } : {}),
       message,
       error: this.errorName(statusCode),
       path: request.path,
       timestamp: new Date().toISOString(),
     });
+  }
+
+  private safeCode(exception: unknown): string | undefined {
+    if (!(exception instanceof HttpException)) return undefined;
+    const body = exception.getResponse();
+    if (typeof body !== 'object' || body === null || !('code' in body)) return undefined;
+    return typeof body.code === 'string' && /^[A-Z][A-Z0-9_]{1,63}$/.test(body.code) ? body.code : undefined;
   }
 
   private safeMessage(exception: unknown, statusCode: number): string {

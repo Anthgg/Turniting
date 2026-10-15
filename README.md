@@ -1,6 +1,6 @@
 # Turniting
 
-Turniting es una base para análisis académico asistido por inteligencia artificial. La F000 prepara una interfaz de estado y una arquitectura separada en servicios; no implementa todavía ingestión de documentos ni detección de escritura generada por IA.
+Turniting es una aplicación local para ingesta y extracción de texto de documentos académicos. F000 cerró la base local; F001 implementa carga de PDF, DOCX y TXT, almacenamiento local persistente y extracción de texto. La detección de escritura generada por IA y el análisis de similitud siguen fuera de alcance.
 
 > Turniting es una herramienta independiente de análisis probabilístico. No constituye un resultado oficial de Turnitin ni afirma reproducir su algoritmo propietario.
 
@@ -10,12 +10,14 @@ Turniting es una base para análisis académico asistido por inteligencia artifi
 flowchart TD
     U[Usuario] --> FE[React + Vite]
     FE -->|HTTP /api| BE[NestJS]
-    BE -->|Prisma| DB[(PostgreSQL local / Supabase)]
-    BE -->|HTTP interno| AI[FastAPI]
-    AI -.-> FUT[OCR / NLP / ML futuro]
+    BE -->|Prisma| DB[(PostgreSQL local)]
+    BE -->|StorageService| FS[(Docker volume / local filesystem)]
+    BE -->|multipart /extract| AI[FastAPI]
+    AI -->|text and extraction metadata| BE
+    AI -.-> FUT[OCR real / NLP / ML futuro]
 ```
 
-React consume exclusivamente la API NestJS. NestJS es responsable de persistencia y reglas de negocio. FastAPI expone las operaciones especializadas de IA y no se conecta a PostgreSQL.
+React consume exclusivamente la API NestJS. NestJS valida, conserva el archivo y persiste metadatos/texto en PostgreSQL. FastAPI extrae texto y no se conecta a PostgreSQL. Los archivos se guardan en el volumen local `turniting_uploads`.
 
 ## Stack
 
@@ -84,7 +86,7 @@ docker compose logs -f backend ai-service db frontend
 docker compose down
 ```
 
-`docker compose down` conserva el volumen `turniting_pgdata`. No uses `docker compose down -v` salvo que quieras borrar la base local.
+`docker compose down` conserva los volúmenes `turniting_pgdata` y `turniting_uploads`. No uses `docker compose down -v` salvo que quieras borrar la base y los documentos locales.
 
 ## Solución de problemas
 
@@ -99,13 +101,14 @@ Los comandos de cada paquete y la preparación local están en [docs/LOCAL_SETUP
 
 ## Supabase y Cloud Run
 
-La conexión a Supabase se realiza únicamente desde NestJS por PostgreSQL y Prisma. La guía de variables, SSL, pooling y migraciones está en [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md). React no utiliza el Data API ni recibe credenciales de base de datos.
+SUPABASE = DEFERRED_TO_F011. F001 no crea proyectos ni conexiones Supabase; sus migraciones se ejecutan solo contra PostgreSQL local. La guía existente [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) queda como referencia para F011.
 
-El despliegue separado de frontend, backend y servicio IA se documenta en [docs/CLOUD_RUN_DEPLOYMENT.md](docs/CLOUD_RUN_DEPLOYMENT.md). No se incluyen IDs de proyecto, URLs ni secretos no verificados.
+CLOUD_RUN = DEFERRED_TO_F011. F001 no crea proyectos GCP ni despliega servicios. [docs/CLOUD_RUN_DEPLOYMENT.md](docs/CLOUD_RUN_DEPLOYMENT.md) queda como referencia futura.
 
 ## Documentación
 
 - [Arquitectura](docs/ARCHITECTURE.md)
+- [Ingesta de documentos F001](docs/F001_DOCUMENT_INGESTION.md)
 - [Instalación local](docs/LOCAL_SETUP.md)
 - [Configuración de Supabase](docs/SUPABASE_SETUP.md)
 - [Despliegue en Cloud Run](docs/CLOUD_RUN_DEPLOYMENT.md)

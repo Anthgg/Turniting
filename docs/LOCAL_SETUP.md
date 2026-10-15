@@ -2,7 +2,7 @@
 
 ## Clonar el repositorio
 
-La Foundation está publicada en `feat/f000-foundation`; usa esa rama mientras F000 no se haya integrado en `main`:
+La base local F000 está publicada en `feat/f000-foundation`. F001 se desarrolla en `feat/f001-document-ingestion`:
 
 ```powershell
 git clone --branch feat/f000-foundation https://github.com/Anthgg/Turniting.git
@@ -35,13 +35,13 @@ Invoke-RestMethod -Method Post -Uri http://localhost:3000/api/ai/analyze/test -C
 Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/ai/analyze/test -ContentType 'application/json' -Body '{"text":"Este es un texto de prueba"}'
 ```
 
-Abre <http://localhost:8080> para la interfaz. En Docker, Nginx sirve el bundle y reenvía `/api/` a NestJS. La base local se conserva en el volumen `turniting_pgdata`.
+Abre <http://localhost:8080> para la interfaz. En Docker, Nginx sirve el bundle y reenvía `/api/` a NestJS. PostgreSQL se conserva en `turniting_pgdata`; los documentos se conservan en `turniting_uploads`, montado en `/data/uploads`.
 
 ```powershell
 docker compose down
 ```
 
-Este comando detiene la pila sin eliminar datos. Para borrar la base local de Compose de forma intencional, primero comprueba el nombre y el contenido del volumen y después usa `docker compose down -v`.
+Este comando detiene la pila sin eliminar datos. Para borrar la base y archivos locales de Compose de forma intencional, primero comprueba los volúmenes y después usa `docker compose down -v`.
 
 ## Ejecución individual
 
@@ -58,7 +58,7 @@ npm run test:e2e
 npm run build
 ```
 
-Configura `DATABASE_URL`, `DIRECT_URL`, `AI_SERVICE_URL`, `CORS_ORIGIN`, `NODE_ENV` y `PORT` mediante `backend/.env.example`. Para ejecutar endpoints de salud de base de datos e IA, inicia PostgreSQL y FastAPI y aplica las migraciones Prisma.
+Configura `DATABASE_URL`, `DIRECT_URL`, `AI_SERVICE_URL`, `AI_SERVICE_TIMEOUT_MS`, `MAX_UPLOAD_MB`, `UPLOAD_DIR`, `CORS_ORIGIN`, `NODE_ENV` y `PORT` mediante `backend/.env.example`. Para ejecutar endpoints de salud y documentos, inicia PostgreSQL y FastAPI y aplica las migraciones Prisma.
 
 ### Frontend
 
@@ -70,7 +70,7 @@ npm run build
 npm run dev
 ```
 
-El servidor Vite usa el proxy `/api` hacia `http://localhost:3000`; la configuración puede ajustarse en `frontend/.env.example`.
+El servidor Vite usa el proxy `/api` hacia `http://localhost:3000`; ajusta `VITE_API_URL` y `VITE_MAX_UPLOAD_MB` en `frontend/.env.example`.
 
 ### Servicio IA
 
@@ -88,7 +88,32 @@ uvicorn app.main:app --reload --port 8000
 
 ## Variables
 
-`.env.example` en la raíz documenta el conjunto local de Compose. Los archivos `.env.example` de cada servicio explican las variables requeridas por ejecución individual. Los valores de ejemplo solo sirven para desarrollo local; crea variables de producción por separado y no subas archivos `.env`.
+`.env.example` en la raíz documenta el conjunto local de Compose. `MAX_UPLOAD_MB` limita la carga y por defecto es 20 MB; `UPLOAD_DIR` define la ruta persistente (`/data/uploads` en Compose). FastAPI usa `OCR_MIN_CHARS_PER_PAGE` y `OCR_MIN_LOW_TEXT_PAGE_RATIO` para detectar PDFs probablemente escaneados; esos valores no activan OCR. `AI_SERVICE_TIMEOUT_MS` limita la llamada a FastAPI. Los archivos `.env.example` de cada servicio explican las variables requeridas por ejecución individual. Los valores de ejemplo solo sirven para desarrollo local; crea variables de producción por separado y no subas archivos `.env`.
+
+## Verificación F001
+
+Desde cada carpeta de servicio, instala dependencias congeladas y ejecuta:
+
+```powershell
+# backend
+npm ci
+npm run lint
+npm run test
+npm run test:e2e
+npm run build
+
+# frontend
+npm ci
+npm run lint
+npm run build
+
+# ai-service
+python -m pip install -r requirements-dev.txt
+ruff check .
+pytest
+```
+
+Después ejecuta el smoke test de carga desde `http://localhost:8080/documents` con PDF, DOCX, TXT, PDF escaneado y un archivo inválido. Consulta el procedimiento y las rutas en [docs/F001_DOCUMENT_INGESTION.md](F001_DOCUMENT_INGESTION.md).
 
 ## Puertos
 

@@ -4,6 +4,22 @@ import { AiAuthService } from './ai-auth.service.js';
 
 type AiHealthResponse = { status: 'ok'; service: 'ai-service' };
 export type AiTestAnalysisResponse = { status: 'ok'; characters: number; words: number };
+export type AiExtractResponse = {
+  status: 'success';
+  fileType: 'pdf' | 'docx' | 'txt';
+  text: string;
+  pageCount: number | null;
+  wordCount: number;
+  characterCount: number;
+  requiresOcr: boolean;
+  warnings: string[];
+};
+
+export type AiDocumentFile = {
+  buffer: Buffer;
+  mimeType: string;
+  originalName: string;
+};
 
 @Injectable()
 export class AiService {
@@ -44,6 +60,37 @@ export class AiService {
     return response;
   }
 
+  async extractDocument(file: AiDocumentFile): Promise<AiExtractResponse> {
+    const form = new FormData();
+    form.append(
+      'file',
+      new Blob([Uint8Array.from(file.buffer)], { type: file.mimeType }),
+      file.originalName,
+    );
+    const response = await this.request<AiExtractResponse>('/extract', {
+      method: 'POST',
+      body: form,
+    });
+    if (
+      !response ||
+      typeof response !== 'object' ||
+      response.status !== 'success' ||
+      !['pdf', 'docx', 'txt'].includes(response.fileType) ||
+      typeof response.text !== 'string' ||
+      !(response.pageCount === null || (Number.isInteger(response.pageCount) && response.pageCount >= 0)) ||
+      !Number.isInteger(response.wordCount) ||
+      response.wordCount < 0 ||
+      !Number.isInteger(response.characterCount) ||
+      response.characterCount < 0 ||
+      typeof response.requiresOcr !== 'boolean' ||
+      !Array.isArray(response.warnings) ||
+      response.warnings.some((warning) => typeof warning !== 'string')
+    ) {
+      throw this.unavailable();
+    }
+    return response;
+  }
+
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const controller = new AbortController();
     let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -69,7 +116,7 @@ export class AiService {
   private async send<T>(path: string, init: RequestInit, signal: AbortSignal): Promise<T> {
     const headers = new Headers(init.headers);
     headers.set('accept', 'application/json');
-    if (init.body) headers.set('content-type', 'application/json');
+    if (init.body && !(init.body instanceof FormData)) headers.set('content-type', 'application/json');
 
     if (this.authMode === 'google-id-token') {
       const authHeaders = await this.auth.getIdTokenHeaders(this.baseUrl);
