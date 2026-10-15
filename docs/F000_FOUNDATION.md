@@ -65,12 +65,12 @@ La guía está en [CLOUD_RUN_DEPLOYMENT.md](CLOUD_RUN_DEPLOYMENT.md). FastAPI de
 - La plantilla especifica `CORS_ORIGIN`; el backend y Compose quedaron alineados a ese nombre. Su valor puede incluir varios orígenes separados por comas, sin comodines.
 - La plantilla raíz inicial pasaba URLs `localhost` del host al contenedor y tenía una contraseña fija de desarrollo. Compose ahora construye URLs internas hacia `db`, exige `POSTGRES_PASSWORD` en `.env` y la plantilla pide un valor local aleatorio. La configuración se validó sin mostrar la contraseña.
 - El primer smoke encontró que Nginx escuchaba en 8080 dentro del contenedor, mientras Compose publicaba el puerto 80. Se cambió Nginx y su healthcheck al puerto 80; el proxy web y las rutas API pasaron en el smoke final.
-- No se creó un proyecto Supabase Turniting. Se eligió la organización Anthony; el conector no permitió consultar el costo, así que no se pudo presentar para confirmación antes de crear el proyecto.
-- Se eligió el proyecto GCP dedicado `turniting-f000-20261015` en `southamerica-west1`. El usuario indicó que la facturación existente ya está configurada y se observó una cuenta activa en la consola. No se creó ni vinculó el proyecto Turniting porque asociar facturación requiere confirmar que esa cuenta debe asumir los cargos. `cotizador-greda` no se modificó.
+- No se creó ni configuró Supabase porque el usuario indicó que lo aprovisionará al final. Se eligió la organización Anthony. La consulta de costo también quedó sin resultado porque el conector no devolvió la herramienta solicitada.
+- Se eligieron `turniting-f000-20261015` y `southamerica-west1` como destino GCP. Por instrucción del usuario, no se creó ningún recurso ni se vinculó facturación; el usuario aprovisionará Cloud Run al final. `cotizador-greda` no se modificó.
 
 ## Pendientes
 
-- El usuario aprovisionará Supabase al final. Antes de conectarlo, consultar el costo de la organización Anthony y obtener la confirmación requerida; después configurar las URLs reales solo en backend, aplicar `migrate deploy`, comprobar `SELECT 1` y realizar smoke.
+- El usuario aprovisionará Supabase al final. Antes de conectarlo, consultar el costo de la organización Anthony; después configurar las URLs reales solo en backend, aplicar `migrate deploy`, comprobar `SELECT 1` y realizar smoke.
 - El usuario aprovisionará Cloud Run al final. El destino elegido es `turniting-f000-20261015` en `southamerica-west1`; después completar Artifact Registry, despliegues, permisos mínimos de invocación y QA de producción, sin modificar `cotizador-greda`.
 - No comenzar F001 hasta que F000 esté cerrada por separado.
 
