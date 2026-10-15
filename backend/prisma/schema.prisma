@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String     @id @default(uuid()) @db.Uuid
+  email     String     @unique
+  createdAt DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime   @updatedAt @db.Timestamptz(6)
+  documents Document[]
+}
+
+model Document {
+  id           String     @id @default(uuid()) @db.Uuid
+  userId       String?    @db.Uuid
+  originalName String
+  mimeType     String
+  size         Int
+  status       String     @default("pending")
+  createdAt    DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(6)
+  user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  analyses     Analysis[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Analysis {
+  id           String   @id @default(uuid()) @db.Uuid
+  documentId   String   @db.Uuid
+  status       String   @default("pending")
+  aiScore      Float?
+  confidence   Float?
+  modelVersion String?
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+  document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([status])
+}
