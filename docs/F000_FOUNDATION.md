@@ -54,6 +54,10 @@ La guía está en [SUPABASE_SETUP.md](SUPABASE_SETUP.md). La aplicación accede 
 
 La guía está en [CLOUD_RUN_DEPLOYMENT.md](CLOUD_RUN_DEPLOYMENT.md). FastAPI debe permanecer privado y aceptar invocaciones de la identidad backend mediante ID token. El frontend y backend son públicos con límites de recursos y CORS restringidos.
 
+## Git
+
+`feat/f000-foundation` está publicada en `https://github.com/Anthgg/Turniting.git` en cuatro commits lógicos. No se creó PR ni se hizo merge a `main`.
+
 ## Problemas encontrados y soluciones
 
 - `npm ci` falló inicialmente con `Missing: magicast@0.3.5 from lock file` bajo Node 22/npm 10. Se regeneró `package-lock.json` y se comprobó `npm ci` en la misma familia de Node 22/npm 10.
@@ -67,7 +71,6 @@ La guía está en [CLOUD_RUN_DEPLOYMENT.md](CLOUD_RUN_DEPLOYMENT.md). FastAPI de
 
 - Elegir la organización de Supabase para Turniting y confirmar el costo de creación que informe Supabase; después configurar las URLs reales solo en backend, aplicar `migrate deploy`, comprobar `SELECT 1` y realizar smoke.
 - Seleccionar o crear un proyecto GCP dedicado a Turniting, definir región y facturación; después preparar Artifact Registry, desplegar los tres servicios, aplicar mínimos permisos de invocación y completar QA de producción.
-- Subir `feat/f000-foundation` a GitHub cuando el repositorio local esté revisado y limpio de secretos.
 - No comenzar F001 hasta que F000 esté cerrada por separado.
 
 ## Commit final
