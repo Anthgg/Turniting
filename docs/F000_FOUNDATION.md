@@ -1,6 +1,6 @@
 # F000 — Foundation fullstack
 
-Estado general: `FAIL_WITH_FINDINGS`. La base local y Docker pasan; Supabase y Cloud Run requieren datos de destino y configuración externa.
+Estado general: `PASS` — alcance `LOCAL_FOUNDATION`. Supabase y Cloud Run quedan `DEFERRED_TO_F011` por instrucción del usuario.
 
 ## Objetivo y alcance
 
@@ -30,7 +30,7 @@ La raíz y los servicios incluyen plantillas `.env.example`. Los valores del rep
 
 ## Pruebas y resultados
 
-QA local y Docker ejecutado el 2026-10-15. El cierre completo de F000 queda pendiente de configurar Supabase y desplegar/verificar Cloud Run.
+QA local y Docker ejecutado el 2026-10-15. F000 se cierra como base local; la configuración de Supabase y Cloud Run pertenece a F011.
 
 | Área | Comando/evidencia | Resultado |
 |---|---|---|
@@ -39,8 +39,8 @@ QA local y Docker ejecutado el 2026-10-15. El cierre completo de F000 queda pend
 | FastAPI | entorno virtual limpio; `ruff check .`, `pytest -q`, rutas `/health` y `/analyze/test` | PASS: Ruff; 6 tests; health y análisis HTTP 200. Prueba de texto: 26 caracteres y 6 palabras. |
 | PostgreSQL local | servicio Compose `db`, migración Prisma de arranque y `/api/health/db` | PASS: PostgreSQL 16 healthy, migración aplicada y `SELECT 1` confirmado por health HTTP 200. |
 | Docker Compose | `docker compose config --quiet`, `docker compose build --no-cache`, `docker compose up -d`, `docker compose ps` | PASS: `db`, `backend`, `ai-service` y `frontend` healthy. GET de salud y POST de análisis HTTP 200 también a través del proxy Nginx. El backend responde CORS al origen local permitido y no concede cabecera CORS a un origen no listado. |
-| Supabase | Organización Anthony elegida; consulta `get_cost` intentada | PENDIENTE por instrucción del usuario: no se creó ni configuró un proyecto. El conector sigue devolviendo que la herramienta de costo no está disponible; no se solicitó confirmación. Conexión, migración y smoke no ejecutados. |
-| Cloud Run | ID y región elegidos por el usuario | PENDIENTE por instrucción del usuario: el usuario creará los recursos GCP al final. No se creó proyecto, no se vinculó facturación y no se desplegó. `cotizador-greda` no se utilizó ni modificó. |
+| Supabase | Organización Anthony elegida | DEFERRED_TO_F011: no se creó ni configuró proyecto; conexión, migración y smoke quedan para F011. |
+| Cloud Run | Destino propuesto: `turniting-f000-20261015`, `southamerica-west1` | DEFERRED_TO_F011: no se creó proyecto, no se vinculó facturación ni se desplegó. `cotizador-greda` no se utilizó ni modificó. |
 
 ## Docker
 
@@ -58,6 +58,8 @@ La guía está en [CLOUD_RUN_DEPLOYMENT.md](CLOUD_RUN_DEPLOYMENT.md). FastAPI de
 
 `feat/f000-foundation` está publicada en `https://github.com/Anthgg/Turniting.git` con los commits de implementación y cierre documental. No se creó PR ni se hizo merge a `main`.
 
+No se integró F000 en `main`: no existe una rama `main` local ni remota; `git ls-remote --heads origin` mostró únicamente `feat/f000-foundation`. F001 continuará desde este commit validado, sin crear ni modificar una rama principal.
+
 ## Problemas encontrados y soluciones
 
 - `npm ci` falló inicialmente con `Missing: magicast@0.3.5 from lock file` bajo Node 22/npm 10. Se regeneró `package-lock.json` y se comprobó `npm ci` en la misma familia de Node 22/npm 10.
@@ -65,14 +67,13 @@ La guía está en [CLOUD_RUN_DEPLOYMENT.md](CLOUD_RUN_DEPLOYMENT.md). FastAPI de
 - La plantilla especifica `CORS_ORIGIN`; el backend y Compose quedaron alineados a ese nombre. Su valor puede incluir varios orígenes separados por comas, sin comodines.
 - La plantilla raíz inicial pasaba URLs `localhost` del host al contenedor y tenía una contraseña fija de desarrollo. Compose ahora construye URLs internas hacia `db`, exige `POSTGRES_PASSWORD` en `.env` y la plantilla pide un valor local aleatorio. La configuración se validó sin mostrar la contraseña.
 - El primer smoke encontró que Nginx escuchaba en 8080 dentro del contenedor, mientras Compose publicaba el puerto 80. Se cambió Nginx y su healthcheck al puerto 80; el proxy web y las rutas API pasaron en el smoke final.
-- No se creó ni configuró Supabase porque el usuario indicó que lo aprovisionará al final. Se eligió la organización Anthony. La consulta de costo también quedó sin resultado porque el conector no devolvió la herramienta solicitada.
-- Se eligieron `turniting-f000-20261015` y `southamerica-west1` como destino GCP. Por instrucción del usuario, no se creó ningún recurso ni se vinculó facturación; el usuario aprovisionará Cloud Run al final. `cotizador-greda` no se modificó.
+- Supabase y Cloud Run quedaron diferidos a F011 por instrucción del usuario. No se crearon recursos remotos ni se cambió `cotizador-greda`.
 
 ## Pendientes
 
-- El usuario aprovisionará Supabase al final. Antes de conectarlo, consultar el costo de la organización Anthony; después configurar las URLs reales solo en backend, aplicar `migrate deploy`, comprobar `SELECT 1` y realizar smoke.
-- El usuario aprovisionará Cloud Run al final. El destino elegido es `turniting-f000-20261015` en `southamerica-west1`; después completar Artifact Registry, despliegues, permisos mínimos de invocación y QA de producción, sin modificar `cotizador-greda`.
-- No comenzar F001 hasta que F000 esté cerrada por separado.
+- Supabase: en F011, aprovisionar el proyecto en la organización Anthony; configurar las URLs reales solo en backend, aplicar `migrate deploy`, comprobar `SELECT 1` y realizar smoke.
+- Cloud Run: en F011, aprovisionar el proyecto dedicado y completar Artifact Registry, despliegues, permisos mínimos de invocación y QA de producción, sin modificar `cotizador-greda`.
+- La siguiente fase local es F001 — Document Ingestion.
 
 ## Commit final
 
