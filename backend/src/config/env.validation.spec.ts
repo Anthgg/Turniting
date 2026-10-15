@@ -17,6 +17,7 @@ describe('validateEnvironment', () => {
     expect(config.CORS_ORIGIN).toBe('http://localhost:5173');
     expect(config.UPLOAD_DIR).toBe('/data/uploads');
     expect(config.MAX_UPLOAD_MB).toBe(20);
+    expect(config.MAX_TURNITIN_REPORT_MB).toBe(30);
   });
 
   it('rejects a wildcard CORS origin in production', () => {

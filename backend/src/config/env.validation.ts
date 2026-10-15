@@ -9,6 +9,7 @@ export type Environment = {
   CORS_ORIGIN: string;
   UPLOAD_DIR: string;
   MAX_UPLOAD_MB: number;
+  MAX_TURNITIN_REPORT_MB: number;
 };
 
 function requiredString(value: unknown, key: string): string {
@@ -110,5 +111,6 @@ export function validateEnvironment(config: Record<string, unknown>): Environmen
     CORS_ORIGIN: corsOrigins,
     UPLOAD_DIR: requiredString(config.UPLOAD_DIR ?? '/data/uploads', 'UPLOAD_DIR'),
     MAX_UPLOAD_MB: parseInteger(config.MAX_UPLOAD_MB, 'MAX_UPLOAD_MB', 20, 1, 100),
+    MAX_TURNITIN_REPORT_MB: parseInteger(config.MAX_TURNITIN_REPORT_MB, 'MAX_TURNITIN_REPORT_MB', 30, 1, 100),
   };
 }

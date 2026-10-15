@@ -263,6 +263,7 @@ export class DocumentsService {
     const version = document.currentVersion;
     return {
       id: document.id,
+      documentVersionId: version?.id ?? null,
       originalName: document.originalName,
       mimeType: document.mimeType,
       extension: document.originalName.split('.').pop()?.toLowerCase() ?? '',

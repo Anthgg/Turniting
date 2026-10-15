@@ -42,20 +42,22 @@ enum DocumentStatus {
 }
 
 model DocumentVersion {
-  id              String   @id @default(uuid()) @db.Uuid
-  documentId      String   @unique @db.Uuid
-  storageKey      String   @unique
-  fileHash        String   @db.Char(64)
-  extractedText   String?  @db.Text
-  extractionError String?  @db.Text
-  pageCount       Int?
-  wordCount       Int?
-  characterCount  Int?
-  requiresOcr     Boolean  @default(false)
-  warnings        String[] @default([])
-  createdAt       DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
-  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id               String            @id @default(uuid()) @db.Uuid
+  documentId       String            @unique @db.Uuid
+  storageKey       String            @unique
+  fileHash         String            @db.Char(64)
+  extractedText    String?           @db.Text
+  extractionError  String?           @db.Text
+  pageCount        Int?
+  wordCount        Int?
+  characterCount   Int?
+  requiresOcr      Boolean           @default(false)
+  warnings         String[]          @default([])
+  createdAt        DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(6)
+  document         Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  turnitinReports  TurnitinReport[]
+  groundTruthCases GroundTruthCase[]
 }
 
 model Analysis {
@@ -71,4 +73,170 @@ model Analysis {
 
   @@index([documentId])
   @@index([status])
+}
+
+enum TurnitinReportType {
+  AI_WRITING
+  SIMILARITY
+  UNKNOWN
+}
+
+enum TurnitinReportStatus {
+  UPLOADED
+  PROCESSING
+  PARSED
+  PARTIAL
+  FAILED
+  OCR_REQUIRED
+}
+
+enum TurnitinSourceType {
+  INTERNET
+  PUBLICATION
+  STUDENT_PAPER
+  OTHER
+}
+
+enum TurnitinSegmentType {
+  AI_FLAGGED
+  SIMILARITY_MATCH
+  NOT_FLAGGED
+  UNKNOWN
+}
+
+enum TurnitinMatchStatus {
+  UNVERIFIED
+  EXACT
+  HIGH
+  PARTIAL
+  MISMATCH
+}
+
+enum TurnitinSubmissionRelation {
+  UNKNOWN
+  SAME
+  DIFFERENT
+}
+
+enum GroundTruthCaseType {
+  AI_REPORT
+  SIMILARITY_REPORT
+  VALIDATION
+}
+
+model TurnitinReport {
+  id                         String                     @id @default(uuid()) @db.Uuid
+  originalName               String
+  mimeType                   String                     @default("application/pdf")
+  size                       Int
+  fileHash                   String                     @db.Char(64)
+  storageKey                 String                     @unique
+  reportType                 TurnitinReportType         @default(UNKNOWN)
+  status                     TurnitinReportStatus       @default(UPLOADED)
+  requiresOcr                Boolean                    @default(false)
+  parserVersion              String?
+  submissionId               String?
+  submissionFileName         String?
+  submittedAt                DateTime?                  @db.Timestamptz(6)
+  downloadedAt               DateTime?                  @db.Timestamptz(6)
+  reportPageCount            Int?
+  documentPageCount          Int?
+  wordCount                  Int?
+  characterCount             Int?
+  aiWritingScore             Float?
+  aiWritingScoreRaw          String?
+  similarityScore            Float?
+  similarityScoreRaw         String?
+  internetScore              Float?
+  internetScoreRaw           String?
+  publicationScore           Float?
+  publicationScoreRaw        String?
+  studentPapersScore         Float?
+  studentPapersScoreRaw      String?
+  filters                    String[]                   @default([])
+  warnings                   String[]                   @default([])
+  reportMetadata             Json?
+  documentVersionId          String?                    @db.Uuid
+  contentMatchStatus         TurnitinMatchStatus        @default(UNVERIFIED)
+  submissionRelation         TurnitinSubmissionRelation @default(UNKNOWN)
+  contentSimilarityRatio     Float?
+  contentMatchEvidence       Json?
+  matchedAt                  DateTime?                  @db.Timestamptz(6)
+  createdAt                  DateTime                   @default(now()) @db.Timestamptz(6)
+  updatedAt                  DateTime                   @updatedAt @db.Timestamptz(6)
+  documentVersion            DocumentVersion?           @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+  sources                    TurnitinSource[]
+  segments                   TurnitinSegment[]
+  aiGroundTruthCases         GroundTruthCase[]          @relation("GroundTruthAIReport")
+  similarityGroundTruthCases GroundTruthCase[]          @relation("GroundTruthSimilarityReport")
+
+  @@index([reportType, createdAt])
+  @@index([status, createdAt])
+  @@index([documentVersionId])
+}
+
+model TurnitinSource {
+  id                   String             @id @default(uuid()) @db.Uuid
+  reportId             String             @db.Uuid
+  sourceIndex          Int
+  sourceType           TurnitinSourceType @default(OTHER)
+  displayName          String
+  percentageRaw        String?
+  percentage           Float?
+  percentageIsLessThan Boolean            @default(false)
+  color                String?
+  createdAt            DateTime           @default(now()) @db.Timestamptz(6)
+  report               TurnitinReport     @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  segments             TurnitinSegment[]
+
+  @@unique([reportId, sourceIndex])
+  @@index([reportId, sourceType])
+}
+
+model TurnitinSegment {
+  id                  String              @id @default(uuid()) @db.Uuid
+  reportId            String              @db.Uuid
+  sourceId            String?             @db.Uuid
+  segmentIndex        Int
+  segmentType         TurnitinSegmentType
+  pageNumber          Int
+  text                String              @db.Text
+  normalizedText      String?             @db.Text
+  bbox                Json
+  sourceIndex         Int?
+  color               String?
+  documentStartOffset Int?
+  documentEndOffset   Int?
+  alignmentMethod     String?
+  alignmentScore      Float?
+  createdAt           DateTime            @default(now()) @db.Timestamptz(6)
+  report              TurnitinReport      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  source              TurnitinSource?     @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  @@unique([reportId, segmentIndex])
+  @@index([reportId, segmentType, segmentIndex])
+  @@index([sourceId])
+}
+
+model GroundTruthCase {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  name               String                     @unique
+  caseType           GroundTruthCaseType
+  aiReportId         String?                    @db.Uuid
+  similarityReportId String?                    @db.Uuid
+  documentVersionId  String?                    @db.Uuid
+  submissionRelation TurnitinSubmissionRelation @default(UNKNOWN)
+  contentMatchStatus TurnitinMatchStatus        @default(UNVERIFIED)
+  validationStatus   TurnitinMatchStatus        @default(UNVERIFIED)
+  expectedData       Json?
+  actualData         Json?
+  notes              String?                    @db.Text
+  createdAt          DateTime                   @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime                   @updatedAt @db.Timestamptz(6)
+  aiReport           TurnitinReport?            @relation("GroundTruthAIReport", fields: [aiReportId], references: [id], onDelete: SetNull)
+  similarityReport   TurnitinReport?            @relation("GroundTruthSimilarityReport", fields: [similarityReportId], references: [id], onDelete: SetNull)
+  documentVersion    DocumentVersion?           @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+
+  @@index([caseType, createdAt])
+  @@index([documentVersionId])
 }

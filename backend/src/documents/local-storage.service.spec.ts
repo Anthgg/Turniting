@@ -33,6 +33,16 @@ describe('LocalStorageService', () => {
     expect(await readdir(root)).toEqual([]);
   });
 
+  it('stores Turnitin reports under a dedicated private subdirectory', async () => {
+    const contents = Buffer.from('%PDF-1.7 test report');
+    const storageKey = await storage.saveTurnitinReport(contents);
+    expect(storageKey).toMatch(/^turnitin\/[0-9a-f-]{36}\.pdf$/i);
+    expect(await storage.exists(storageKey)).toBe(true);
+    expect(await storage.read(storageKey)).toEqual(contents);
+    expect(await storage.delete(storageKey)).toBe(true);
+    expect(await readdir(path.join(root, 'turnitin'))).toEqual([]);
+  });
+
   it.each([
     '..\\outside.txt',
     '../outside.txt',

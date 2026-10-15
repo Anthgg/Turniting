@@ -15,7 +15,7 @@ import type { SupportedFileType } from './file-validation.js';
 import { StorageService } from './storage.service.js';
 
 const STORAGE_KEY_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(pdf|docx|txt)$/i;
+  /^(?:turnitin\/)?[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(pdf|docx|txt)$/i;
 
 @Injectable()
 export class LocalStorageService extends StorageService {
@@ -37,6 +37,44 @@ export class LocalStorageService extends StorageService {
     const storageKey = `${randomUUID()}.${fileType}`;
     const filePath = this.resolvePath(storageKey);
     await mkdir(this.rootDirectory, { recursive: true, mode: 0o700 });
+    let handle: FileHandle | undefined;
+    let created = false;
+    try {
+      handle = await open(filePath, 'wx', 0o600);
+      created = true;
+      await handle.writeFile(buffer);
+    } catch (error) {
+      try {
+        await handle?.close();
+      } catch {
+        // Preserve the original storage error.
+      }
+      if (created) {
+        try {
+          await unlink(filePath);
+        } catch {
+          // The service has no logger or caller-visible path by design.
+        }
+      }
+      throw error;
+    } finally {
+      await handle?.close().catch(() => undefined);
+    }
+    return storageKey;
+  }
+
+  override async saveTurnitinReport(buffer: Buffer): Promise<string> {
+    const storageKey = `turnitin/${randomUUID()}.pdf`;
+    const directory = path.join(this.rootDirectory, 'turnitin');
+    await mkdir(directory, { recursive: true, mode: 0o700 });
+    const [root, actualDirectory] = await Promise.all([
+      realpath(this.rootDirectory),
+      realpath(directory),
+    ]);
+    if (!isWithinDirectory(root, actualDirectory)) {
+      throw new Error('Turnitin directory escapes upload directory');
+    }
+    const filePath = this.resolvePath(storageKey);
     let handle: FileHandle | undefined;
     let created = false;
     try {

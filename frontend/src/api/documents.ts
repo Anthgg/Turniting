@@ -15,6 +15,7 @@ const nullableCount = z.number().int().nonnegative().nullable()
 
 export const documentSchema = z.object({
   id: z.string().min(1),
+  documentVersionId: z.string().uuid().nullable().optional(),
   originalName: z.string().min(1),
   mimeType: z.string(),
   extension: z.string(),

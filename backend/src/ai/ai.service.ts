@@ -21,6 +21,64 @@ export type AiDocumentFile = {
   originalName: string;
 };
 
+export type AiTurnitinPercentage = {
+  raw: string;
+  percentage: number | null;
+  percentageIsLessThan: boolean;
+};
+
+export type AiTurnitinSource = {
+  sourceIndex: number;
+  sourceType: 'INTERNET' | 'PUBLICATION' | 'STUDENT_PAPER' | 'OTHER';
+  displayName: string;
+  percentageRaw: string | null;
+  percentage: number | null;
+  percentageIsLessThan: boolean;
+  color: string | null;
+};
+
+export type AiTurnitinSegment = {
+  segmentIndex: number;
+  segmentType: 'AI_FLAGGED' | 'SIMILARITY_MATCH' | 'NOT_FLAGGED' | 'UNKNOWN';
+  pageNumber: number;
+  text: string;
+  normalizedText: string;
+  bbox: [number, number, number, number];
+  sourceIndex: number | null;
+  color: string | null;
+};
+
+export type AiTurnitinParseResponse = {
+  status: 'PARSED' | 'PARTIAL' | 'OCR_REQUIRED';
+  reportType: 'AI_WRITING' | 'SIMILARITY' | 'UNKNOWN';
+  parserVersion: string;
+  metadata: Record<string, unknown>;
+  scores: Record<string, AiTurnitinPercentage>;
+  filters: string[];
+  sources: AiTurnitinSource[];
+  segments: AiTurnitinSegment[];
+  warnings: string[];
+  documentText: string;
+};
+
+export type AiTurnitinAlignmentResponse = {
+  matchStatus: 'UNVERIFIED' | 'EXACT' | 'HIGH' | 'PARTIAL' | 'MISMATCH';
+  similarityRatio: number | null;
+  method: string;
+  matchedChars: number;
+  documentCharacterCount: number;
+  reportCharacterCount: number;
+  signals: string[];
+  segmentAlignments: Array<{
+    segmentIndex: number;
+    documentStartOffset: number | null;
+    documentEndOffset: number | null;
+    alignmentMethod: string;
+    alignmentScore: number | null;
+  }>;
+  warnings: string[];
+};
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -85,6 +143,67 @@ export class AiService {
       typeof response.requiresOcr !== 'boolean' ||
       !Array.isArray(response.warnings) ||
       response.warnings.some((warning) => typeof warning !== 'string')
+    ) {
+      throw this.unavailable();
+    }
+    return response;
+  }
+
+  async parseTurnitinReport(file: AiDocumentFile): Promise<AiTurnitinParseResponse> {
+    const form = new FormData();
+    form.append(
+      'file',
+      new Blob([Uint8Array.from(file.buffer)], { type: file.mimeType }),
+      file.originalName,
+    );
+    const response = await this.request<AiTurnitinParseResponse>('/turnitin/parse', {
+      method: 'POST',
+      body: form,
+    });
+    if (
+      !response ||
+      !['PARSED', 'PARTIAL', 'OCR_REQUIRED'].includes(response.status) ||
+      !['AI_WRITING', 'SIMILARITY', 'UNKNOWN'].includes(response.reportType) ||
+      typeof response.parserVersion !== 'string' ||
+      typeof response.metadata !== 'object' ||
+      response.metadata === null ||
+      typeof response.scores !== 'object' ||
+      response.scores === null ||
+      !Array.isArray(response.filters) ||
+      !Array.isArray(response.sources) ||
+      !Array.isArray(response.segments) ||
+      !Array.isArray(response.warnings) ||
+      typeof response.documentText !== 'string'
+    ) {
+      throw this.unavailable();
+    }
+    return response;
+  }
+
+  async alignTurnitinReport(
+    documentText: string,
+    reportText: string,
+    segments: Array<Pick<AiTurnitinSegment, 'segmentIndex' | 'text'>>,
+    documentMetadata: Record<string, unknown> = {},
+    reportMetadata: Record<string, unknown> = {},
+  ): Promise<AiTurnitinAlignmentResponse> {
+    const response = await this.request<AiTurnitinAlignmentResponse>('/turnitin/align', {
+      method: 'POST',
+      body: JSON.stringify({
+        documentText,
+        reportText,
+        segments,
+        documentMetadata,
+        reportMetadata,
+      }),
+    });
+    if (
+      !response ||
+      !['UNVERIFIED', 'EXACT', 'HIGH', 'PARTIAL', 'MISMATCH'].includes(response.matchStatus) ||
+      typeof response.method !== 'string' ||
+      !Array.isArray(response.segmentAlignments) ||
+      !Array.isArray(response.signals) ||
+      !Array.isArray(response.warnings)
     ) {
       throw this.unavailable();
     }

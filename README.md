@@ -1,6 +1,6 @@
 # Turniting
 
-Turniting es una aplicación local para ingesta y extracción de texto de documentos académicos. F000 cerró la base local; F001 implementa carga de PDF, DOCX y TXT, almacenamiento local persistente y extracción de texto. La detección de escritura generada por IA y el análisis de similitud siguen fuera de alcance.
+Turniting es una aplicación local para ingesta y extracción de texto de documentos académicos. F001 implementa carga de PDF, DOCX y TXT; F002 interpreta los datos visibles en reportes PDF exportados de Turnitin y los registra como ground truth. El detector de escritura generada por IA y el motor de similitud siguen fuera de alcance.
 
 > Turniting es una herramienta independiente de análisis probabilístico. No constituye un resultado oficial de Turnitin ni afirma reproducir su algoritmo propietario.
 
@@ -12,12 +12,13 @@ flowchart TD
     FE -->|HTTP /api| BE[NestJS]
     BE -->|Prisma| DB[(PostgreSQL local)]
     BE -->|StorageService| FS[(Docker volume / local filesystem)]
-    BE -->|multipart /extract| AI[FastAPI]
-    AI -->|text and extraction metadata| BE
+    BE -->|multipart /extract, /turnitin/parse| AI[FastAPI]
+    BE -->|JSON /turnitin/align| AI
+    AI -->|extraction, report data, alignment| BE
     AI -.-> FUT[OCR real / NLP / ML futuro]
 ```
 
-React consume exclusivamente la API NestJS. NestJS valida, conserva el archivo y persiste metadatos/texto en PostgreSQL. FastAPI extrae texto y no se conecta a PostgreSQL. Los archivos se guardan en el volumen local `turniting_uploads`.
+React consume exclusivamente la API NestJS. NestJS valida, conserva los archivos y persiste metadatos, reportes, segmentos, fuentes y ground truth en PostgreSQL. FastAPI extrae texto, interpreta etiquetas visibles del PDF y calcula una alineación textual; no se conecta a PostgreSQL ni reproduce algoritmos de Turnitin. Los archivos se guardan en el volumen local `turniting_uploads`.
 
 ## Stack
 
@@ -101,14 +102,15 @@ Los comandos de cada paquete y la preparación local están en [docs/LOCAL_SETUP
 
 ## Supabase y Cloud Run
 
-SUPABASE = DEFERRED_TO_F011. F001 no crea proyectos ni conexiones Supabase; sus migraciones se ejecutan solo contra PostgreSQL local. La guía existente [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) queda como referencia para F011.
+SUPABASE = DEFERRED_TO_F011. F001 y F002 no crean proyectos ni conexiones Supabase; sus migraciones se ejecutan solo contra PostgreSQL local. La guía existente [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) queda como referencia para F011.
 
-CLOUD_RUN = DEFERRED_TO_F011. F001 no crea proyectos GCP ni despliega servicios. [docs/CLOUD_RUN_DEPLOYMENT.md](docs/CLOUD_RUN_DEPLOYMENT.md) queda como referencia futura.
+CLOUD_RUN = DEFERRED_TO_F011. F001 y F002 no crean proyectos GCP ni despliegan servicios. [docs/CLOUD_RUN_DEPLOYMENT.md](docs/CLOUD_RUN_DEPLOYMENT.md) queda como referencia futura.
 
 ## Documentación
 
 - [Arquitectura](docs/ARCHITECTURE.md)
 - [Ingesta de documentos F001](docs/F001_DOCUMENT_INGESTION.md)
+- [Parser de reportes Turnitin F002](docs/F002_TURNITIN_REPORT_PARSER.md)
 - [Instalación local](docs/LOCAL_SETUP.md)
 - [Configuración de Supabase](docs/SUPABASE_SETUP.md)
 - [Despliegue en Cloud Run](docs/CLOUD_RUN_DEPLOYMENT.md)

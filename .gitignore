@@ -38,6 +38,10 @@ turniting_pgdata/
 postgres-data/
 data/uploads/
 backend/data/uploads/
+debug/
+turnitin-private/
+private-fixtures/
+*.turnitin-debug.json
 logs/
 *.log
 *.pem

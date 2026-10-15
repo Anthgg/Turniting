@@ -2,6 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
+  listTurnitinReports,
+  matchTurnitinReport,
+  turnitinQueryKeys,
+} from '../../api/turnitin'
+import {
   deleteDocument,
   documentQueryKeys,
   getDocument,
@@ -19,6 +24,7 @@ export function DocumentDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [showFullText, setShowFullText] = useState(false)
+  const [selectedTurnitinReportId, setSelectedTurnitinReportId] = useState('')
 
   const document = useQuery({
     queryKey: documentQueryKeys.detail(id),
@@ -32,6 +38,13 @@ export function DocumentDetailPage() {
     queryKey: documentQueryKeys.text(id),
     queryFn: () => getDocumentText(id),
     enabled: Boolean(id) && showFullText && document.data?.status === 'EXTRACTED',
+    retry: 1,
+  })
+
+  const turnitinReports = useQuery({
+    queryKey: turnitinQueryKeys.list(1, 100),
+    queryFn: () => listTurnitinReports(1, 100),
+    enabled: Boolean(id),
     retry: 1,
   })
 
@@ -53,6 +66,15 @@ export function DocumentDetailPage() {
     },
   })
 
+  const matchReport = useMutation({
+    mutationFn: () => matchTurnitinReport(selectedTurnitinReportId, record?.documentVersionId ?? ''),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(turnitinQueryKeys.detail(updated.id), updated)
+      void queryClient.invalidateQueries({ queryKey: turnitinQueryKeys.list(1, 100) })
+      void queryClient.invalidateQueries({ queryKey: turnitinQueryKeys.all })
+    },
+  })
+
   function confirmDelete() {
     const name = document.data?.originalName ?? 'este documento'
     if (window.confirm(`¿Eliminar “${name}”? Esta acción no se puede deshacer.`)) remove.mutate()
@@ -61,6 +83,11 @@ export function DocumentDetailPage() {
   const record = document.data
   const canReprocess = record?.status === 'FAILED' || record?.status === 'OCR_REQUIRED'
   const isProcessing = Boolean(record && processingStatuses.has(record.status))
+  const turnitinItems = turnitinReports.data?.items ?? []
+  const attachedTurnitinReports = record?.documentVersionId
+    ? turnitinItems.filter((item) => item.documentVersionId === record.documentVersionId)
+    : []
+  const attachableTurnitinReports = turnitinItems.filter((item) => !item.documentVersionId || item.documentVersionId === record?.documentVersionId)
 
   return (
     <div className="dashboard-main document-detail-main">
@@ -93,6 +120,7 @@ export function DocumentDetailPage() {
       {document.isError && <ApiErrorNotice error={document.error} title="No se pudo cargar el documento" />}
       {reprocess.isError && <ApiErrorNotice error={reprocess.error} title="No se pudo reprocesar el documento" />}
       {remove.isError && <ApiErrorNotice error={remove.error} title="No se pudo eliminar el documento" />}
+      {matchReport.isError && <ApiErrorNotice error={matchReport.error} title="No se pudo vincular el reporte Turnitin" />}
 
       {document.isPending && (
         <div className="documents-empty-state" role="status" aria-live="polite">
@@ -124,6 +152,38 @@ export function DocumentDetailPage() {
               <ul>{record.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul>
             </section>
           )}
+
+          <section className="document-panel turnitin-attachment-panel" aria-labelledby="attached-turnitin-title">
+            <div className="document-panel-heading">
+              <div><p className="eyebrow">F002 · GROUND TRUTH</p><h2 id="attached-turnitin-title">Reportes Turnitin vinculados</h2></div>
+            </div>
+            <p className="turnitin-attachment-copy">La asociación compara el texto del reporte con la versión extraída del documento y registra también conteos y metadatos visibles.</p>
+            {turnitinReports.isError && <ApiErrorNotice error={turnitinReports.error} title="No se pudieron cargar los reportes Turnitin" />}
+            {attachedTurnitinReports.length > 0 ? (
+              <ul className="turnitin-attached-list">{attachedTurnitinReports.map((item) => (
+                <li key={item.id}>
+                  <span><strong>{item.originalName}</strong><small>{item.reportType} · {item.contentMatchStatus}{item.contentSimilarityRatio !== null ? ` · ${(item.contentSimilarityRatio * 100).toFixed(1)}%` : ''}</small></span>
+                  <Link className="button button-quiet" to={`/turnitin-reports/${item.id}`}>Abrir reporte</Link>
+                </li>
+              ))}</ul>
+            ) : !turnitinReports.isPending && <p className="turnitin-no-reports">Todavía no hay reportes vinculados a esta versión.</p>}
+            {record.documentVersionId && record.status === 'EXTRACTED' && attachableTurnitinReports.length > 0 && (
+              <div className="turnitin-attach-row">
+                <label>
+                  <span>Selecciona un reporte para comparar</span>
+                  <select value={selectedTurnitinReportId} onChange={(event) => setSelectedTurnitinReportId(event.currentTarget.value)}>
+                    <option value="">Seleccionar reporte</option>
+                    {attachableTurnitinReports.map((item) => <option value={item.id} key={item.id}>{item.originalName} · {item.reportType}</option>)}
+                  </select>
+                </label>
+                <button className="button button-primary" type="button" onClick={() => matchReport.mutate()} disabled={!selectedTurnitinReportId || matchReport.isPending} aria-busy={matchReport.isPending}>
+                  {matchReport.isPending ? 'Comparando…' : 'Vincular y comparar'}
+                </button>
+              </div>
+            )}
+            {record.status !== 'EXTRACTED' && <p className="turnitin-caution">La comparación estará disponible cuando la extracción del documento termine.</p>}
+            {turnitinReports.data?.items.length === 0 && <p className="turnitin-caution"><Link to="/turnitin-reports">Importa un reporte Turnitin</Link> para vincularlo a este documento.</p>}
+          </section>
 
           <div className="document-detail-grid">
             <section className="document-panel metadata-panel" aria-labelledby="metadata-title">

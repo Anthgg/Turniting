@@ -16,5 +16,6 @@ import { StorageService } from './storage.service.js';
     { provide: StorageService, useExisting: LocalStorageService },
     DocumentFileInterceptor,
   ],
+  exports: [StorageService],
 })
 export class DocumentsModule {}

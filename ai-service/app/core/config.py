@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     name: str = "ai-service"
     version: str = "0.1.0"
     max_upload_mb: int = Field(default=20, ge=1, validation_alias="MAX_UPLOAD_MB")
+    max_turnitin_report_mb: int = Field(
+        default=30,
+        ge=1,
+        validation_alias="MAX_TURNITIN_REPORT_MB",
+    )
     ocr_min_chars_per_page: int = Field(
         default=20,
         ge=1,

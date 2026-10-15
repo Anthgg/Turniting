@@ -7,6 +7,8 @@ import { Icon } from './components/Icon'
 import { ServiceStatusCard } from './components/ServiceStatusCard'
 import { DocumentDetailPage } from './features/documents/DocumentDetailPage'
 import { DocumentListPage } from './features/documents/DocumentListPage'
+import { TurnitinReportDetailPage } from './features/turnitin/TurnitinReportDetailPage'
+import { TurnitinReportsPage } from './features/turnitin/TurnitinReportsPage'
 import { MAX_UPLOAD_MB } from './features/documents/upload-limits'
 
 const serviceEndpoints: Record<HealthService, string> = {
@@ -21,6 +23,8 @@ function WorkspaceLayout() {
     ? 'Inicio'
     : location.pathname === '/documents'
       ? 'Documentos'
+      : location.pathname.startsWith('/turnitin-reports')
+        ? 'Reportes Turnitin'
       : 'Detalle del documento'
 
   return (
@@ -53,6 +57,10 @@ function WorkspaceLayout() {
             <Icon name="file" size={19} />
             <span>Documentos</span>
           </NavLink>
+          <NavLink to="/turnitin-reports" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
+            <Icon name="file" size={19} />
+            <span>Reportes Turnitin</span>
+          </NavLink>
           <span className="nav-item is-disabled" aria-disabled="true" aria-label="Historial, próxima fase">
             <Icon name="clock" size={19} />
             <span>Historial</span>
@@ -64,7 +72,7 @@ function WorkspaceLayout() {
             <span className="phase-icon"><Icon name="spark" size={17} /></span>
             <span className="phase-copy">
               <span>Fase actual</span>
-              <strong>F001 · Ingesta</strong>
+            <strong>F002 · Reportes</strong>
             </span>
           </div>
           <p className="sidebar-footnote">Un espacio para análisis académico responsable.</p>
@@ -206,7 +214,7 @@ function DashboardPage() {
 
       <footer className="page-footer">
         <span>Turniting · Análisis académico responsable</span>
-        <span>Ingesta de documentos · F001</span>
+        <span>Documentos F001 · Reportes Turnitin F002</span>
       </footer>
     </div>
   )
@@ -231,6 +239,8 @@ export default function App() {
         <Route index element={<DashboardPage />} />
         <Route path="documents" element={<DocumentListPage />} />
         <Route path="documents/:id" element={<DocumentDetailPage />} />
+        <Route path="turnitin-reports" element={<TurnitinReportsPage />} />
+        <Route path="turnitin-reports/:id" element={<TurnitinReportDetailPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
