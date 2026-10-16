@@ -87,9 +87,24 @@ def build_train_windows(tokenizer, cfg, tcfg, n_windows, seed, mode, smoke):
             doc_ids.append(doc_id)
         if len(windows) >= n_windows:
             break
-    usage = docs.assign(used=docs["id"].isin(set(doc_ids)))
-    usage = usage[usage["used"]]
+    per_doc = pd.Series(doc_ids).value_counts()
+    usage = docs[docs["id"].isin(per_doc.index)].copy()
+    usage["n_windows"] = usage["id"].map(per_doc).astype(int)
     return windows, labels, usage, es_w
+
+
+def sample_audit(usage: pd.DataFrame, labels: list[int]) -> dict:
+    by_ds = usage.groupby("dataset", observed=True).agg(docs=("id", "size"), windows=("n_windows", "sum"),
+                                                        machine_docs=("label", "sum"))
+    return {
+        "training_windows": int(usage["n_windows"].sum()),
+        "training_docs": int(len(usage)),
+        "machine_window_share": float(np.mean(labels)),
+        "spanish_windows": int(usage.loc[usage["is_spanish"], "n_windows"].sum()),
+        "academic_windows": int(usage.loc[usage["is_academic"], "n_windows"].sum()),
+        "adversarial_windows": int(usage.loc[usage["is_adversarial"], "n_windows"].sum()),
+        "by_dataset": {str(k): {kk: int(vv) for kk, vv in v.items()} for k, v in by_ds.iterrows()},
+    }
 
 
 def evaluate_docs(model, tokenizer, frame, tcfg, method="mean"):
@@ -142,6 +157,8 @@ def main() -> int:
     ap.add_argument("--resume-from-checkpoint", help="checkpoints/<exp>/last to resume")
     ap.add_argument("--experiment-id")
     ap.add_argument("--max-steps", type=int, help="stop after this many optimizer steps (resume tests)")
+    ap.add_argument("--dry-run-sample", action="store_true",
+                    help="build the training windows, print the per-dataset audit and exit (no training)")
     ap.add_argument("--config", default=str(CONFIG_DIR / "training.yaml"),
                     help="configs/training.yaml (CPU profile) or configs/training_gpu.yaml (Colab/CUDA)")
     args = ap.parse_args()
@@ -218,7 +235,16 @@ def main() -> int:
     log(f"train windows={len(windows):,} docs={len(usage):,} machine_share={np.mean(labels):.3f} "
         f"spanish_docs={int(usage['is_spanish'].sum())} academic_docs={int(usage['is_academic'].sum())} "
         f"({time.time() - t_build:.0f}s)")
-    usage.groupby("dataset", observed=True).size().rename("used_train_docs").to_csv(exp_dir / "train_usage.csv")
+    audit = sample_audit(usage, labels)
+    write_json(exp_dir / "sample_audit.json", audit)
+    log("sample audit: " + json.dumps(audit))
+    usage.groupby("dataset", observed=True).agg(used_train_docs=("id", "size"), used_train_windows=("n_windows", "sum"))         .to_csv(exp_dir / "train_usage.csv")
+    if args.dry_run_sample:
+        missing = [d for d in ("raid", "iberautextification", "autextification2023") if audit["by_dataset"].get(d, {}).get("windows", 0) == 0]
+        if missing:
+            raise SystemExit(f"ABORT: datasets missing from the training sample: {missing}")
+        log("dry run OK: no training performed")
+        return 0
 
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(params, lr=lr, weight_decay=tcfg["weight_decay"])
