@@ -1,8 +1,7 @@
 """Generate notebooks/colab_train.ipynb (GPU training on Colab, state persisted in Google Drive).
 
-Drive layout (MyDrive/turniting/): turniting_code.zip (training/ code at the branch commit),
-ref/ (CPU-run reference split manifest, frozen eval-set ids, Spanish-weight selection, commit id)
-and workdir/ (dataset, checkpoints, models, reports, logs).
+Code is cloned from the public repo; MyDrive/turniting/workdir/ keeps dataset, checkpoints, models,
+reports and logs. CPU-run reference manifests + frozen eval ids live in training/datasets/manifests/.
 """
 
 from __future__ import annotations
@@ -27,8 +26,9 @@ md("""# Turniting AI Detector — GPU training (Colab)
 Full transformer recipe (`configs/training_gpu.yaml`: mDeBERTa-v3-base, 512 tokens, stride 128, all layers,
 AMP, ~150k windows, 3 epochs) on `TURNITING_DATASET_V1`.
 
-`MyDrive/turniting/` holds `turniting_code.zip` (branch `exp/ai-detector-training`), `ref/` (CPU-run reference
-manifests and frozen evaluation ids) and `workdir/` (dataset, checkpoints, models, reports — persistent).
+Code comes from the public repo (branch `exp/ai-detector-training`); `MyDrive/turniting/workdir/` keeps the
+dataset, checkpoints, models, reports and logs (persistent). Reference manifests and the frozen evaluation ids
+of the CPU run are versioned in `training/datasets/manifests/`.
 The dataset is rebuilt from the official public sources with the same scripts and seed, and checked against
 the reference split counts. Re-running all cells resumes from `last` after a disconnect.
 
@@ -55,13 +55,16 @@ for sub in ['checkpoints', 'models/baseline', 'reports/eval', 'logs', 'datasets'
 print(sorted(os.listdir(DRIVE)))""")
 
 code("""# 3. Code + dependencies
-!rm -rf /content/Turniting && mkdir -p /content/Turniting && cd /content/Turniting && unzip -q -o {DRIVE}/turniting_code.zip
+if not os.path.exists('/content/Turniting/.git'):
+    !git clone -q --branch exp/ai-detector-training https://github.com/Anthgg/Turniting.git /content/Turniting
+else:
+    !git -C /content/Turniting fetch -q origin exp/ai-detector-training && git -C /content/Turniting checkout -q exp/ai-detector-training && git -C /content/Turniting pull -q --ff-only
 %cd /content/Turniting/training
 !pip -q install transformers==4.46.3 accelerate==1.1.1 sentencepiece==0.2.0 langid==1.1.6 datasketch==1.6.5 tiktoken protobuf
-!cat {DRIVE}/ref/code_commit.txt""")
+!git log --oneline -1""")
 
 code("""# 4. Dataset: rebuild TURNITING_DATASET_V1 from the official sources once; persist master to Drive
-!mkdir -p /content/ref && cp datasets/manifests/split_manifest.json datasets/manifests/master_manifest.json /content/ref/
+!mkdir -p /content/ref && cp datasets/manifests/split_manifest.json datasets/manifests/master_manifest.json datasets/manifests/eval_sets.parquet datasets/manifests/spanish_weight_selection.json /content/ref/
 if not os.path.exists(f'{W}/datasets/normalized/master/train'):
     !python scripts/download_datasets.py 2>&1 | grep -E '==|->' | tail -n 30
     !python scripts/build_dataset.py 2>&1 | grep -E 'stage1 |exact|near|groups|leakage|done|Error|Traceback' | tail -n 40
@@ -85,9 +88,9 @@ print('IDENTICAL SPLITS' if SAME else 'WARNING: splits differ from the CPU run -
 
 code("""# 6. Persistent models/checkpoints + frozen evaluation ids
 !rm -rf checkpoints models && ln -s {W}/checkpoints checkpoints && ln -s {W}/models models
-!cp -n {DRIVE}/ref/spanish_weight_selection.json models/baseline/spanish_weight_selection.json
+!cp -n /content/ref/spanish_weight_selection.json models/baseline/spanish_weight_selection.json
 if SAME and not os.path.exists('models/eval_sets.parquet'):
-    shutil.copy2(f'{DRIVE}/ref/eval_sets.parquet', 'models/eval_sets.parquet')  # same rows as the CPU run
+    shutil.copy2('/content/ref/eval_sets.parquet', 'models/eval_sets.parquet')  # same rows as the CPU run
 import pandas as pd
 if os.path.exists('models/eval_sets.parquet'):
     print(pd.read_parquet('models/eval_sets.parquet').eval_set.value_counts())""")

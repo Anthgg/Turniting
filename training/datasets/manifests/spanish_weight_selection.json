@@ -1,0 +1,30 @@
+{
+  "candidates": {
+    "1.0": {
+      "val_macro_f1": 0.813529782156736,
+      "val_spanish_macro_f1": 0.7888053009461224,
+      "objective": 0.8011675415514292,
+      "spanish_share_in_sample": 0.112175
+    },
+    "1.5": {
+      "val_macro_f1": 0.8121102069247152,
+      "val_spanish_macro_f1": 0.8019923779661347,
+      "objective": 0.807051292445425,
+      "spanish_share_in_sample": 0.154575
+    },
+    "2.0": {
+      "val_macro_f1": 0.8106013723543604,
+      "val_spanish_macro_f1": 0.8067513215684989,
+      "objective": 0.8086763469614296,
+      "spanish_share_in_sample": 0.1899
+    },
+    "3.0": {
+      "val_macro_f1": 0.8089822375787381,
+      "val_spanish_macro_f1": 0.818194440031633,
+      "objective": 0.8135883388051856,
+      "spanish_share_in_sample": 0.251675
+    }
+  },
+  "selected": 3.0,
+  "criterion": "max 0.5*val_macro_f1 + 0.5*val_spanish_macro_f1 (VALIDATION, TF-IDF+LR proxy)"
+}
