@@ -71,6 +71,9 @@ def build_train_windows(tokenizer, cfg, tcfg, n_windows, seed, mode, smoke):
         docs = pd.concat([a, b])
     else:
         docs = weighted_sample(meta, w, n_docs, seed)
+    # weighted_sample returns rows in storage (dataset) order: shuffle so the window budget
+    # cut-off below does not starve the datasets stored last (bug found in the CPU run: RAID got 0 docs)
+    docs = docs.sample(frac=1.0, random_state=seed)
     texts = load_split(TRAIN, ["id", "text", "label"], ids=docs["id"]).set_index("id").loc[docs["id"]]
     rng = random.Random(seed)
     windows, labels, doc_ids = [], [], []

@@ -1,6 +1,6 @@
 # Training report — Turniting AI Detector V1 (TURNITING_AI_V1)
 
-Generated 2026-10-16T23:10:04Z · commit `b474bf9ee2` · dataset `TURNITING_DATASET_V1`
+Generated 2026-10-16T23:11:32Z · commit `e1dd45b5b7` · dataset `TURNITING_DATASET_V1`
 
 > Independent detector. Not a Turnitin model, not equivalent to Turnitin scores. Outputs P(HUMAN)/P(MACHINE).
 
@@ -385,6 +385,14 @@ variant, `CALIBRATED_SPANISH_ACADEMIC_TRANSFORMER`, is stored in `models/transfo
    the honest ones. On test, ECE fell 0.177 → 0.037 with unchanged ranking (ROC-AUC 0.879 → 0.877).
 9. `SPANISH_TRAIN_WEIGHT` = 3.0 was selected on validation (Spanish macro F1 0.789 → 0.818 for
    −0.005 global macro F1).
+
+10. **Bug found in the CPU transformer runs (fixed for the next run):** the weighted document sample
+    was iterated in storage order and cut at the 9,000-window budget, so datasets stored last were
+    under-represented — RAID contributed **0** documents to the global transformer (75 to the
+    refinement) and TuringBench/HC3 very few. Baselines are not affected (they use the whole
+    sample). `train_transformer.py` now shuffles the sample before windowing; the transformer
+    numbers above are therefore a pessimistic, non-representative CPU baseline and part of why the
+    adversarial (RAID) scores are low.
 
 ## Warnings
 
