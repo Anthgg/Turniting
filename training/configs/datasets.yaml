@@ -1,0 +1,107 @@
+# Dataset sources for TURNITING_DATASET_V1.
+# Every entry is pinned to an official source (HF revision sha, Zenodo record,
+# GitHub commit) so download_datasets.py can rebuild the raw layer on a new machine.
+# Licence decisions live in datasets/manifests/licenses.json.
+
+safe_disk:
+  min_free_gb: 10
+  min_free_fraction: 0.10
+
+datasets:
+  iberautextification:
+    kind: hf
+    repo_id: Genaios/iberautextification
+    revision: 5c1c380eb27b7a73bb75ee6239ff25db10c144ae
+    files:
+      - README.md
+      - data/subtask_1/train.tsv
+      - data/subtask_1/test.tsv
+      - data/subtask_2/train.tsv
+      - data/subtask_2/test.tsv
+
+  autextification2023:
+    kind: hf
+    repo_id: symanto/autextification2023
+    revision: 737e99bb54a938366b8b2be72db520ae97fac03d
+    files:
+      - README.md
+      - data/train/subtask_1/en/train.tsv
+      - data/train/subtask_1/es/train.tsv
+      - data/test/subtask_1/en/test.tsv
+      - data/test/subtask_1/es/test.tsv
+      - data/train/subtask_2/en/train.tsv
+      - data/train/subtask_2/es/train.tsv
+      - data/test/subtask_2/en/test.tsv
+      - data/test/subtask_2/es/test.tsv
+
+  multitude:
+    kind: zenodo
+    record: "10013755"
+    note: Zenodo record is access-restricted (owner approval required).
+
+  semeval2024_task8:
+    kind: zenodo
+    record: "11002158"
+    files:
+      - SemEval2024-Task8-data.zip
+
+  m4:
+    kind: github_raw
+    repo: mbzuai-nlp/M4
+    path: data
+    pattern: "*.jsonl"
+
+  mage:
+    kind: hf
+    repo_id: yaful/MAGE
+    revision: 342663f0a2b775455c023f5d36a1341ff0ec5402
+    files:
+      - README.md
+      - DeepfakeTextDetect.py
+      - train.csv
+      - valid.csv
+      - test.csv
+      - test_ood_set_gpt.csv
+      - test_ood_set_gpt_para.csv
+
+  hc3:
+    kind: hf
+    repo_id: Hello-SimpleAI/HC3
+    revision: 4d0ff18143b5a7e1b1e79beb540c04549d1e59d3
+    files:
+      - README.md
+      - all.jsonl
+
+  hc3_chinese:
+    kind: hf
+    repo_id: Hello-SimpleAI/HC3-Chinese
+    revision: 09a687b8dc164b89e7df95abf15df3b216bc31c2
+    files:
+      - README.md
+      - all.jsonl
+
+  raid:
+    kind: hf
+    repo_id: liamdugan/raid
+    revision: 865cac74188466cb0c3b7574a10204007b57a459
+    files:
+      - README.md
+      - train.csv
+    # train.csv is ~11.8 GB; after the stratified sample is materialised the raw
+    # file may be deleted to respect the safe-disk threshold (hash stays in manifest).
+    delete_raw_after_build: true
+
+  turingbench:
+    kind: hf
+    repo_id: turingbench/TuringBench
+    revision: 940fa0c860325e199aeaa8d6dbfceec69f13a7e8
+    files:
+      - README.md
+      - TuringBench.py
+      - TuringBench.zip
+
+  ghostbuster_essay:
+    kind: github_tree
+    repo: vivek3141/ghostbuster-data
+    path: essay
+    extra_files: [LICENSE, README.md]

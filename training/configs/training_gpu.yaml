@@ -1,0 +1,93 @@
+# GPU profile (Colab T4/L4/A100): the recipe from the task spec. Same data, splits and eval sets as
+# configs/training.yaml; only the transformer/refinement budget changes.
+seed: 42
+sampling:
+  dataset_weights:
+    iberautextification: 2.0
+    autextification2023: 1.5
+    semeval2024_task8: 1.0
+    m4: 1.0
+    mage: 1.0
+    hc3: 0.6
+    hc3_chinese: 0.3
+    raid: 1.2
+    turingbench: 0.4
+    ghostbuster_essay: 0.8
+    default: 1.0
+  label_balance: 0.5
+  language_weights:
+    default: 1.0
+    es: 2.0
+  spanish_weight_candidates:
+  - 1.0
+  - 1.5
+  - 2.0
+  - 3.0
+  academic_weight: 1.5
+  adversarial_train_fraction_cap: 0.15
+baseline:
+  train_rows: 100000
+  tune_rows: 40000
+  max_chars: 2000
+  max_iter: 30
+  word_ngrams:
+  - 1
+  - 2
+  char_ngrams:
+  - 3
+  - 5
+  lr_C: 4.0
+  svm_C: 0.5
+  stack_rows: 20000
+  lodo_train_rows: 40000
+  eval_cap_per_split: 40000
+transformer:
+  cpu_profile: false
+  model: microsoft/mdeberta-v3-base
+  revision: a0484667b22365f84929a935b5e50a51f71f159d
+  fallback_model: xlm-roberta-base
+  max_length: 512
+  stride: 128
+  max_windows_per_doc: 6
+  freeze_embeddings: false
+  trainable_top_layers: 12
+  train_windows: 150000
+  epochs: 3
+  learning_rate: 2.0e-05
+  weight_decay: 0.01
+  warmup_ratio: 0.06
+  batch_size: 8
+  gradient_accumulation: 4
+  eval_every_steps: 1000
+  early_stopping_patience: 2
+  metric_for_best_model: macro_f1
+  val_docs: 900
+  aggregation_candidates:
+  - mean
+  - trimmed_mean
+  - topk_mean
+  - max
+  num_threads: 4
+refinement:
+  train_windows: 30000
+  target_fraction: 0.7
+  learning_rate: 1.0e-05
+  epochs: 1
+calibration:
+  methods:
+  - temperature
+  - platt
+  - isotonic
+  select_by:
+  - ece
+  - brier
+  low_fpr_max: 0.01
+  high_precision_target: 0.95
+evaluation:
+  test_docs: 4000
+  ood_docs: 1500
+  adversarial_docs: 2400
+  unseen_generator_docs: 1200
+  unseen_domain_docs: 1200
+  spanish_extra_docs: 1200
+  academic_extra_docs: 1000

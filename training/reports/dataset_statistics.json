@@ -1,0 +1,2176 @@
+{
+  "datasetVersion": "TURNITING_DATASET_V1",
+  "builtAt": "2026-10-16T00:52:30Z",
+  "gitCommit": "b474bf9ee22c0a293df49222db8710399276e26f",
+  "rows_original": 2204463,
+  "rows_invalid": {
+    "broken_html": 45,
+    "below_min_chars": 1766,
+    "below_min_words": 143,
+    "empty_or_whitespace": 7354,
+    "null": 27
+  },
+  "rows_valid": 2195128,
+  "exact_duplicates_removed": 625144,
+  "near_duplicates_removed": 15795,
+  "label_conflicts": 10,
+  "holdout_exclusions": 215922,
+  "kept_rows": 1338257,
+  "human": 437866,
+  "machine": 885273,
+  "mixed": 15118,
+  "spanish": 76540,
+  "academic": 114862,
+  "splits": {
+    "train": 865590,
+    "test": 201824,
+    "validation": 93894,
+    "unseen_domain_test": 49916,
+    "ood_test": 44406,
+    "unseen_generator_test": 36468,
+    "adversarial_test": 16276,
+    "mixed": 15118,
+    "adversarial_validation": 14765
+  },
+  "splits_by_label": {
+    "adversarial_test": {
+      "human": 657,
+      "machine": 15619
+    },
+    "adversarial_validation": {
+      "human": 643,
+      "machine": 14122
+    },
+    "ood_test": {
+      "human": 18671,
+      "machine": 25735
+    },
+    "test": {
+      "human": 89539,
+      "machine": 112285
+    },
+    "train": {
+      "human": 274192,
+      "machine": 591398
+    },
+    "unseen_domain_test": {
+      "human": 20657,
+      "machine": 29259
+    },
+    "unseen_generator_test": {
+      "human": 0,
+      "machine": 36468
+    },
+    "validation": {
+      "human": 33507,
+      "machine": 60387
+    }
+  },
+  "by_language": {
+    "ar": {
+      "human": 4001,
+      "machine": 4100
+    },
+    "bg": {
+      "human": 5173,
+      "machine": 6000
+    },
+    "bn": {
+      "human": 0,
+      "machine": 1
+    },
+    "ca": {
+      "human": 9606,
+      "machine": 11399
+    },
+    "de": {
+      "human": 5979,
+      "machine": 5999
+    },
+    "en": {
+      "human": 311924,
+      "machine": 756215
+    },
+    "es": {
+      "human": 37566,
+      "machine": 38974
+    },
+    "eu": {
+      "human": 6780,
+      "machine": 8178
+    },
+    "fr": {
+      "human": 0,
+      "machine": 13
+    },
+    "gl": {
+      "human": 5448,
+      "machine": 5254
+    },
+    "he": {
+      "human": 0,
+      "machine": 1
+    },
+    "id": {
+      "human": 2990,
+      "machine": 3005
+    },
+    "it": {
+      "human": 3037,
+      "machine": 3038
+    },
+    "ky": {
+      "human": 0,
+      "machine": 1
+    },
+    "la": {
+      "human": 0,
+      "machine": 97
+    },
+    "lt": {
+      "human": 0,
+      "machine": 1
+    },
+    "no": {
+      "human": 0,
+      "machine": 2
+    },
+    "pl": {
+      "human": 0,
+      "machine": 1
+    },
+    "pt": {
+      "human": 12238,
+      "machine": 10957
+    },
+    "ro": {
+      "human": 0,
+      "machine": 1
+    },
+    "ru": {
+      "human": 3974,
+      "machine": 6000
+    },
+    "rw": {
+      "human": 0,
+      "machine": 2
+    },
+    "sq": {
+      "human": 0,
+      "machine": 1
+    },
+    "sw": {
+      "human": 0,
+      "machine": 1
+    },
+    "ur": {
+      "human": 3000,
+      "machine": 2901
+    },
+    "vi": {
+      "human": 0,
+      "machine": 6
+    },
+    "zh": {
+      "human": 26150,
+      "machine": 23125
+    }
+  },
+  "by_domain": {
+    "academic": {
+      "human": 30801,
+      "machine": 84061
+    },
+    "chat": {
+      "human": 8123,
+      "machine": 11436
+    },
+    "forum": {
+      "human": 94215,
+      "machine": 114471
+    },
+    "howto": {
+      "human": 27273,
+      "machine": 25659
+    },
+    "legal": {
+      "human": 8922,
+      "machine": 9955
+    },
+    "literary": {
+      "human": 43397,
+      "machine": 127551
+    },
+    "news": {
+      "human": 66793,
+      "machine": 282850
+    },
+    "poetry": {
+      "human": 1145,
+      "machine": 27780
+    },
+    "pubmed": {
+      "human": 200,
+      "machine": 600
+    },
+    "qa": {
+      "human": 49669,
+      "machine": 52264
+    },
+    "recipes": {
+      "human": 218,
+      "machine": 7596
+    },
+    "reviews": {
+      "human": 20439,
+      "machine": 27253
+    },
+    "social": {
+      "human": 15154,
+      "machine": 15611
+    },
+    "unknown": {
+      "human": 18109,
+      "machine": 25135
+    },
+    "wiki": {
+      "human": 53408,
+      "machine": 73051
+    }
+  },
+  "by_generator_family": {
+    "ai21": {
+      "human": 0,
+      "machine": 11611
+    },
+    "bloom": {
+      "human": 0,
+      "machine": 49178
+    },
+    "claude": {
+      "human": 0,
+      "machine": 1000
+    },
+    "cohere": {
+      "human": 0,
+      "machine": 15477
+    },
+    "ctrl": {
+      "human": 0,
+      "machine": 8120
+    },
+    "dolly": {
+      "human": 0,
+      "machine": 14044
+    },
+    "fair-wmt": {
+      "human": 0,
+      "machine": 16461
+    },
+    "glm": {
+      "human": 0,
+      "machine": 8416
+    },
+    "gpt": {
+      "human": 0,
+      "machine": 283435
+    },
+    "gpt-oss-older": {
+      "human": 0,
+      "machine": 108292
+    },
+    "grover": {
+      "human": 0,
+      "machine": 25179
+    },
+    "human": {
+      "human": 437866,
+      "machine": 0
+    },
+    "llama": {
+      "human": 0,
+      "machine": 72620
+    },
+    "mistral": {
+      "human": 0,
+      "machine": 20991
+    },
+    "mpt": {
+      "human": 0,
+      "machine": 57761
+    },
+    "opt": {
+      "human": 0,
+      "machine": 73826
+    },
+    "t5": {
+      "human": 0,
+      "machine": 59624
+    },
+    "transformer-xl": {
+      "human": 0,
+      "machine": 8303
+    },
+    "unknown": {
+      "human": 0,
+      "machine": 25135
+    },
+    "xlm": {
+      "human": 0,
+      "machine": 8852
+    },
+    "xlnet": {
+      "human": 0,
+      "machine": 16948
+    }
+  },
+  "by_generator": {
+    "13b": {
+      "human": 0,
+      "machine": 8576
+    },
+    "30b": {
+      "human": 0,
+      "machine": 8608
+    },
+    "65b": {
+      "human": 0,
+      "machine": 8633
+    },
+    "7b": {
+      "human": 0,
+      "machine": 8544
+    },
+    "ai21.j2-ultra-v1": {
+      "human": 0,
+      "machine": 11611
+    },
+    "babbage": {
+      "human": 0,
+      "machine": 9518
+    },
+    "bloom-1b7": {
+      "human": 0,
+      "machine": 8764
+    },
+    "bloom-3b": {
+      "human": 0,
+      "machine": 8892
+    },
+    "bloom-7b1": {
+      "human": 0,
+      "machine": 9106
+    },
+    "bloom_7b": {
+      "human": 0,
+      "machine": 8098
+    },
+    "bloomz": {
+      "human": 0,
+      "machine": 14318
+    },
+    "chatgpt": {
+      "human": 0,
+      "machine": 85725
+    },
+    "claude": {
+      "human": 0,
+      "machine": 1000
+    },
+    "cohere": {
+      "human": 0,
+      "machine": 6440
+    },
+    "cohere-chat": {
+      "human": 0,
+      "machine": 3704
+    },
+    "cohere.command-text-v14": {
+      "human": 0,
+      "machine": 5333
+    },
+    "ctrl": {
+      "human": 0,
+      "machine": 8120
+    },
+    "curie": {
+      "human": 0,
+      "machine": 9561
+    },
+    "davinci": {
+      "human": 0,
+      "machine": 20755
+    },
+    "dolly": {
+      "human": 0,
+      "machine": 14040
+    },
+    "dolly-v2-12b": {
+      "human": 0,
+      "machine": 4
+    },
+    "fair_wmt19": {
+      "human": 0,
+      "machine": 8164
+    },
+    "fair_wmt20": {
+      "human": 0,
+      "machine": 8297
+    },
+    "flan-t5": {
+      "human": 0,
+      "machine": 8084
+    },
+    "flan_t5_base": {
+      "human": 0,
+      "machine": 7534
+    },
+    "flan_t5_large": {
+      "human": 0,
+      "machine": 7212
+    },
+    "flan_t5_small": {
+      "human": 0,
+      "machine": 7021
+    },
+    "flan_t5_xl": {
+      "human": 0,
+      "machine": 7664
+    },
+    "flan_t5_xxl": {
+      "human": 0,
+      "machine": 7571
+    },
+    "glm130b": {
+      "human": 0,
+      "machine": 8416
+    },
+    "gpt-3.5-trubo": {
+      "human": 0,
+      "machine": 21960
+    },
+    "gpt-3.5-turbo": {
+      "human": 0,
+      "machine": 12498
+    },
+    "gpt-3.5-turbo-instruct": {
+      "human": 0,
+      "machine": 14888
+    },
+    "gpt-4": {
+      "human": 0,
+      "machine": 16845
+    },
+    "gpt1": {
+      "human": 0,
+      "machine": 8309
+    },
+    "gpt2": {
+      "human": 0,
+      "machine": 29028
+    },
+    "gpt2_large": {
+      "human": 0,
+      "machine": 8136
+    },
+    "gpt2_medium": {
+      "human": 0,
+      "machine": 8006
+    },
+    "gpt2_pytorch": {
+      "human": 0,
+      "machine": 8854
+    },
+    "gpt2_small": {
+      "human": 0,
+      "machine": 7942
+    },
+    "gpt2_xl": {
+      "human": 0,
+      "machine": 8125
+    },
+    "gpt3": {
+      "human": 0,
+      "machine": 22715
+    },
+    "gpt4": {
+      "human": 0,
+      "machine": 14600
+    },
+    "gpt_j": {
+      "human": 0,
+      "machine": 6947
+    },
+    "gpt_neox": {
+      "human": 0,
+      "machine": 6157
+    },
+    "grover_base": {
+      "human": 0,
+      "machine": 8853
+    },
+    "grover_large": {
+      "human": 0,
+      "machine": 8164
+    },
+    "grover_mega": {
+      "human": 0,
+      "machine": 8162
+    },
+    "human": {
+      "human": 437866,
+      "machine": 0
+    },
+    "llama-2-70b-chat": {
+      "human": 0,
+      "machine": 9069
+    },
+    "llama-chat": {
+      "human": 0,
+      "machine": 29190
+    },
+    "mistral": {
+      "human": 0,
+      "machine": 7395
+    },
+    "mistral-chat": {
+      "human": 0,
+      "machine": 7183
+    },
+    "mixtral-8x7b-instruct": {
+      "human": 0,
+      "machine": 6413
+    },
+    "mpt": {
+      "human": 0,
+      "machine": 28797
+    },
+    "mpt-chat": {
+      "human": 0,
+      "machine": 28964
+    },
+    "opt_1.3b": {
+      "human": 0,
+      "machine": 8447
+    },
+    "opt_125m": {
+      "human": 0,
+      "machine": 8130
+    },
+    "opt_13b": {
+      "human": 0,
+      "machine": 7401
+    },
+    "opt_2.7b": {
+      "human": 0,
+      "machine": 8431
+    },
+    "opt_30b": {
+      "human": 0,
+      "machine": 8220
+    },
+    "opt_350m": {
+      "human": 0,
+      "machine": 8071
+    },
+    "opt_6.7b": {
+      "human": 0,
+      "machine": 8157
+    },
+    "opt_iml_30b": {
+      "human": 0,
+      "machine": 8406
+    },
+    "opt_iml_max_1.3b": {
+      "human": 0,
+      "machine": 8563
+    },
+    "pplm_distil": {
+      "human": 0,
+      "machine": 8393
+    },
+    "pplm_gpt2": {
+      "human": 0,
+      "machine": 8395
+    },
+    "t0_11b": {
+      "human": 0,
+      "machine": 6893
+    },
+    "t0_3b": {
+      "human": 0,
+      "machine": 7645
+    },
+    "text-davinci-002": {
+      "human": 0,
+      "machine": 21013
+    },
+    "text-davinci-003": {
+      "human": 0,
+      "machine": 33357
+    },
+    "transfo_xl": {
+      "human": 0,
+      "machine": 8303
+    },
+    "unknown": {
+      "human": 0,
+      "machine": 25135
+    },
+    "xlm": {
+      "human": 0,
+      "machine": 8852
+    },
+    "xlnet_base": {
+      "human": 0,
+      "machine": 8814
+    },
+    "xlnet_large": {
+      "human": 0,
+      "machine": 8134
+    }
+  },
+  "by_attack": {
+    "alternative_spelling": {
+      "human": 600,
+      "machine": 14719
+    },
+    "article_deletion": {
+      "human": 608,
+      "machine": 14990
+    },
+    "homoglyph": {
+      "human": 608,
+      "machine": 15267
+    },
+    "insert_paragraphs": {
+      "human": 605,
+      "machine": 15041
+    },
+    "none": {
+      "human": 431178,
+      "machine": 717377
+    },
+    "number": {
+      "human": 613,
+      "machine": 15010
+    },
+    "paraphrase": {
+      "human": 608,
+      "machine": 16829
+    },
+    "perplexity_misspelling": {
+      "human": 605,
+      "machine": 15076
+    },
+    "synonym": {
+      "human": 610,
+      "machine": 15317
+    },
+    "upper_lower": {
+      "human": 607,
+      "machine": 15169
+    },
+    "whitespace": {
+      "human": 608,
+      "machine": 15229
+    },
+    "zero_width_space": {
+      "human": 616,
+      "machine": 15249
+    }
+  },
+  "by_dataset": {
+    "autextification2023": {
+      "rows_original": 107868,
+      "rows_valid": 107769,
+      "exact_duplicates": 0,
+      "near_duplicates": 1104,
+      "label_conflicts": 0,
+      "holdout_exclusions": 0,
+      "kept": 106665,
+      "human": 51251,
+      "machine": 55414,
+      "mixed": 0,
+      "by_split": {
+        "train": 52163,
+        "test": 27917,
+        "unseen_domain_test": 20103,
+        "validation": 6482
+      },
+      "languages": {
+        "en": 55244,
+        "es": 51421,
+        "am": 0,
+        "rw": 0,
+        "ml": 0,
+        "ms": 0,
+        "mt": 0,
+        "no": 0,
+        "pl": 0,
+        "pt": 0,
+        "ro": 0,
+        "ru": 0,
+        "se": 0,
+        "lt": 0,
+        "sq": 0,
+        "sv": 0,
+        "sw": 0,
+        "tl": 0,
+        "tr": 0,
+        "ur": 0,
+        "vi": 0,
+        "mg": 0,
+        "ky": 0,
+        "la": 0,
+        "an": 0,
+        "ar": 0,
+        "bg": 0,
+        "bn": 0,
+        "ca": 0,
+        "cs": 0,
+        "de": 0,
+        "el": 0,
+        "eu": 0,
+        "fr": 0,
+        "ga": 0,
+        "gl": 0,
+        "he": 0,
+        "id": 0,
+        "it": 0,
+        "ja": 0,
+        "kn": 0,
+        "ko": 0,
+        "zh": 0
+      },
+      "domains": {
+        "wiki": 23255,
+        "social": 22776,
+        "news": 21654,
+        "reviews": 20103,
+        "legal": 18877,
+        "academic": 0,
+        "chat": 0,
+        "forum": 0,
+        "howto": 0,
+        "literary": 0,
+        "poetry": 0,
+        "pubmed": 0,
+        "qa": 0,
+        "recipes": 0,
+        "unknown": 0
+      },
+      "generators": {
+        "human": 51251,
+        "text-davinci-003": 9573,
+        "curie": 9561,
+        "babbage": 9518,
+        "bloom-7b1": 9106,
+        "bloom-3b": 8892,
+        "bloom-1b7": 8764,
+        "13b": 0,
+        "llama-2-70b-chat": 0,
+        "mpt-chat": 0,
+        "mpt": 0,
+        "mixtral-8x7b-instruct": 0,
+        "mistral-chat": 0,
+        "mistral": 0,
+        "llama-chat": 0,
+        "grover_large": 0,
+        "grover_mega": 0,
+        "opt_125m": 0,
+        "grover_base": 0,
+        "gpt_neox": 0,
+        "gpt_j": 0,
+        "gpt4": 0,
+        "gpt3": 0,
+        "opt_1.3b": 0,
+        "opt_30b": 0,
+        "opt_13b": 0,
+        "t0_11b": 0,
+        "xlnet_base": 0,
+        "xlm": 0,
+        "unknown": 0,
+        "transfo_xl": 0,
+        "text-davinci-002": 0,
+        "t0_3b": 0,
+        "pplm_gpt2": 0,
+        "opt_2.7b": 0,
+        "pplm_distil": 0,
+        "opt_iml_max_1.3b": 0,
+        "opt_iml_30b": 0,
+        "opt_6.7b": 0,
+        "opt_350m": 0,
+        "gpt2_small": 0,
+        "gpt2_xl": 0,
+        "gpt2_large": 0,
+        "gpt2_pytorch": 0,
+        "dolly-v2": 0,
+        "davinci": 0,
+        "ctrl": 0,
+        "command-xlarge-nightly": 0,
+        "cohere.command-text-v14": 0,
+        "cohere-xlarge-nightly": 0,
+        "cohere-chat": 0,
+        "cohere": 0,
+        "claude": 0,
+        "chatgpt": 0,
+        "bloomz": 0,
+        "bloom_7b": 0,
+        "bigscience/bloomz": 0,
+        "ai21.j2-ultra-v1": 0,
+        "7b": 0,
+        "65b": 0
+      }
+    },
+    "ghostbuster_essay": {
+      "rows_original": 7000,
+      "rows_valid": 6994,
+      "exact_duplicates": 0,
+      "near_duplicates": 0,
+      "label_conflicts": 0,
+      "holdout_exclusions": 0,
+      "kept": 6994,
+      "human": 994,
+      "machine": 6000,
+      "mixed": 0,
+      "by_split": {
+        "train": 5622,
+        "test": 714,
+        "validation": 658
+      },
+      "languages": {
+        "en": 6994,
+        "am": 0,
+        "ru": 0,
+        "mg": 0,
+        "ml": 0,
+        "ms": 0,
+        "mt": 0,
+        "no": 0,
+        "pl": 0,
+        "pt": 0,
+        "ro": 0,
+        "rw": 0,
+        "la": 0,
+        "se": 0,
+        "sq": 0,
+        "sv": 0,
+        "sw": 0,
+        "tl": 0,
+        "tr": 0,
+        "ur": 0,
+        "vi": 0,
+        "lt": 0,
+        "ky": 0,
+        "an": 0,
+        "ko": 0,
+        "ar": 0,
+        "bg": 0,
+        "bn": 0,
+        "ca": 0,
+        "cs": 0,
+        "de": 0,
+        "el": 0,
+        "es": 0,
+        "eu": 0,
+        "fr": 0,
+        "ga": 0,
+        "gl": 0,
+        "he": 0,
+        "id": 0,
+        "it": 0,
+        "ja": 0,
+        "kn": 0,
+        "zh": 0
+      },
+      "domains": {
+        "academic": 6994,
+        "chat": 0,
+        "forum": 0,
+        "howto": 0,
+        "legal": 0,
+        "literary": 0,
+        "news": 0,
+        "poetry": 0,
+        "pubmed": 0,
+        "qa": 0,
+        "recipes": 0,
+        "reviews": 0,
+        "social": 0,
+        "unknown": 0,
+        "wiki": 0
+      },
+      "generators": {
+        "gpt-3.5-turbo": 5000,
+        "claude": 1000,
+        "human": 994,
+        "13b": 0,
+        "grover_mega": 0,
+        "mpt": 0,
+        "mixtral-8x7b-instruct": 0,
+        "mistral-chat": 0,
+        "mistral": 0,
+        "llama-chat": 0,
+        "llama-2-70b-chat": 0,
+        "grover_large": 0,
+        "opt_1.3b": 0,
+        "grover_base": 0,
+        "gpt_neox": 0,
+        "gpt_j": 0,
+        "gpt4": 0,
+        "gpt3": 0,
+        "gpt2_xl": 0,
+        "gpt2_small": 0,
+        "mpt-chat": 0,
+        "opt_125m": 0,
+        "gpt2_medium": 0,
+        "t0_11b": 0,
+        "xlnet_base": 0,
+        "xlm": 0,
+        "unknown": 0,
+        "transfo_xl": 0,
+        "text-davinci-003": 0,
+        "text-davinci-002": 0,
+        "t0_3b": 0,
+        "pplm_gpt2": 0,
+        "opt_13b": 0,
+        "pplm_distil": 0,
+        "opt_iml_max_1.3b": 0,
+        "opt_iml_30b": 0,
+        "opt_6.7b": 0,
+        "opt_350m": 0,
+        "opt_30b": 0,
+        "opt_2.7b": 0,
+        "gpt2_pytorch": 0,
+        "gpt2_large": 0,
+        "30b": 0,
+        "bloom_7b": 0,
+        "command-xlarge-nightly": 0,
+        "cohere.command-text-v14": 0,
+        "cohere-xlarge-nightly": 0,
+        "cohere-chat": 0,
+        "cohere": 0,
+        "chatgpt": 0,
+        "bloomz": 0,
+        "bloom-7b1": 0,
+        "gpt2": 0,
+        "bloom-3b": 0,
+        "bloom-1b7": 0,
+        "bigscience/bloomz": 0,
+        "babbage": 0,
+        "ai21.j2-ultra-v1": 0,
+        "7b": 0,
+        "65b": 0
+      }
+    },
+    "hc3": {
+      "rows_original": 85449,
+      "rows_valid": 85421,
+      "exact_duplicates": 6097,
+      "near_duplicates": 793,
+      "label_conflicts": 0,
+      "holdout_exclusions": 0,
+      "kept": 78531,
+      "human": 52302,
+      "machine": 26229,
+      "mixed": 0,
+      "by_split": {
+        "train": 62786,
+        "test": 7926,
+        "validation": 7819
+      },
+      "languages": {
+        "en": 78531,
+        "am": 0,
+        "ru": 0,
+        "mg": 0,
+        "ml": 0,
+        "ms": 0,
+        "mt": 0,
+        "no": 0,
+        "pl": 0,
+        "pt": 0,
+        "ro": 0,
+        "rw": 0,
+        "la": 0,
+        "se": 0,
+        "sq": 0,
+        "sv": 0,
+        "sw": 0,
+        "tl": 0,
+        "tr": 0,
+        "ur": 0,
+        "vi": 0,
+        "lt": 0,
+        "ky": 0,
+        "an": 0,
+        "ko": 0,
+        "ar": 0,
+        "bg": 0,
+        "bn": 0,
+        "ca": 0,
+        "cs": 0,
+        "de": 0,
+        "el": 0,
+        "es": 0,
+        "eu": 0,
+        "fr": 0,
+        "ga": 0,
+        "gl": 0,
+        "he": 0,
+        "id": 0,
+        "it": 0,
+        "ja": 0,
+        "kn": 0,
+        "zh": 0
+      },
+      "domains": {
+        "forum": 61309,
+        "qa": 17222,
+        "academic": 0,
+        "chat": 0,
+        "howto": 0,
+        "legal": 0,
+        "literary": 0,
+        "news": 0,
+        "poetry": 0,
+        "pubmed": 0,
+        "recipes": 0,
+        "reviews": 0,
+        "social": 0,
+        "unknown": 0,
+        "wiki": 0
+      },
+      "generators": {
+        "human": 52302,
+        "chatgpt": 26229,
+        "13b": 0,
+        "opt_1.3b": 0,
+        "mpt": 0,
+        "mixtral-8x7b-instruct": 0,
+        "mistral-chat": 0,
+        "mistral": 0,
+        "llama-chat": 0,
+        "llama-2-70b-chat": 0,
+        "grover_mega": 0,
+        "grover_large": 0,
+        "grover_base": 0,
+        "gpt_neox": 0,
+        "gpt_j": 0,
+        "gpt4": 0,
+        "gpt3": 0,
+        "gpt2_xl": 0,
+        "gpt2_small": 0,
+        "mpt-chat": 0,
+        "opt_125m": 0,
+        "gpt2_medium": 0,
+        "t0_11b": 0,
+        "xlnet_base": 0,
+        "xlm": 0,
+        "unknown": 0,
+        "transfo_xl": 0,
+        "text-davinci-003": 0,
+        "text-davinci-002": 0,
+        "t0_3b": 0,
+        "pplm_gpt2": 0,
+        "opt_13b": 0,
+        "pplm_distil": 0,
+        "opt_iml_max_1.3b": 0,
+        "opt_iml_30b": 0,
+        "opt_6.7b": 0,
+        "opt_350m": 0,
+        "opt_30b": 0,
+        "opt_2.7b": 0,
+        "gpt2_pytorch": 0,
+        "gpt2_large": 0,
+        "30b": 0,
+        "bloom_7b": 0,
+        "command-xlarge-nightly": 0,
+        "cohere.command-text-v14": 0,
+        "cohere-xlarge-nightly": 0,
+        "cohere-chat": 0,
+        "cohere": 0,
+        "claude": 0,
+        "bloomz": 0,
+        "bloom-7b1": 0,
+        "curie": 0,
+        "bloom-3b": 0,
+        "bloom-1b7": 0,
+        "bigscience/bloomz": 0,
+        "babbage": 0,
+        "ai21.j2-ultra-v1": 0,
+        "7b": 0,
+        "65b": 0,
+        "ctrl": 0
+      }
+    },
+    "hc3_chinese": {
+      "rows_original": 39781,
+      "rows_valid": 38145,
+      "exact_duplicates": 672,
+      "near_duplicates": 70,
+      "label_conflicts": 0,
+      "holdout_exclusions": 0,
+      "kept": 37403,
+      "human": 20158,
+      "machine": 17245,
+      "mixed": 0,
+      "by_split": {
+        "train": 30233,
+        "test": 3612,
+        "validation": 3558
+      },
+      "languages": {
+        "zh": 37403,
+        "ru": 0,
+        "mg": 0,
+        "ml": 0,
+        "ms": 0,
+        "mt": 0,
+        "no": 0,
+        "pl": 0,
+        "pt": 0,
+        "ro": 0,
+        "rw": 0,
+        "la": 0,
+        "se": 0,
+        "sq": 0,
+        "sv": 0,
+        "sw": 0,
+        "tl": 0,
+        "tr": 0,
+        "ur": 0,
+        "vi": 0,
+        "lt": 0,
+        "am": 0,
+        "an": 0,
+        "es": 0,
+        "ar": 0,
+        "bg": 0,
+        "bn": 0,
+        "ca": 0,
+        "cs": 0,
+        "de": 0,
+        "el": 0,
+        "en": 0,
+        "eu": 0,
+        "ko": 0,
+        "fr": 0,
+        "ga": 0,
+        "gl": 0,
+        "he": 0,
+        "id": 0,
+        "it": 0,
+        "ja": 0,
+        "kn": 0,
+        "ky": 0
+      },
+      "domains": {
+        "qa": 28369,
+        "wiki": 9034,
+        "academic": 0,
+        "chat": 0,
+        "forum": 0,
+        "howto": 0,
+        "legal": 0,
+        "literary": 0,
+        "news": 0,
+        "poetry": 0,
+        "pubmed": 0,
+        "recipes": 0,
+        "reviews": 0,
+        "social": 0,
+        "unknown": 0
+      },
+      "generators": {
+        "human": 20158,
+        "chatgpt": 17245,
+        "13b": 0,
+        "opt_1.3b": 0,
+        "mpt": 0,
+        "mixtral-8x7b-instruct": 0,
+        "mistral-chat": 0,
+        "mistral": 0,
+        "llama-chat": 0,
+        "llama-2-70b-chat": 0,
+        "grover_mega": 0,
+        "grover_large": 0,
+        "grover_base": 0,
+        "gpt_neox": 0,
+        "gpt_j": 0,
+        "gpt4": 0,
+        "gpt3": 0,
+        "gpt2_xl": 0,
+        "gpt2_small": 0,
+        "mpt-chat": 0,
+        "opt_125m": 0,
+        "gpt2_medium": 0,
+        "t0_11b": 0,
+        "xlnet_base": 0,
+        "xlm": 0,
+        "unknown": 0,
+        "transfo_xl": 0,
+        "text-davinci-003": 0,
+        "text-davinci-002": 0,
+        "t0_3b": 0,
+        "pplm_gpt2": 0,
+        "opt_13b": 0,
+        "pplm_distil": 0,
+        "opt_iml_max_1.3b": 0,
+        "opt_iml_30b": 0,
+        "opt_6.7b": 0,
+        "opt_350m": 0,
+        "opt_30b": 0,
+        "opt_2.7b": 0,
+        "gpt2_pytorch": 0,
+        "gpt2_large": 0,
+        "30b": 0,
+        "bloom_7b": 0,
+        "command-xlarge-nightly": 0,
+        "cohere.command-text-v14": 0,
+        "cohere-xlarge-nightly": 0,
+        "cohere-chat": 0,
+        "cohere": 0,
+        "claude": 0,
+        "bloomz": 0,
+        "bloom-7b1": 0,
+        "curie": 0,
+        "bloom-3b": 0,
+        "bloom-1b7": 0,
+        "bigscience/bloomz": 0,
+        "babbage": 0,
+        "ai21.j2-ultra-v1": 0,
+        "7b": 0,
+        "65b": 0,
+        "ctrl": 0
+      }
+    },
+    "iberautextification": {
+      "rows_original": 153028,
+      "rows_valid": 153024,
+      "exact_duplicates": 0,
+      "near_duplicates": 938,
+      "label_conflicts": 0,
+      "holdout_exclusions": 28448,
+      "kept": 123638,
+      "human": 61879,
+      "machine": 61759,
+      "mixed": 0,
+      "by_split": {
+        "train": 58629,
+        "test": 42419,
+        "unseen_generator_test": 11746,
+        "validation": 7354,
+        "unseen_domain_test": 3490
+      },
+      "languages": {
+        "en": 28680,
+        "es": 25109,
+        "pt": 23185,
+        "ca": 21005,
+        "eu": 14957,
+        "gl": 10702,
+        "am": 0,
+        "ms": 0,
+        "mt": 0,
+        "no": 0,
+        "pl": 0,
+        "ro": 0,
+        "ru": 0,
+        "rw": 0,
+        "sq": 0,
+        "se": 0,
+        "mg": 0,
+        "sv": 0,
+        "sw": 0,
+        "tl": 0,
+        "tr": 0,
+        "ur": 0,
+        "vi": 0,
+        "ml": 0,
+        "ky": 0,
+        "lt": 0,
+        "la": 0,
+        "ar": 0,
+        "bg": 0,
+        "bn": 0,
+        "cs": 0,
+        "de": 0,
+        "el": 0,
+        "fr": 0,
+        "ga": 0,
+        "he": 0,
+        "id": 0,
+        "it": 0,
+        "ja": 0,
+        "kn": 0,
+        "ko": 0,
+        "an": 0,
+        "zh": 0
+      },
+      "domains": {
+        "wiki": 24418,
+        "howto": 24397,
+        "news": 23808,
+        "literary": 20039,
+        "chat": 18797,
+        "social": 7989,
+        "reviews": 4190,
+        "academic": 0,
+        "forum": 0,
+        "legal": 0,
+        "poetry": 0,
+        "pubmed": 0,
+        "qa": 0,
+        "recipes": 0,
+        "unknown": 0
+      },
+      "generators": {
+        "human": 61879,
+        "gpt-3.5-turbo-instruct": 14888,
+        "gpt-4": 14445,
+        "ai21.j2-ultra-v1": 11611,
+        "llama-2-70b-chat": 9069,
+        "mixtral-8x7b-instruct": 6413,
+        "cohere.command-text-v14": 5333,
+        "13b": 0,
+        "mpt": 0,
+        "mistral-chat": 0,
+        "mistral": 0,
+        "llama-chat": 0,
+        "grover_large": 0,
+        "grover_mega": 0,
+        "opt_1.3b": 0,
+        "grover_base": 0,
+        "gpt_neox": 0,
+        "gpt_j": 0,
+        "gpt4": 0,
+        "gpt3": 0,
+        "gpt2_xl": 0,
+        "mpt-chat": 0,
+        "opt_125m": 0,
+        "gpt2_pytorch": 0,
+        "t0_11b": 0,
+        "xlnet_base": 0,
+        "xlm": 0,
+        "unknown": 0,
+        "transfo_xl": 0,
+        "text-davinci-003": 0,
+        "text-davinci-002": 0,
+        "t0_3b": 0,
+        "pplm_gpt2": 0,
+        "opt_13b": 0,
+        "pplm_distil": 0,
+        "opt_iml_max_1.3b": 0,
+        "opt_iml_30b": 0,
+        "opt_6.7b": 0,
+        "opt_350m": 0,
+        "opt_30b": 0,
+        "opt_2.7b": 0,
+        "gpt2_small": 0,
+        "gpt2_large": 0,
+        "gpt2_medium": 0,
+        "curie": 0,
+        "command-xlarge-nightly": 0,
+        "cohere-xlarge-nightly": 0,
+        "cohere-chat": 0,
+        "cohere": 0,
+        "claude": 0,
+        "chatgpt": 0,
+        "bloomz": 0,
+        "bloom_7b": 0,
+        "bloom-7b1": 0,
+        "bloom-3b": 0,
+        "bloom-1b7": 0,
+        "bigscience/bloomz": 0,
+        "babbage": 0,
+        "7b": 0,
+        "65b": 0
+      }
+    },
+    "m4": {
+      "rows_original": 239059,
+      "rows_valid": 231750,
+      "exact_duplicates": 203628,
+      "near_duplicates": 193,
+      "label_conflicts": 6,
+      "holdout_exclusions": 0,
+      "kept": 27923,
+      "human": 9838,
+      "machine": 18085,
+      "mixed": 0,
+      "by_split": {
+        "train": 22266,
+        "validation": 2846,
+        "test": 2811
+      },
+      "languages": {
+        "en": 9957,
+        "ru": 7989,
+        "ar": 5000,
+        "de": 4977,
+        "am": 0,
+        "rw": 0,
+        "ml": 0,
+        "ms": 0,
+        "mt": 0,
+        "no": 0,
+        "pl": 0,
+        "pt": 0,
+        "ro": 0,
+        "sq": 0,
+        "se": 0,
+        "lt": 0,
+        "sv": 0,
+        "sw": 0,
+        "tl": 0,
+        "tr": 0,
+        "ur": 0,
+        "vi": 0,
+        "mg": 0,
+        "ky": 0,
+        "la": 0,
+        "fr": 0,
+        "bg": 0,
+        "bn": 0,
+        "ca": 0,
+        "cs": 0,
+        "el": 0,
+        "es": 0,
+        "eu": 0,
+        "ga": 0,
+        "an": 0,
+        "gl": 0,
+        "he": 0,
+        "id": 0,
+        "it": 0,
+        "ja": 0,
+        "kn": 0,
+        "ko": 0,
+        "zh": 0
+      },
+      "domains": {
+        "wiki": 11268,
+        "news": 7989,
+        "academic": 5712,
+        "forum": 2950,
+        "howto": 4,
+        "chat": 0,
+        "legal": 0,
+        "literary": 0,
+        "poetry": 0,
+        "pubmed": 0,
+        "qa": 0,
+        "recipes": 0,
+        "reviews": 0,
+        "social": 0,
+        "unknown": 0
+      },
+      "generators": {
+        "human": 9838,
+        "flan-t5": 8084,
+        "gpt-3.5-turbo": 7498,
+        "text-davinci-003": 2499,
+        "dolly-v2-12b": 4,
+        "13b": 0,
+        "mixtral-8x7b-instruct": 0,
+        "mistral-chat": 0,
+        "mistral": 0,
+        "llama-chat": 0,
+        "llama-2-70b-chat": 0,
+        "grover_large": 0,
+        "grover_mega": 0,
+        "mpt-chat": 0,
+        "grover_base": 0,
+        "gpt_neox": 0,
+        "gpt_j": 0,
+        "gpt4": 0,
+        "gpt3": 0,
+        "gpt2_xl": 0,
+        "mpt": 0,
+        "opt_1.3b": 0,
+        "gpt2_pytorch": 0,
+        "pplm_gpt2": 0,
+        "xlnet_base": 0,
+        "xlm": 0,
+        "unknown": 0,
+        "transfo_xl": 0,
+        "text-davinci-002": 0,
+        "t0_3b": 0,
+        "t0_11b": 0,
+        "pplm_distil": 0,
+        "opt_125m": 0,
+        "opt_iml_max_1.3b": 0,
+        "opt_iml_30b": 0,
+        "opt_6.7b": 0,
+        "opt_350m": 0,
+        "opt_30b": 0,
+        "opt_2.7b": 0,
+        "opt_13b": 0,
+        "gpt2_small": 0,
+        "gpt2_large": 0,
+        "gpt2_medium": 0,
+        "bloom_7b": 0,
+        "cohere.command-text-v14": 0,
+        "cohere-xlarge-nightly": 0,
+        "cohere-chat": 0,
+        "cohere": 0,
+        "claude": 0,
+        "chatgpt": 0,
+        "bloomz": 0,
+        "bloom-7b1": 0,
+        "30b": 0,
+        "bloom-3b": 0,
+        "bloom-1b7": 0,
+        "bigscience/bloomz": 0,
+        "babbage": 0,
+        "ai21.j2-ultra-v1": 0,
+        "7b": 0,
+        "65b": 0
+      }
+    },
+    "mage": {
+      "rows_original": 436606,
+      "rows_valid": 436606,
+      "exact_duplicates": 829,
+      "near_duplicates": 11022,
+      "label_conflicts": 0,
+      "holdout_exclusions": 45081,
+      "kept": 379674,
+      "human": 123671,
+      "machine": 256003,
+      "mixed": 0,
+      "by_split": {
+        "train": 247119,
+        "test": 81872,
+        "validation": 31233,
+        "unseen_domain_test": 17088,
+        "adversarial_test": 1200,
+        "ood_test": 1162
+      },
+      "languages": {
+        "en": 379674,
+        "am": 0,
+        "ru": 0,
+        "mg": 0,
+        "ml": 0,
+        "ms": 0,
+        "mt": 0,
+        "no": 0,
+        "pl": 0,
+        "pt": 0,
+        "ro": 0,
+        "rw": 0,
+        "la": 0,
+        "se": 0,
+        "sq": 0,
+        "sv": 0,
+        "sw": 0,
+        "tl": 0,
+        "tr": 0,
+        "ur": 0,
+        "vi": 0,
+        "lt": 0,
+        "ky": 0,
+        "an": 0,
+        "ko": 0,
+        "ar": 0,
+        "bg": 0,
+        "bn": 0,
+        "ca": 0,
+        "cs": 0,
+        "de": 0,
+        "el": 0,
+        "es": 0,
+        "eu": 0,
+        "fr": 0,
+        "ga": 0,
+        "gl": 0,
+        "he": 0,
+        "id": 0,
+        "it": 0,
+        "ja": 0,
+        "kn": 0,
+        "zh": 0
+      },
+      "domains": {
+        "literary": 121792,
+        "forum": 86637,
+        "news": 76199,
+        "qa": 44472,
+        "academic": 31924,
+        "reviews": 17088,
+        "pubmed": 800,
+        "chat": 762,
+        "howto": 0,
+        "legal": 0,
+        "poetry": 0,
+        "recipes": 0,
+        "social": 0,
+        "unknown": 0,
+        "wiki": 0
+      },
+      "generators": {
+        "human": 123671,
+        "gpt-3.5-trubo": 21960,
+        "text-davinci-003": 21285,
+        "text-davinci-002": 21013,
+        "65b": 8633,
+        "30b": 8608,
+        "13b": 8576,
+        "opt_iml_max_1.3b": 8563,
+        "7b": 8544,
+        "opt_1.3b": 8447,
+        "opt_2.7b": 8431,
+        "glm130b": 8416,
+        "opt_iml_30b": 8406,
+        "opt_30b": 8220,
+        "opt_6.7b": 8157,
+        "opt_125m": 8130,
+        "bloom_7b": 8098,
+        "opt_350m": 8071,
+        "flan_t5_xl": 7664,
+        "t0_3b": 7645,
+        "flan_t5_xxl": 7571,
+        "flan_t5_base": 7534,
+        "opt_13b": 7401,
+        "flan_t5_large": 7212,
+        "flan_t5_small": 7021,
+        "gpt_j": 6947,
+        "t0_11b": 6893,
+        "gpt_neox": 6157,
+        "gpt-4": 2400,
+        "mixtral-8x7b-instruct": 0,
+        "grover_base": 0,
+        "grover_large": 0,
+        "grover_mega": 0,
+        "xlnet_base": 0,
+        "xlm": 0,
+        "llama-2-70b-chat": 0,
+        "llama-chat": 0,
+        "mistral-chat": 0,
+        "mistral": 0,
+        "gpt4": 0,
+        "pplm_gpt2": 0,
+        "pplm_distil": 0,
+        "mpt-chat": 0,
+        "mpt": 0,
+        "transfo_xl": 0,
+        "unknown": 0,
+        "gpt2_large": 0,
+        "gpt3": 0,
+        "ctrl": 0,
+        "ai21.j2-ultra-v1": 0,
+        "babbage": 0,
+        "bigscience/bloomz": 0,
+        "bloom-1b7": 0,
+        "bloom-3b": 0,
+        "bloom-7b1": 0,
+        "bloomz": 0,
+        "chatgpt": 0,
+        "claude": 0,
+        "cohere": 0,
+        "cohere-chat": 0
+      }
+    },
+    "raid": {
+      "rows_original": 322560,
+      "rows_valid": 322388,
+      "exact_duplicates": 1967,
+      "near_duplicates": 18,
+      "label_conflicts": 0,
+      "holdout_exclusions": 131554,
+      "kept": 188849,
+      "human": 7286,
+      "machine": 181563,
+      "mixed": 0,
+      "by_split": {
+        "train": 125225,
+        "unseen_generator_test": 21885,
+        "adversarial_test": 15076,
+        "adversarial_validation": 14765,
+        "unseen_domain_test": 9235,
+        "test": 1369,
+        "validation": 1294
+      },
+      "languages": {
+        "en": 188849,
+        "am": 0,
+        "ru": 0,
+        "mg": 0,
+        "ml": 0,
+        "ms": 0,
+        "mt": 0,
+        "no": 0,
+        "pl": 0,
+        "pt": 0,
+        "ro": 0,
+        "rw": 0,
+        "la": 0,
+        "se": 0,
+        "sq": 0,
+        "sv": 0,
+        "sw": 0,
+        "tl": 0,
+        "tr": 0,
+        "ur": 0,
+        "vi": 0,
+        "lt": 0,
+        "ky": 0,
+        "an": 0,
+        "ko": 0,
+        "ar": 0,
+        "bg": 0,
+        "bn": 0,
+        "ca": 0,
+        "cs": 0,
+        "de": 0,
+        "el": 0,
+        "es": 0,
+        "eu": 0,
+        "fr": 0,
+        "ga": 0,
+        "gl": 0,
+        "he": 0,
+        "id": 0,
+        "it": 0,
+        "ja": 0,
+        "kn": 0,
+        "zh": 0
+      },
+      "domains": {
+        "wiki": 29335,
+        "forum": 29205,
+        "literary": 29117,
+        "academic": 29075,
+        "news": 29067,
+        "poetry": 28925,
+        "recipes": 7814,
+        "reviews": 6311,
+        "chat": 0,
+        "howto": 0,
+        "legal": 0,
+        "pubmed": 0,
+        "qa": 0,
+        "social": 0,
+        "unknown": 0
+      },
+      "generators": {
+        "llama-chat": 29190,
+        "gpt2": 29028,
+        "mpt-chat": 28964,
+        "mpt": 28797,
+        "gpt4": 14600,
+        "gpt3": 14552,
+        "chatgpt": 14547,
+        "mistral": 7395,
+        "human": 7286,
+        "mistral-chat": 7183,
+        "cohere-chat": 3704,
+        "cohere": 3603,
+        "grover_large": 0,
+        "grover_mega": 0,
+        "opt_1.3b": 0,
+        "grover_base": 0,
+        "llama-2-70b-chat": 0,
+        "gpt_neox": 0,
+        "gpt_j": 0,
+        "mixtral-8x7b-instruct": 0,
+        "gpt2_xl": 0,
+        "13b": 0,
+        "opt_13b": 0,
+        "opt_125m": 0,
+        "t0_11b": 0,
+        "xlnet_base": 0,
+        "xlm": 0,
+        "unknown": 0,
+        "transfo_xl": 0,
+        "text-davinci-003": 0,
+        "text-davinci-002": 0,
+        "t0_3b": 0,
+        "pplm_gpt2": 0,
+        "gpt2_pytorch": 0,
+        "pplm_distil": 0,
+        "opt_iml_max_1.3b": 0,
+        "opt_iml_30b": 0,
+        "opt_6.7b": 0,
+        "opt_350m": 0,
+        "opt_30b": 0,
+        "opt_2.7b": 0,
+        "gpt2_small": 0,
+        "gpt2_large": 0,
+        "gpt2_medium": 0,
+        "davinci": 0,
+        "ctrl": 0,
+        "command-xlarge-nightly": 0,
+        "cohere.command-text-v14": 0,
+        "cohere-xlarge-nightly": 0,
+        "claude": 0,
+        "bloomz": 0,
+        "bloom_7b": 0,
+        "bloom-7b1": 0,
+        "bloom-3b": 0,
+        "bloom-1b7": 0,
+        "bigscience/bloomz": 0,
+        "babbage": 0,
+        "ai21.j2-ultra-v1": 0,
+        "7b": 0,
+        "65b": 0
+      }
+    },
+    "semeval2024_task8": {
+      "rows_original": 485128,
+      "rows_valid": 485047,
+      "exact_duplicates": 250543,
+      "near_duplicates": 961,
+      "label_conflicts": 4,
+      "holdout_exclusions": 10839,
+      "kept": 222700,
+      "human": 102793,
+      "machine": 104789,
+      "mixed": 15118,
+      "by_split": {
+        "train": 128681,
+        "ood_test": 43244,
+        "validation": 16421,
+        "test": 16399,
+        "mixed": 15118,
+        "unseen_generator_test": 2837
+      },
+      "languages": {
+        "en": 169448,
+        "zh": 11872,
+        "bg": 11173,
+        "de": 7001,
+        "it": 6075,
+        "id": 5995,
+        "ur": 5901,
+        "ar": 3101,
+        "ru": 1985,
+        "la": 97,
+        "fr": 13,
+        "pt": 10,
+        "es": 10,
+        "vi": 6,
+        "rw": 2,
+        "no": 2,
+        "ro": 1,
+        "sq": 1,
+        "sw": 1,
+        "pl": 1,
+        "lt": 1,
+        "ky": 1,
+        "eu": 1,
+        "bn": 1,
+        "he": 1,
+        "an": 0,
+        "ca": 0,
+        "tr": 0,
+        "tl": 0,
+        "cs": 0,
+        "sv": 0,
+        "el": 0,
+        "se": 0,
+        "ga": 0,
+        "ko": 0,
+        "gl": 0,
+        "ja": 0,
+        "kn": 0,
+        "mt": 0,
+        "ms": 0,
+        "ml": 0,
+        "mg": 0,
+        "am": 0
+      },
+      "domains": {
+        "academic": 56275,
+        "unknown": 43244,
+        "wiki": 29149,
+        "forum": 28585,
+        "howto": 28531,
+        "news": 25046,
+        "qa": 11870,
+        "chat": 0,
+        "legal": 0,
+        "literary": 0,
+        "poetry": 0,
+        "pubmed": 0,
+        "recipes": 0,
+        "reviews": 0,
+        "social": 0
+      },
+      "generators": {
+        "human": 102793,
+        "unknown": 40253,
+        "chatgpt": 27704,
+        "davinci": 20755,
+        "bloomz": 14318,
+        "dolly": 14040,
+        "cohere": 2837,
+        "grover_base": 0,
+        "grover_large": 0,
+        "grover_mega": 0,
+        "gpt4": 0,
+        "opt_125m": 0,
+        "gpt3": 0,
+        "llama-2-70b-chat": 0,
+        "gpt_neox": 0,
+        "llama-chat": 0,
+        "mistral": 0,
+        "mistral-chat": 0,
+        "mixtral-8x7b-instruct": 0,
+        "mpt": 0,
+        "mpt-chat": 0,
+        "opt_1.3b": 0,
+        "gpt_j": 0,
+        "13b": 0,
+        "opt_13b": 0,
+        "gpt2_small": 0,
+        "xlnet_base": 0,
+        "xlm": 0,
+        "transfo_xl": 0,
+        "text-davinci-003": 0,
+        "text-davinci-002": 0,
+        "t0_3b": 0,
+        "t0_11b": 0,
+        "pplm_gpt2": 0,
+        "pplm_distil": 0,
+        "opt_iml_max_1.3b": 0,
+        "opt_iml_30b": 0,
+        "opt_6.7b": 0,
+        "opt_350m": 0,
+        "opt_30b": 0,
+        "opt_2.7b": 0,
+        "gpt2_xl": 0,
+        "gpt2_large": 0,
+        "gpt2_pytorch": 0,
+        "dolly-v2": 0,
+        "ctrl": 0,
+        "command-xlarge-nightly": 0,
+        "cohere.command-text-v14": 0,
+        "cohere-xlarge-nightly": 0,
+        "cohere-chat": 0,
+        "claude": 0,
+        "bloom_7b": 0,
+        "bloom-7b1": 0,
+        "bloom-3b": 0,
+        "bloom-1b7": 0,
+        "bigscience/bloomz": 0,
+        "babbage": 0,
+        "ai21.j2-ultra-v1": 0,
+        "7b": 0,
+        "65b": 0
+      }
+    },
+    "turingbench": {
+      "rows_original": 327984,
+      "rows_valid": 327984,
+      "exact_duplicates": 161408,
+      "near_duplicates": 696,
+      "label_conflicts": 0,
+      "holdout_exclusions": 0,
+      "kept": 165880,
+      "human": 7694,
+      "machine": 158186,
+      "mixed": 0,
+      "by_split": {
+        "train": 132866,
+        "test": 16785,
+        "validation": 16229
+      },
+      "languages": {
+        "en": 165880,
+        "am": 0,
+        "ru": 0,
+        "mg": 0,
+        "ml": 0,
+        "ms": 0,
+        "mt": 0,
+        "no": 0,
+        "pl": 0,
+        "pt": 0,
+        "ro": 0,
+        "rw": 0,
+        "la": 0,
+        "se": 0,
+        "sq": 0,
+        "sv": 0,
+        "sw": 0,
+        "tl": 0,
+        "tr": 0,
+        "ur": 0,
+        "vi": 0,
+        "lt": 0,
+        "ky": 0,
+        "an": 0,
+        "ko": 0,
+        "ar": 0,
+        "bg": 0,
+        "bn": 0,
+        "ca": 0,
+        "cs": 0,
+        "de": 0,
+        "el": 0,
+        "es": 0,
+        "eu": 0,
+        "fr": 0,
+        "ga": 0,
+        "gl": 0,
+        "he": 0,
+        "id": 0,
+        "it": 0,
+        "ja": 0,
+        "kn": 0,
+        "zh": 0
+      },
+      "domains": {
+        "news": 165880,
+        "academic": 0,
+        "chat": 0,
+        "forum": 0,
+        "howto": 0,
+        "legal": 0,
+        "literary": 0,
+        "poetry": 0,
+        "pubmed": 0,
+        "qa": 0,
+        "recipes": 0,
+        "reviews": 0,
+        "social": 0,
+        "unknown": 0,
+        "wiki": 0
+      },
+      "generators": {
+        "gpt2_pytorch": 8854,
+        "grover_base": 8853,
+        "xlm": 8852,
+        "xlnet_base": 8814,
+        "pplm_gpt2": 8395,
+        "pplm_distil": 8393,
+        "gpt1": 8309,
+        "transfo_xl": 8303,
+        "fair_wmt20": 8297,
+        "fair_wmt19": 8164,
+        "grover_large": 8164,
+        "gpt3": 8163,
+        "grover_mega": 8162,
+        "gpt2_large": 8136,
+        "xlnet_large": 8134,
+        "gpt2_xl": 8125,
+        "ctrl": 8120,
+        "gpt2_medium": 8006,
+        "gpt2_small": 7942,
+        "human": 7694,
+        "cohere-chat": 0,
+        "mixtral-8x7b-instruct": 0,
+        "opt_125m": 0,
+        "opt_1.3b": 0,
+        "mpt-chat": 0,
+        "mpt": 0,
+        "mistral": 0,
+        "mistral-chat": 0,
+        "opt_2.7b": 0,
+        "llama-chat": 0,
+        "llama-2-70b-chat": 0,
+        "opt_13b": 0,
+        "opt_30b": 0,
+        "bloom-3b": 0,
+        "opt_350m": 0,
+        "opt_6.7b": 0,
+        "opt_iml_30b": 0,
+        "opt_iml_max_1.3b": 0,
+        "bigscience/bloomz": 0,
+        "babbage": 0,
+        "t0_11b": 0,
+        "t0_3b": 0,
+        "text-davinci-002": 0,
+        "text-davinci-003": 0,
+        "ai21.j2-ultra-v1": 0,
+        "unknown": 0,
+        "7b": 0,
+        "65b": 0,
+        "bloom-1b7": 0,
+        "gpt_j": 0,
+        "bloom-7b1": 0,
+        "gpt_neox": 0,
+        "cohere.command-text-v14": 0,
+        "command-xlarge-nightly": 0,
+        "curie": 0,
+        "davinci": 0,
+        "dolly": 0,
+        "dolly-v2": 0,
+        "dolly-v2-12b": 0,
+        "cohere": 0
+      }
+    }
+  },
+  "groups": 1020386,
+  "largest_group": 9419,
+  "near_dup": {
+    "near_dup_candidate_pairs": 107490,
+    "near_dup_confirmed_pairs": 74797,
+    "near_dup_label_mismatch_pairs": 2132
+  },
+  "leakage": {
+    "groups_spanning_train_and_eval": 0,
+    "exact_hashes_spanning_train_and_eval": 0,
+    "near_duplicate_pairs_spanning_train_and_eval": 0,
+    "result": "PASS"
+  },
+  "config": {
+    "dataset_version": "TURNITING_DATASET_V1",
+    "seed": 42,
+    "validation": {
+      "min_chars": 20,
+      "min_words": 3
+    },
+    "normalization": {
+      "unicode": "NFC",
+      "strip_zero_width_in_clean_rows": true,
+      "preserve_adversarial_text": true
+    },
+    "dedup": {
+      "exact": "sha256 of NFC text with zero-width removed and whitespace collapsed (clean rows); raw text for adversarial rows",
+      "near": {
+        "method": "minhash_lsh",
+        "shingle": "word_3gram",
+        "max_chars": 3000,
+        "num_perm": 64,
+        "bands": 8,
+        "rows_per_band": 8,
+        "jaccard_threshold": 0.8
+      }
+    },
+    "raid": {
+      "target_rows": 320000,
+      "sampling": "bottom-k by sha256(id) inside each stratum (deterministic)"
+    },
+    "splits": {
+      "train": 0.8,
+      "validation": 0.1,
+      "test": 0.1,
+      "holdout_generator_families": [
+        "mistral",
+        "cohere"
+      ],
+      "holdout_domains": [
+        "reviews",
+        "recipes"
+      ]
+    },
+    "dataset_priority": [
+      "iberautextification",
+      "autextification2023",
+      "ghostbuster_essay",
+      "semeval2024_task8",
+      "m4",
+      "hc3",
+      "hc3_chinese",
+      "mage",
+      "raid",
+      "turingbench"
+    ],
+    "shard_rows": 50000
+  }
+}

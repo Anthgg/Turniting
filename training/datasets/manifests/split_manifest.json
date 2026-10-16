@@ -1,0 +1,27 @@
+{
+  "datasetVersion": "TURNITING_DATASET_V1",
+  "rule": "group_id = connected component over (group_key, exact hash, MinHash near-dup) links; base split = sha256(f'{seed}:{min row id}') < 0.8 train, < 0.9 validation, else test; groups with official_test/ood rows forced to test; holdouts per configs/build.yaml",
+  "seed": 42,
+  "file": "datasets/normalized/split_manifest.parquet (row id -> group_id, split, status)",
+  "sha256": "80bae7a833b031799c455349610b1171864bf0f3c54db29ae1ab237e95e9a51f",
+  "rows": 2195128,
+  "split_counts": {
+    "train": 865590,
+    "test": 201824,
+    "validation": 93894,
+    "unseen_domain_test": 49916,
+    "ood_test": 44406,
+    "unseen_generator_test": 36468,
+    "adversarial_test": 16276,
+    "mixed": 15118,
+    "adversarial_validation": 14765
+  },
+  "status_counts": {
+    "KEPT": 1338257,
+    "EXACT_DUPLICATE": 625144,
+    "HOLDOUT_GENERATOR_IN_TRAIN_GROUP": 113331,
+    "HOLDOUT_DOMAIN_IN_TRAIN_GROUP": 102591,
+    "NEAR_DUPLICATE": 15795,
+    "LABEL_CONFLICT": 10
+  }
+}

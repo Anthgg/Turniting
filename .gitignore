@@ -55,3 +55,20 @@ logs/
 .idea/
 .DS_Store
 Thumbs.db
+
+# AI detector training: code/configs/manifests/reports are versioned; data and weights are not
+!training/datasets/
+training/datasets/raw/
+training/datasets/normalized/
+training/datasets/cache/
+training/models/
+training/checkpoints/
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.joblib
+*.parquet
+*.npy

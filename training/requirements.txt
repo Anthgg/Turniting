@@ -1,0 +1,21 @@
+# CPU build of torch is installed from the PyTorch CPU index (see README).
+torch==2.5.1
+transformers==4.46.3
+datasets==3.1.0
+accelerate==1.1.1
+evaluate==0.4.3
+scikit-learn==1.5.2
+pandas==2.2.3
+numpy==1.26.4
+pyarrow==18.0.0
+rapidfuzz==3.10.1
+sentencepiece==0.2.0
+safetensors==0.4.5
+huggingface_hub==0.26.2
+tqdm==4.67.0
+psutil==6.1.0
+datasketch==1.6.5
+langid==1.1.6
+protobuf==5.28.3
+tiktoken==0.8.0
+pytest==8.3.3

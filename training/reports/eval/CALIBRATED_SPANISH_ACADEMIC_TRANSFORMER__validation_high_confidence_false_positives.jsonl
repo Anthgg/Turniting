@@ -1,0 +1,4 @@
+{"dataset": "m4", "sample_id": "m4-00066801", "score": 0.99545, "language": "en", "domain": "academic", "generator": "human", "attack": "none", "n_words": 113, "eval_set": "validation_academic"}
+{"dataset": "autextification2023", "sample_id": "autextification2023-00015721", "score": 0.95, "language": "es", "domain": "wiki", "generator": "human", "attack": "none", "n_words": 82, "eval_set": "validation"}
+{"dataset": "semeval2024_task8", "sample_id": "semeval2024_task8-00332561", "score": 0.95, "language": "ru", "domain": "news", "generator": "human", "attack": "none", "n_words": 79, "eval_set": "validation"}
+{"dataset": "autextification2023", "sample_id": "autextification2023-00013036", "score": 0.95, "language": "es", "domain": "wiki", "generator": "human", "attack": "none", "n_words": 70, "eval_set": "validation_spanish"}
