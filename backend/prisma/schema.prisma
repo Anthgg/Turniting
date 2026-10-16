@@ -42,22 +42,99 @@ enum DocumentStatus {
 }
 
 model DocumentVersion {
-  id               String            @id @default(uuid()) @db.Uuid
-  documentId       String            @unique @db.Uuid
-  storageKey       String            @unique
-  fileHash         String            @db.Char(64)
-  extractedText    String?           @db.Text
-  extractionError  String?           @db.Text
-  pageCount        Int?
-  wordCount        Int?
-  characterCount   Int?
-  requiresOcr      Boolean           @default(false)
-  warnings         String[]          @default([])
-  createdAt        DateTime          @default(now()) @db.Timestamptz(6)
-  updatedAt        DateTime          @updatedAt @db.Timestamptz(6)
-  document         Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  turnitinReports  TurnitinReport[]
-  groundTruthCases GroundTruthCase[]
+  id                   String            @id @default(uuid()) @db.Uuid
+  documentId           String            @unique @db.Uuid
+  storageKey           String            @unique
+  fileHash             String            @db.Char(64)
+  extractedText        String?           @db.Text
+  extractionError      String?           @db.Text
+  pageCount            Int?
+  wordCount            Int?
+  characterCount       Int?
+  requiresOcr          Boolean           @default(false)
+  ocrStatus            OcrStatus         @default(NOT_NEEDED)
+  averageOcrConfidence Float?
+  warnings             String[]          @default([])
+  createdAt            DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime          @updatedAt @db.Timestamptz(6)
+  document             Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  pages                DocumentPage[]
+  ocrRuns              OcrRun[]
+  turnitinReports      TurnitinReport[]
+  groundTruthCases     GroundTruthCase[]
+}
+
+enum OcrStatus {
+  NOT_NEEDED
+  REQUIRED
+  PROCESSING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum ExtractionMethod {
+  DIGITAL
+  OCR
+  HYBRID
+  NONE
+}
+
+enum OcrRunStatus {
+  PROCESSING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+model DocumentPage {
+  id                    String           @id @default(uuid()) @db.Uuid
+  documentVersionId     String           @db.Uuid
+  pageNumber            Int
+  width                 Float
+  height                Float
+  rotation              Int              @default(0)
+  extractionMethod      ExtractionMethod @default(NONE)
+  digitalText           String?          @db.Text
+  ocrText               String?          @db.Text
+  canonicalText         String           @default("") @db.Text
+  requiresOcr           Boolean          @default(false)
+  ocrConfidence         Float?
+  ocrBlockCount         Int?
+  ocrLowConfidenceCount Int?
+  ocrMetadata           Json?
+  createdAt             DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime         @updatedAt @db.Timestamptz(6)
+  documentVersion       DocumentVersion  @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([documentVersionId, pageNumber])
+  @@index([documentVersionId, pageNumber])
+}
+
+model OcrRun {
+  id                String          @id @default(uuid()) @db.Uuid
+  documentVersionId String          @db.Uuid
+  engine            String
+  engineVersion     String
+  model             String
+  language          String
+  pipelineVersion   String
+  status            OcrRunStatus    @default(PROCESSING)
+  pagesRequested    Int             @default(0)
+  pagesProcessed    Int             @default(0)
+  pagesSkipped      Int             @default(0)
+  pagesFailed       Int             @default(0)
+  averageConfidence Float?
+  durationMs        Int?
+  config            Json?
+  warningCount      Int             @default(0)
+  errorCode         String?
+  errorMessage      String?         @db.Text
+  createdAt         DateTime        @default(now()) @db.Timestamptz(6)
+  documentVersion   DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+
+  @@index([documentVersionId, createdAt])
+  @@index([status, createdAt])
 }
 
 model Analysis {
@@ -162,6 +239,9 @@ model TurnitinReport {
   contentSimilarityRatio     Float?
   contentMatchEvidence       Json?
   matchedAt                  DateTime?                  @db.Timestamptz(6)
+  alignmentVersion           String?
+  alignmentEngine            String?
+  alignmentStale             Boolean                    @default(false)
   createdAt                  DateTime                   @default(now()) @db.Timestamptz(6)
   updatedAt                  DateTime                   @updatedAt @db.Timestamptz(6)
   documentVersion            DocumentVersion?           @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
@@ -233,8 +313,8 @@ model GroundTruthCase {
   notes              String?                    @db.Text
   createdAt          DateTime                   @default(now()) @db.Timestamptz(6)
   updatedAt          DateTime                   @updatedAt @db.Timestamptz(6)
-  aiReport           TurnitinReport?            @relation("GroundTruthAIReport", fields: [aiReportId], references: [id], onDelete: SetNull)
-  similarityReport   TurnitinReport?            @relation("GroundTruthSimilarityReport", fields: [similarityReportId], references: [id], onDelete: SetNull)
+  aiReport           TurnitinReport?            @relation("GroundTruthAIReport", fields: [aiReportId], references: [id], onDelete: Restrict)
+  similarityReport   TurnitinReport?            @relation("GroundTruthSimilarityReport", fields: [similarityReportId], references: [id], onDelete: Restrict)
   documentVersion    DocumentVersion?           @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
 
   @@index([caseType, createdAt])

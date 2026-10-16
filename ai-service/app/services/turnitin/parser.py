@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 import pymupdf
@@ -110,3 +111,69 @@ def parse_turnitin_report(content: bytes) -> TurnitinParseResponse:
         return response
     finally:
         document.close()
+
+
+def parse_turnitin_ocr_pages(page_texts: list[str]) -> TurnitinParseResponse:
+    """Recover only readable report text fields; scanned visual structure is unknown."""
+    from app.services.document_extraction import normalize_extracted_text
+
+    normalized = [
+        normalize_extracted_text(text, remove_nuls=True) for text in page_texts
+    ]
+    label_texts = [
+        re.sub(r"\bA[Il1]\s+writing\b", "AI writing", text, flags=re.IGNORECASE)
+        for text in normalized
+    ]
+    metadata = parse_metadata(normalized)
+    report_type = detect_report_type(label_texts)
+    warnings = [
+        "OCR text cannot recover exact highlight colors, vector highlights, "
+        "or source bounding boxes."
+    ]
+    filters: list[str] = []
+    if report_type == "AI_WRITING":
+        scores = parse_ai_scores(label_texts)
+        sources = []
+    elif report_type == "SIMILARITY":
+        scores, filters = parse_similarity_scores(normalized)
+        metadata["filters"] = filters
+        sources = []
+    else:
+        scores = {}
+        sources = []
+
+    if report_type == "AI_WRITING" and "aiWriting" not in scores:
+        warnings.append("The AI-writing percentage was not recoverable from OCR text.")
+    if report_type == "SIMILARITY" and "similarity" not in scores:
+        warnings.append(
+            "The overall similarity percentage was not recoverable from OCR text."
+        )
+    if report_type == "SIMILARITY":
+        warnings.append(
+            "Source rows were not synthesized because OCR has no "
+            "verified source layout."
+        )
+    warnings.append("Scanned report segments and bounding boxes were not synthesized.")
+
+    recovered_score = bool(scores)
+    recovered_identity = bool(
+        metadata.get("submissionId") or metadata.get("submissionFileName")
+    )
+    status = (
+        "PARTIAL"
+        if report_type in {"AI_WRITING", "SIMILARITY"}
+        and (recovered_score or recovered_identity)
+        else "OCR_REQUIRED"
+    )
+    return TurnitinParseResponse(
+        status=status,
+        reportType=report_type,
+        parserVersion="f003-ocr-v1",
+        metadata=metadata,
+        scores=scores,
+        filters=filters,
+        sources=sources,
+        segments=[],
+        warnings=warnings,
+        documentText="\n\n".join(normalized),
+    )

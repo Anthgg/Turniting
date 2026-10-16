@@ -72,23 +72,36 @@ npm run dev
 
 El servidor Vite usa el proxy `/api` hacia `http://localhost:3000`; ajusta `VITE_API_URL` y `VITE_MAX_UPLOAD_MB` en `frontend/.env.example`.
 
-### Servicio IA
+### Servicio IA y OCR local
 
-Requisitos: Python 3.12 o superior.
+Requisitos para el runtime PaddleOCR: Python 3.12, compatible con las ruedas fijadas de NumPy 1.26.4, OpenCV y PaddlePaddle. Docker Compose usa la misma versión.
 
 ```powershell
 Set-Location ai-service
 py -3.12 -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -r requirements-dev.txt
+python -m pip install --no-deps paddleocr==3.7.0 paddlex==3.7.0
+$env:OCR_MODEL_DIR = Join-Path (Get-Location) '.ocr-model-cache'
+python -m scripts.warmup_ocr
 ruff check .
 pytest
 uvicorn app.main:app --reload --port 8000
 ```
 
+El primer calentamiento descarga los modelos `PP-OCRv5_mobile_det` y `latin_PP-OCRv5_mobile_rec` al directorio local; las ejecuciones siguientes los reutilizan. En Compose, los modelos persisten en `turniting_ai_models`. Para generar fixtures sin datos privados y medir CER/WER, ejecuta desde la raíz:
+
+```powershell
+docker compose up --build -d
+docker compose exec ai-service python -m scripts.warmup_ocr
+docker compose restart ai-service
+docker compose exec ai-service python -m scripts.create_synthetic_ocr_fixtures /tmp/f003-synthetic
+docker compose exec ai-service python -m scripts.evaluate_synthetic_ocr /tmp/f003-synthetic
+```
+
 ## Variables
 
-`.env.example` en la raíz documenta el conjunto local de Compose. `MAX_UPLOAD_MB` limita la carga y por defecto es 20 MB; `UPLOAD_DIR` define la ruta persistente (`/data/uploads` en Compose). FastAPI usa `OCR_MIN_CHARS_PER_PAGE` y `OCR_MIN_LOW_TEXT_PAGE_RATIO` para detectar PDFs probablemente escaneados; esos valores no activan OCR. `AI_SERVICE_TIMEOUT_MS` limita la llamada a FastAPI. Los archivos `.env.example` de cada servicio explican las variables requeridas por ejecución individual. Los valores de ejemplo solo sirven para desarrollo local; crea variables de producción por separado y no subas archivos `.env`.
+`.env.example` en la raíz documenta el conjunto local de Compose. `MAX_UPLOAD_MB` limita la carga y por defecto es 20 MB; `UPLOAD_DIR` define la ruta persistente (`/data/uploads` en Compose). `OCR_*` controla el clasificador, límites de render, timeout y modelo local; `AI_OCR_TIMEOUT_MS` limita la espera del backend. `OCR_MAX_PAGES_PER_RUN` limita cada ejecución a 150 páginas y `OCR_MAX_RENDER_PIXELS` impone un presupuesto por página. Los archivos `.env.example` de cada servicio explican las variables requeridas por ejecución individual. Los valores de ejemplo solo sirven para desarrollo local; crea variables de producción por separado y no subas archivos `.env`.
 
 ## Verificación F001
 

@@ -30,8 +30,30 @@ services:
       MAX_TURNITIN_REPORT_MB: ${MAX_TURNITIN_REPORT_MB:-30}
       OCR_MIN_CHARS_PER_PAGE: ${OCR_MIN_CHARS_PER_PAGE:-20}
       OCR_MIN_LOW_TEXT_PAGE_RATIO: ${OCR_MIN_LOW_TEXT_PAGE_RATIO:-0.5}
+      OCR_ENGINE: ${OCR_ENGINE:-paddleocr}
+      OCR_ENGINE_VERSION: ${OCR_ENGINE_VERSION:-3.7.0}
+      OCR_LANGUAGE: ${OCR_LANGUAGE:-es}
+      OCR_MODEL: ${OCR_MODEL:-PP-OCRv5_mobile_det+latin_PP-OCRv5_mobile_rec}
+      OCR_MODEL_DIR: /data/models/paddleocr
+      OCR_PIPELINE_VERSION: ${OCR_PIPELINE_VERSION:-f003-v1}
+      OCR_DPI: ${OCR_DPI:-220}
+      OCR_CPU_THREADS: ${OCR_CPU_THREADS:-2}
+      OCR_TIMEOUT_MS: ${OCR_TIMEOUT_MS:-120000}
+      OCR_MAX_PAGES_PER_RUN: ${OCR_MAX_PAGES_PER_RUN:-150}
+      OCR_MAX_RENDER_PIXELS: ${OCR_MAX_RENDER_PIXELS:-20000000}
+      OCR_LOW_CONFIDENCE_THRESHOLD: ${OCR_LOW_CONFIDENCE_THRESHOLD:-0.60}
+      OCR_MAX_CONCURRENT_JOBS: ${OCR_MAX_CONCURRENT_JOBS:-1}
+      OCR_MIN_DIGITAL_CHARS: ${OCR_MIN_DIGITAL_CHARS:-20}
+      OCR_MIN_DIGITAL_WORDS: ${OCR_MIN_DIGITAL_WORDS:-4}
+      OCR_IMAGE_AREA_RATIO: ${OCR_IMAGE_AREA_RATIO:-0.15}
+      OCR_BLANK_PAGE_THRESHOLD: ${OCR_BLANK_PAGE_THRESHOLD:-0.004}
+      OCR_DESKEW_MIN_ANGLE: ${OCR_DESKEW_MIN_ANGLE:-1.0}
+      OCR_CONTRAST_RANGE: ${OCR_CONTRAST_RANGE:-70}
+      PADDLE_PDX_CACHE_HOME: /data/models/paddleocr
     ports:
       - "127.0.0.1:8000:8000"
+    volumes:
+      - turniting_ai_models:/data/models/paddleocr
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
       interval: 10s
@@ -51,6 +73,7 @@ services:
       DIRECT_URL: postgresql://${POSTGRES_USER:-turniting}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}@db:5432/${POSTGRES_DB:-turniting}?schema=public
       AI_SERVICE_URL: http://ai-service:8000
       AI_SERVICE_TIMEOUT_MS: ${AI_SERVICE_TIMEOUT_MS:-30000}
+      AI_OCR_TIMEOUT_MS: ${AI_OCR_TIMEOUT_MS:-180000}
       AI_SERVICE_AUTH_MODE: none
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-20}
       MAX_TURNITIN_REPORT_MB: ${MAX_TURNITIN_REPORT_MB:-30}
@@ -95,3 +118,4 @@ services:
 volumes:
   turniting_pgdata:
   turniting_uploads:
+  turniting_ai_models:

@@ -72,7 +72,7 @@ function WorkspaceLayout() {
             <span className="phase-icon"><Icon name="spark" size={17} /></span>
             <span className="phase-copy">
               <span>Fase actual</span>
-            <strong>F002 · Reportes</strong>
+            <strong>F003 · OCR selectivo</strong>
             </span>
           </div>
           <p className="sidebar-footnote">Un espacio para análisis académico responsable.</p>
@@ -214,7 +214,7 @@ function DashboardPage() {
 
       <footer className="page-footer">
         <span>Turniting · Análisis académico responsable</span>
-        <span>Documentos F001 · Reportes Turnitin F002</span>
+        <span>Documentos F001 · Reportes Turnitin F002 · OCR selectivo F003</span>
       </footer>
     </div>
   )

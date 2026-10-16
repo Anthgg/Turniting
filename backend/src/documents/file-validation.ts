@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-export type SupportedFileType = 'pdf' | 'docx' | 'txt';
+export type SupportedFileType = 'pdf' | 'docx' | 'txt' | 'png' | 'jpg' | 'jpeg';
 
 export type BufferedUpload = {
   buffer: Buffer;
@@ -21,6 +21,9 @@ const MIME_TYPES: Record<SupportedFileType, string> = {
   pdf: 'application/pdf',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   txt: 'text/plain',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
 };
 
 export function uploadException(
@@ -64,7 +67,7 @@ export function validateDocumentFile(
     throw uploadException(
       HttpStatus.UNSUPPORTED_MEDIA_TYPE,
       'UNSUPPORTED_FILE_TYPE',
-      'Only PDF, DOCX, and TXT files are supported',
+      'Only PDF, DOCX, TXT, PNG, and JPEG files are supported',
     );
   }
 
@@ -98,7 +101,9 @@ export function validateDocumentFile(
 
 function extensionFromName(name: string): string | undefined {
   const extension = name.slice(name.lastIndexOf('.')).toLowerCase();
-  return ['.pdf', '.docx', '.txt'].includes(extension) ? extension : undefined;
+  return ['.pdf', '.docx', '.txt', '.png', '.jpg', '.jpeg'].includes(extension)
+    ? extension
+    : undefined;
 }
 
 function sanitizeOriginalName(name: string, extension: string): string {
@@ -124,6 +129,10 @@ function matchesSignature(
     return headerOffset >= 0;
   }
   if (fileType === 'docx') return isDocxContainer(buffer);
+  if (fileType === 'png') return buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  if (fileType === 'jpg' || fileType === 'jpeg') {
+    return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  }
   return isText(buffer);
 }
 

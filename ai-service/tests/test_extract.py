@@ -7,7 +7,7 @@ from docx import Document
 
 from app.core.config import get_settings
 from app.main import app
-from app.services.document_extraction import normalize_extracted_text
+from app.services.text_normalization import normalize_extracted_text
 
 DOCX_MIME_TYPE = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -47,6 +47,11 @@ def make_pdf(pages: list[str | None], *, image_only: bool = False) -> bytes:
             )
             pixmap.clear_with(255)
             page.insert_image(page.rect, stream=pixmap.tobytes("png"))
+            page.draw_rect(
+                pymupdf.Rect(72, 72, 210, 210),
+                color=(0, 0, 0),
+                fill=(0, 0, 0),
+            )
 
     content = document.tobytes()
     document.close()
@@ -185,9 +190,7 @@ def test_extract_txt_uses_windows_1252_fallback() -> None:
     assert response.status_code == 200
     result = response.json()
     assert result["text"] == "café"
-    assert result["warnings"] == [
-        "Text was decoded using the Windows-1252 fallback."
-    ]
+    assert result["warnings"] == ["Text was decoded using the Windows-1252 fallback."]
     assert result["characterCount"] == 4
     assert result["wordCount"] == 1
 
@@ -239,6 +242,7 @@ def test_file_contract_response_has_only_documented_fields() -> None:
         "characterCount",
         "requiresOcr",
         "warnings",
+        "pages",
     }
 
 

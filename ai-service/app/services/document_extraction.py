@@ -1,4 +1,3 @@
-import re
 import unicodedata
 import zipfile
 from io import BytesIO
@@ -14,12 +13,18 @@ from docx.text.paragraph import Paragraph
 
 from app.core.config import Settings, get_settings
 from app.schemas.extraction import DocumentExtractionResponse
+from app.services.ocr.detector import classify_page_for_ocr, classify_raster_page
+from app.services.ocr.exceptions import OcrProcessingError
+from app.services.ocr.renderer import load_image
+from app.services.text_normalization import normalize_extracted_text
 
 PDF_MIME_TYPE = "application/pdf"
 DOCX_MIME_TYPE = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 )
 TEXT_MIME_TYPE = "text/plain"
+PNG_MIME_TYPE = "image/png"
+JPEG_MIME_TYPE = "image/jpeg"
 DOCX_MAIN_CONTENT_TYPE = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
 )
@@ -44,14 +49,6 @@ class DocumentInputError(Exception):
         self.detail = detail
 
 
-def normalize_extracted_text(text: str, *, remove_nuls: bool) -> str:
-    """Normalize line endings and blank runs without rewriting prose."""
-    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
-    if remove_nuls:
-        normalized = normalized.replace("\x00", "")
-    return re.sub(r"\n{4,}", "\n\n\n", normalized)
-
-
 def extract_document(
     content_type: str | None,
     content: bytes,
@@ -74,9 +71,12 @@ def extract_document(
     if media_type == TEXT_MIME_TYPE:
         return _extract_text(content)
 
+    if media_type in {PNG_MIME_TYPE, JPEG_MIME_TYPE}:
+        return _extract_image(media_type, content, settings)
+
     raise DocumentInputError(
         415,
-        "Only PDF, DOCX, and plain-text files are supported.",
+        "Only PDF, DOCX, TXT, PNG, and JPEG files are supported.",
     )
 
 
@@ -94,17 +94,9 @@ def _extract_pdf(
         if page_count < 1:
             raise DocumentInputError(422, "The PDF does not contain any pages.")
 
-        page_texts: list[str] = []
-        non_whitespace_counts: list[int] = []
+        pages = []
         for page in document:
-            page_text = normalize_extracted_text(
-                page.get_text("text", sort=False),
-                remove_nuls=True,
-            )
-            page_texts.append(page_text)
-            non_whitespace_counts.append(
-                sum(not character.isspace() for character in page_text)
-            )
+            pages.append(classify_page_for_ocr(page, settings))
     except DocumentInputError:
         raise
     except Exception:
@@ -116,22 +108,51 @@ def _extract_pdf(
         if document is not None:
             document.close()
 
-    text = normalize_extracted_text("\n".join(page_texts), remove_nuls=True)
-    average_chars_per_page = sum(non_whitespace_counts) / page_count
-    low_text_pages = sum(
-        count < settings.ocr_min_chars_per_page for count in non_whitespace_counts
+    text = normalize_extracted_text(
+        "\n".join(page.canonical_text for page in pages), remove_nuls=True
     )
-    low_text_page_ratio = low_text_pages / page_count
-
-    # OCR is only recommended: no OCR engine is invoked in this phase.
-    # Require it when average non-whitespace text/page is below OCR_MIN_CHARS_PER_PAGE,
-    # or when at least OCR_MIN_LOW_TEXT_PAGE_RATIO pages are below that threshold.
-    requires_ocr = (
-        average_chars_per_page < settings.ocr_min_chars_per_page
-        or low_text_page_ratio >= settings.ocr_min_low_text_page_ratio
-    )
+    requires_ocr = any(page.requires_ocr for page in pages)
     warnings = [OCR_WARNING] if requires_ocr else []
-    return _build_response("pdf", text, page_count, requires_ocr, warnings)
+    return _build_response("pdf", text, page_count, requires_ocr, warnings, pages)
+
+
+def _extract_image(
+    media_type: str,
+    content: bytes,
+    settings: Settings,
+) -> DocumentExtractionResponse:
+    if media_type == PNG_MIME_TYPE and not content.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise DocumentInputError(
+            400, "Image content does not match its declared PNG media type."
+        )
+    if media_type == JPEG_MIME_TYPE and not content.startswith(b"\xff\xd8\xff"):
+        raise DocumentInputError(
+            400, "Image content does not match its declared JPEG media type."
+        )
+    try:
+        image, image_format = load_image(
+            content,
+            max_pixels=settings.ocr_max_render_pixels,
+        )
+        expected_format = "png" if media_type == PNG_MIME_TYPE else "jpeg"
+        if image_format != expected_format:
+            raise OcrProcessingError(
+                "OCR_UNSUPPORTED_FORMAT",
+                "Image format does not match its MIME type.",
+                415,
+            )
+        page = classify_raster_page(image, page_number=1, settings=settings)
+    except OcrProcessingError as error:
+        raise DocumentInputError(error.status_code, error.message) from None
+    warnings = ["Image requires OCR."] if page.requires_ocr else []
+    return _build_response(
+        expected_format,
+        page.canonical_text,
+        1,
+        page.requires_ocr,
+        warnings,
+        [page],
+    )
 
 
 def _extract_docx(content: bytes) -> DocumentExtractionResponse:
@@ -157,8 +178,7 @@ def _extract_docx(content: bytes) -> DocumentExtractionResponse:
             elif isinstance(child, CT_Tbl):
                 table = Table(child, document)
                 rows = [
-                    "\t".join(cell.text for cell in row.cells)
-                    for row in table.rows
+                    "\t".join(cell.text for cell in row.cells) for row in table.rows
                 ]
                 text_parts.append("\n".join(rows))
     except DocumentInputError:
@@ -218,11 +238,12 @@ def _contains_binary_controls(text: str) -> bool:
 
 
 def _build_response(
-    file_type: Literal["pdf", "docx", "txt"],
+    file_type: Literal["pdf", "docx", "txt", "png", "jpeg"],
     text: str,
     page_count: int | None,
     requires_ocr: bool,
     warnings: list[str],
+    pages=None,
 ) -> DocumentExtractionResponse:
     return DocumentExtractionResponse(
         file_type=file_type,
@@ -232,4 +253,5 @@ def _build_response(
         character_count=len(text),
         requires_ocr=requires_ocr,
         warnings=warnings,
+        pages=pages or [],
     )

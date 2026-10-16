@@ -26,6 +26,27 @@ describe('validateDocumentFile', () => {
       buffer: Buffer.from('Texto con acentos y emoji 📝', 'utf8'),
       fileType: 'txt',
     },
+    {
+      name: 'PNG',
+      originalname: 'assignment.png',
+      mimetype: 'image/png',
+      buffer: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0]),
+      fileType: 'png',
+    },
+    {
+      name: 'JPEG JPG',
+      originalname: 'assignment.jpg',
+      mimetype: 'image/jpeg',
+      buffer: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+      fileType: 'jpg',
+    },
+    {
+      name: 'JPEG',
+      originalname: 'assignment.jpeg',
+      mimetype: 'image/jpeg',
+      buffer: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+      fileType: 'jpeg',
+    },
   ])(
     'accepts a valid $name file with matching MIME, extension, and signature',
     (file) => {

@@ -15,7 +15,7 @@ import type { SupportedFileType } from './file-validation.js';
 import { StorageService } from './storage.service.js';
 
 const STORAGE_KEY_PATTERN =
-  /^(?:turnitin\/)?[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(pdf|docx|txt)$/i;
+  /^(?:turnitin\/)?[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(pdf|docx|txt|png|jpg|jpeg)$/i;
 
 @Injectable()
 export class LocalStorageService extends StorageService {

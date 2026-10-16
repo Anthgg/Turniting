@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AiService, type AiTurnitinParseResponse } from '../ai/ai.service.js';
 import type { StorageService } from '../documents/storage.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
+import type { OcrService } from '../ocr/ocr.service.js';
 import { GroundTruthCaseTypeDto } from './dto/turnitin.dto.js';
 import { TurnitinService } from './turnitin.service.js';
 
@@ -122,10 +123,15 @@ describe('TurnitinService', () => {
       parseTurnitinReport: vi.fn().mockResolvedValue(parsedAiReport()),
       alignTurnitinReport: vi.fn(),
     };
+    const ocr = {
+      processDocument: vi.fn(),
+      parseTurnitinOcrText: vi.fn(),
+    };
     service = new TurnitinService(
       prisma as unknown as PrismaService,
       storage as unknown as StorageService,
       ai as unknown as AiService,
+      ocr as unknown as OcrService,
       { getOrThrow: () => 30 } as unknown as ConfigService,
     );
   });

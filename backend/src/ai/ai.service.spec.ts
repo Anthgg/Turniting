@@ -12,6 +12,7 @@ const makeConfig = (authMode: 'none' | 'google-id-token' = 'none', timeoutMs = 5
         AI_SERVICE_TIMEOUT_MS: timeoutMs,
         AI_SERVICE_AUTH_MODE: authMode,
       })[key],
+    get: (key: string) => ({ AI_OCR_TIMEOUT_MS: 180000 })[key],
   }) as unknown as ConfigService;
 
 describe('AiService', () => {
@@ -65,6 +66,7 @@ describe('AiService', () => {
       characterCount: 15,
       requiresOcr: false,
       warnings: [],
+      pages: [],
     };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(extraction), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);

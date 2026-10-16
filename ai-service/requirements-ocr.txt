@@ -1,0 +1,23 @@
+# PaddleX 3.7 checks this distribution name for its OCR core extra. OCR never
+# opens a GUI window; the service only uses CPU image transforms.
+paddlepaddle==3.3.0
+opencv-contrib-python==4.10.0.84
+numpy==1.26.4
+aistudio-sdk>=0.3.5,<0.4
+aiohttp>=3.8.0,<4
+chardet>=5,<6
+colorlog>=6,<7
+filelock>=3.12,<4
+huggingface-hub>=0.27,<1
+imagesize>=1.4,<2
+pandas>=2.2,<3
+Pillow>=11.0,<12
+prettytable>=3.10,<4
+py-cpuinfo>=9,<10
+pyclipper>=1.3,<2
+pypdfium2>=4,<5
+python-bidi>=0.6,<1
+PyYAML==6.0.2
+ruamel.yaml>=0.18,<0.19
+shapely>=2.0,<3
+ujson>=5.10,<6

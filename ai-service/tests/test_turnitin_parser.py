@@ -6,7 +6,11 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.routes.turnitin import parse_turnitin_pdf
-from app.services.turnitin.parser import TurnitinParseError, parse_turnitin_report
+from app.services.turnitin.parser import (
+    TurnitinParseError,
+    parse_turnitin_ocr_pages,
+    parse_turnitin_report,
+)
 
 
 def make_ai_report() -> bytes:
@@ -169,6 +173,29 @@ def test_unknown_and_image_only_reports_remain_unclassified_without_ocr() -> Non
     assert scanned.reportType == "UNKNOWN"
     assert scanned.status == "OCR_REQUIRED"
     assert any("OCR" in warning for warning in scanned.warnings)
+
+
+def test_ocr_turnitin_label_recovers_ai_score_without_synthesizing_geometry() -> None:
+    result = parse_turnitin_ocr_pages(
+        [
+            "67% Al writing\n"
+            "trn:oid:::12345:67890\n"
+            "12 pØginas\n"
+            "500 palabras\n"
+            "3000 caracteres"
+        ]
+    )
+
+    assert result.status == "PARTIAL"
+    assert result.reportType == "AI_WRITING"
+    assert result.scores["aiWriting"].percentage == 67
+    assert result.metadata["submissionId"] == "trn:oid:::12345:67890"
+    assert result.metadata["documentPageCount"] == 12
+    assert result.metadata["wordCount"] == 500
+    assert result.metadata["characterCount"] == 3000
+    assert result.sources == []
+    assert result.segments == []
+    assert "Al writing" in result.documentText
 
 
 def test_rejects_corrupt_pdf_bytes() -> None:

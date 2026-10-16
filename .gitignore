@@ -25,6 +25,10 @@ __pycache__/
 
 # Generated or private model/data assets
 models/
+ocr-models/
+.paddlex/
+.ocr-model-cache/
+data/models/
 !ai-service/app/models/
 !ai-service/app/models/**
 checkpoints/
@@ -32,6 +36,10 @@ datasets/
 cache/
 *.pt
 *.pth
+*.pdparams
+*.pdmodel
+*.pdiparams
+*.onnx
 
 # Local databases, logs, and credentials
 turniting_pgdata/

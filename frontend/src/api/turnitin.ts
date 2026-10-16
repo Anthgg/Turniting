@@ -53,6 +53,9 @@ export const turnitinReportSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   matchedAt: z.string().nullable(),
+  alignmentVersion: nullableString,
+  alignmentEngine: nullableString,
+  alignmentStale: z.boolean(),
 }).passthrough()
 
 export type TurnitinReport = z.infer<typeof turnitinReportSchema>
@@ -171,6 +174,10 @@ export function listTurnitinSegments(id: string, page = 1, limit = 50, segmentTy
 
 export function reparseTurnitinReport(id: string) {
   return postJson(`/turnitin/reports/${encodeURIComponent(id)}/reparse`, turnitinReportSchema)
+}
+
+export function ocrReparseTurnitinReport(id: string) {
+  return postJson(`/turnitin/reports/${encodeURIComponent(id)}/ocr-reparse`, turnitinReportSchema)
 }
 
 export function matchTurnitinReport(id: string, documentVersionId: string) {

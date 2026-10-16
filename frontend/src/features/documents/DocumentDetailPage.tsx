@@ -10,7 +10,9 @@ import {
   deleteDocument,
   documentQueryKeys,
   getDocument,
+  getDocumentPages,
   getDocumentText,
+  processDocumentOcr,
   reprocessDocument,
 } from '../../api/documents'
 import { Icon } from '../../components/Icon'
@@ -41,6 +43,13 @@ export function DocumentDetailPage() {
     retry: 1,
   })
 
+  const pages = useQuery({
+    queryKey: documentQueryKeys.pages(id),
+    queryFn: () => getDocumentPages(id),
+    enabled: Boolean(id) && (document.data?.pageCount ?? 0) > 0,
+    retry: 1,
+  })
+
   const turnitinReports = useQuery({
     queryKey: turnitinQueryKeys.list(1, 100),
     queryFn: () => listTurnitinReports(1, 100),
@@ -53,6 +62,16 @@ export function DocumentDetailPage() {
     onSuccess: (updated) => {
       queryClient.setQueryData(documentQueryKeys.detail(id), updated)
       void queryClient.invalidateQueries({ queryKey: documentQueryKeys.all })
+    },
+  })
+
+  const processOcr = useMutation({
+    mutationFn: () => processDocumentOcr(id),
+    onSuccess: (result) => {
+      queryClient.setQueryData(documentQueryKeys.detail(id), result.document)
+      void queryClient.invalidateQueries({ queryKey: documentQueryKeys.all })
+      void queryClient.invalidateQueries({ queryKey: documentQueryKeys.text(id) })
+      void queryClient.invalidateQueries({ queryKey: documentQueryKeys.pages(id) })
     },
   })
 
@@ -81,7 +100,7 @@ export function DocumentDetailPage() {
   }
 
   const record = document.data
-  const canReprocess = record?.status === 'FAILED' || record?.status === 'OCR_REQUIRED'
+  const canReprocess = record?.status === 'FAILED'
   const isProcessing = Boolean(record && processingStatuses.has(record.status))
   const turnitinItems = turnitinReports.data?.items ?? []
   const attachedTurnitinReports = record?.documentVersionId
@@ -102,6 +121,12 @@ export function DocumentDetailPage() {
             <Icon name="arrow-right" size={16} className="back-arrow" />
             <span>Todos los documentos</span>
           </Link>
+          {record?.status === 'OCR_REQUIRED' && (
+            <button className="button button-primary" type="button" onClick={() => processOcr.mutate()} disabled={processOcr.isPending} aria-busy={processOcr.isPending}>
+              <Icon name="refresh" size={16} className={processOcr.isPending ? 'is-spinning' : undefined} />
+              <span>{processOcr.isPending ? 'Procesando OCR…' : 'Procesar OCR'}</span>
+            </button>
+          )}
           {record && canReprocess && (
             <button className="button button-primary" type="button" onClick={() => reprocess.mutate()} disabled={reprocess.isPending} aria-busy={reprocess.isPending}>
               <Icon name="refresh" size={16} className={reprocess.isPending ? 'is-spinning' : undefined} />
@@ -119,6 +144,7 @@ export function DocumentDetailPage() {
 
       {document.isError && <ApiErrorNotice error={document.error} title="No se pudo cargar el documento" />}
       {reprocess.isError && <ApiErrorNotice error={reprocess.error} title="No se pudo reprocesar el documento" />}
+      {processOcr.isError && <ApiErrorNotice error={processOcr.error} title="No se pudo procesar el OCR" />}
       {remove.isError && <ApiErrorNotice error={remove.error} title="No se pudo eliminar el documento" />}
       {matchReport.isError && <ApiErrorNotice error={matchReport.error} title="No se pudo vincular el reporte Turnitin" />}
 
@@ -141,15 +167,35 @@ export function DocumentDetailPage() {
               </div>
             </div>
             {isProcessing && <p className="processing-inline" role="status"><span className="state-indicator is-animated" /> El backend está procesando el archivo. Esta vista se actualizará automáticamente.</p>}
-            {record.status === 'EXTRACTED' && <p className="document-success-note"><Icon name="check" size={15} /> Extracción de texto completada.</p>}
-            {record.status === 'OCR_REQUIRED' && <p className="document-warning-note">Este archivo requiere OCR para continuar. La lectura OCR estará disponible en una fase posterior.</p>}
+            {record.status === 'EXTRACTED' && <p className="document-success-note"><Icon name="check" size={15} /> {record.ocrStatus === 'COMPLETED' ? 'OCR completado y texto reconstruido.' : 'Extracción de texto completada.'}</p>}
+            {record.status === 'OCR_REQUIRED' && <p className="document-warning-note">Este documento necesita OCR local para recuperar texto de las páginas escaneadas.</p>}
             {record.status === 'FAILED' && record.extractionError && <p className="document-error-note"><strong>Error de extracción:</strong> {record.extractionError}</p>}
+            {processOcr.isPending && <p className="processing-inline" role="status"><span className="state-indicator is-animated" /> Procesando OCR página por página, sin porcentaje estimado.</p>}
+            {record.ocrStatus === 'PARTIAL' && <p className="document-warning-note">El OCR quedó parcial. Revisa los avisos y las páginas que aún requieren procesamiento.</p>}
+            {record.averageOcrConfidence !== null && <p className="document-success-note">Confianza promedio OCR: {(record.averageOcrConfidence * 100).toFixed(1)} %.</p>}
           </section>
 
           {record.warnings.length > 0 && (
             <section className="document-warnings" aria-labelledby="document-warnings-title">
               <h2 id="document-warnings-title">Avisos del procesamiento</h2>
               <ul>{record.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul>
+            </section>
+          )}
+
+          {record.pageCount !== null && record.pageCount > 0 && (
+            <section className="document-panel" aria-labelledby="document-pages-title">
+              <div className="document-panel-heading"><div><p className="eyebrow">RECONSTRUCCIÓN POR PÁGINA</p><h2 id="document-pages-title">Páginas</h2></div></div>
+              {pages.isError && <ApiErrorNotice error={pages.error} title="No se pudieron cargar las páginas" />}
+              {pages.data && <ol className="document-page-list">{pages.data.items.map((page) => (
+                <li key={page.pageNumber}>
+                  <strong>Página {page.pageNumber}</strong>
+                  <span>{page.extractionMethod}</span>
+                  <small>{page.wordCount.toLocaleString('es-PE')} palabras · {page.characterCount.toLocaleString('es-PE')} caracteres{page.ocrConfidence !== null ? ` · ${(page.ocrConfidence * 100).toFixed(1)} % confianza` : ''}</small>
+                  {page.requiresOcr && <small>OCR pendiente</small>}
+                  {(page.lowConfidenceCount ?? 0) > 0 && <small>Algunos fragmentos pueden contener errores de reconocimiento.</small>}
+                  {page.warnings.map((warning, index) => <small key={`${warning}-${index}`}>{warning}</small>)}
+                </li>
+              ))}</ol>}
             </section>
           )}
 

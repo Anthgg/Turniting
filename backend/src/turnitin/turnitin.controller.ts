@@ -76,6 +76,12 @@ export class TurnitinController {
     return this.turnitin.reparse(id);
   }
 
+  @Post('reports/:id/ocr-reparse')
+  @ApiOperation({ summary: 'Use local OCR to reparse a scanned Turnitin report' })
+  ocrReparse(@Param('id', ParseUUIDPipe) id: string) {
+    return this.turnitin.ocrReparse(id);
+  }
+
   @Post('reports/:id/match')
   @ApiOperation({ summary: 'Align report text to an extracted document version' })
   match(

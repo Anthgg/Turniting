@@ -8,7 +8,7 @@ import { ApiErrorNotice } from './ApiErrorNotice'
 import { formatBytes } from './document-utils'
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from './upload-limits'
 
-const allowedExtensions = new Set(['pdf', 'docx', 'txt'])
+const allowedExtensions = new Set(['pdf', 'docx', 'txt', 'png', 'jpg', 'jpeg'])
 
 type ClientIssue = { code: string; message: string }
 
@@ -55,7 +55,7 @@ export function DocumentUpload() {
 
     const extension = getFileExtension(file.name)
     if (!allowedExtensions.has(extension)) {
-      setClientIssue({ code: 'CLIENT_UNSUPPORTED_FILE_TYPE', message: 'Elige un archivo PDF, DOCX o TXT.' })
+      setClientIssue({ code: 'CLIENT_UNSUPPORTED_FILE_TYPE', message: 'Elige un archivo PDF, DOCX, TXT, PNG o JPEG.' })
       return
     }
     if (file.size > MAX_UPLOAD_BYTES) {
@@ -91,7 +91,7 @@ export function DocumentUpload() {
         <div>
           <p className="eyebrow">INGESTA DE ARCHIVOS</p>
           <h2 id="upload-title">Subir un documento</h2>
-          <p>PDF, DOCX o TXT · hasta {MAX_UPLOAD_MB} MB por archivo</p>
+          <p>PDF, DOCX, TXT, PNG o JPEG · hasta {MAX_UPLOAD_MB} MB por archivo</p>
         </div>
         <span className="upload-heading-icon"><Icon name="file-plus" size={20} /></span>
       </div>
@@ -119,8 +119,8 @@ export function DocumentUpload() {
           className="visually-hidden"
           type="file"
           tabIndex={-1}
-          accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-          aria-label="Seleccionar un archivo PDF, DOCX o TXT"
+          accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/png,image/jpeg"
+          aria-label="Seleccionar un archivo PDF, DOCX, TXT, PNG o JPEG"
           onChange={(event) => {
             chooseFile(event.currentTarget.files?.[0])
             event.currentTarget.value = ''
@@ -193,7 +193,7 @@ export function DocumentUpload() {
       {isOcrRequired && trackedDocument && (
         <div className="upload-state upload-state-warning" role="status" aria-live="polite">
           <span className="state-indicator">!</span>
-          <span><strong>OCR requerido</strong><small>Este documento necesita reconocimiento de texto para continuar.</small></span>
+          <span><strong>OCR requerido</strong><small>El documento está listo para procesar sus páginas escaneadas.</small></span>
           <Link className="button button-quiet upload-result-link" to={`/documents/${trackedDocument.id}`}>Ver detalle</Link>
         </div>
       )}

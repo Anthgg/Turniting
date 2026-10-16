@@ -1,4 +1,6 @@
 -r requirements.txt
+-r requirements-ocr.txt
+-r requirements-models.txt
 
 httpx>=0.28
 pytest>=8.3

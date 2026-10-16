@@ -24,6 +24,7 @@ import {
   type AiTurnitinAlignmentResponse,
   type AiTurnitinParseResponse,
 } from '../ai/ai.service.js';
+import { OcrService } from '../ocr/ocr.service.js';
 import {
   type BufferedUpload,
   validateDocumentFile,
@@ -60,6 +61,7 @@ export class TurnitinService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly ai: AiService,
+    private readonly ocr: OcrService,
     config: ConfigService,
   ) {
     this.maxUploadBytes =
@@ -229,6 +231,9 @@ export class TurnitinService {
         where: { id },
         data: {
           ...this.parsedReportFields(parsed),
+          alignmentVersion: alignment ? 'f002-align-v1' : null,
+          alignmentEngine: alignment?.method ?? null,
+          alignmentStale: false,
           ...(alignment
             ? {
                 contentMatchStatus: alignment.matchStatus,
@@ -290,6 +295,9 @@ export class TurnitinService {
           contentMatchEvidence: asJson(alignment.signals),
           matchedAt: new Date(),
           submissionRelation: TurnitinSubmissionRelation.UNKNOWN,
+          alignmentVersion: 'f002-align-v1',
+          alignmentEngine: alignment.method,
+          alignmentStale: false,
         },
       });
       await this.updateSegmentAlignments(transaction, id, alignment);
@@ -303,9 +311,99 @@ export class TurnitinService {
 
   async remove(id: string) {
     const report = await this.requireReport(id);
-    await this.prisma.turnitinReport.delete({ where: { id } });
+    try {
+      await this.prisma.$transaction(
+        async (transaction) => {
+          const references = await transaction.groundTruthCase.count({
+            where: { OR: [{ aiReportId: id }, { similarityReportId: id }] },
+          });
+          if (references > 0) {
+            throw new ConflictException({
+              code: 'GROUND_TRUTH_REFERENCE_EXISTS',
+              message: 'Unlink this report from ground-truth cases before deleting it',
+            });
+          }
+          await transaction.turnitinReport.delete({ where: { id } });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (error instanceof ConflictException) throw error;
+      if (isForeignKeyConstraint(error)) {
+        throw new ConflictException({
+          code: 'GROUND_TRUTH_REFERENCE_EXISTS',
+          message: 'Unlink this report from ground-truth cases before deleting it',
+        });
+      }
+      throw error;
+    }
     await this.cleanupStoredFile(report.storageKey, 'turnitin_report_storage_cleanup_failed');
     return { status: 'deleted', id };
+  }
+
+  async ocrReparse(id: string) {
+    const report = await this.requireReport(id);
+    if (report.status !== TurnitinReportStatus.OCR_REQUIRED && !report.requiresOcr) {
+      throw new ConflictException({
+        code: 'OCR_NOT_REQUIRED',
+        message: 'This Turnitin report does not currently require OCR',
+      });
+    }
+    const buffer = await this.readStoredReport(report.storageKey);
+    const upload = validateDocumentFile(
+      {
+        buffer,
+        originalname: report.originalName,
+        mimetype: report.mimeType,
+        size: buffer.byteLength,
+      },
+      this.maxUploadBytes,
+    );
+    if (upload.fileType !== 'pdf') {
+      throw new UnsupportedMediaTypeException({
+        code: 'INVALID_REPORT_TYPE',
+        message: 'Only PDF Turnitin reports are supported',
+      });
+    }
+    const ocr = await this.ocr.processDocument(
+      {
+        buffer: upload.buffer,
+        mimeType: upload.mimeType,
+        originalName: upload.originalName,
+      },
+      { force: false },
+    );
+    const pageTexts = ocr.pages.map((page) => page.ocrText ?? page.canonicalText);
+    const parsed = await this.ocr.parseTurnitinOcrText(pageTexts);
+    const warnings = sanitizeWarnings([
+      ...parsed.warnings,
+      ...(ocr.pagesFailed > 0 ? ['Some report pages could not be read by OCR.'] : []),
+    ]);
+    const recovered =
+      parsed.reportType !== 'UNKNOWN' || Object.keys(parsed.scores).length > 0;
+    const finalStatus = recovered
+      ? TurnitinReportStatus.PARTIAL
+      : TurnitinReportStatus.OCR_REQUIRED;
+    const updated = await this.prisma.$transaction(async (transaction) => {
+      await transaction.turnitinSegment.deleteMany({ where: { reportId: id } });
+      await transaction.turnitinSource.deleteMany({ where: { reportId: id } });
+      const saved = await transaction.turnitinReport.update({
+        where: { id },
+        data: {
+          ...this.parsedReportFields(parsed),
+          status: finalStatus,
+          requiresOcr: !recovered || ocr.pagesFailed > 0,
+          warnings,
+          alignmentStale: Boolean(report.documentVersionId),
+        },
+      });
+      await this.createRelatedRows(transaction, id, parsed);
+      return transaction.turnitinReport.findUniqueOrThrow({
+        where: { id: saved.id },
+        include: reportSummaryInclude,
+      });
+    });
+    return this.reportDto(updated);
   }
 
   async createGroundTruthCase(input: CreateGroundTruthCaseDto) {
@@ -614,6 +712,9 @@ export class TurnitinService {
       createdAt: report.createdAt,
       updatedAt: report.updatedAt,
       matchedAt: report.matchedAt,
+      alignmentVersion: report.alignmentVersion,
+      alignmentEngine: report.alignmentEngine,
+      alignmentStale: report.alignmentStale,
     };
   }
 
@@ -655,6 +756,17 @@ export class TurnitinService {
       !input.similarityReportId
     ) {
       throw new BadRequestException('SIMILARITY_REPORT cases require similarityReportId');
+    }
+    if (
+      input.caseType === GroundTruthCaseType.VALIDATION &&
+      !input.documentVersionId &&
+      !input.aiReportId &&
+      !input.similarityReportId
+    ) {
+      throw new BadRequestException({
+        code: 'GROUND_TRUTH_REFERENCE_REQUIRED',
+        message: 'VALIDATION cases require at least one document or report reference',
+      });
     }
   }
 
@@ -841,4 +953,26 @@ function matchesSubset(expected: unknown, actual: unknown): boolean {
 
 function isUniqueConstraint(error: unknown): error is Prisma.PrismaClientKnownRequestError {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+}
+
+function isForeignKeyConstraint(error: unknown): error is Prisma.PrismaClientKnownRequestError {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003';
+}
+
+function sanitizeWarnings(values: readonly unknown[]): string[] {
+  return values
+    .filter((value): value is string => typeof value === 'string')
+    .slice(0, 20)
+    .map((value) =>
+      Array.from(value)
+        .filter((character) => {
+          const code = character.codePointAt(0);
+          return code === undefined || (code >= 32 && code !== 127);
+        })
+        .join('')
+        .replace(/\b[A-Za-z]:[\\/][^\s"'<>]*/g, '[path]')
+        .replace(/(^|[\s("'=])\/(?:[^\s"'<>]+\/?)+/g, '$1[path]')
+        .trim()
+        .slice(0, 300),
+    );
 }

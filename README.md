@@ -12,13 +12,14 @@ flowchart TD
     FE -->|HTTP /api| BE[NestJS]
     BE -->|Prisma| DB[(PostgreSQL local)]
     BE -->|StorageService| FS[(Docker volume / local filesystem)]
-    BE -->|multipart /extract, /turnitin/parse| AI[FastAPI]
+    BE -->|multipart /extract, /ocr/process, /turnitin/parse| AI[FastAPI]
     BE -->|JSON /turnitin/align| AI
     AI -->|extraction, report data, alignment| BE
-    AI -.-> FUT[OCR real / NLP / ML futuro]
+    AI -->|clasificacion selectiva por pagina| OCR[PaddleOCR local CPU]
+    OCR -->|texto, bbox, confianza| BE
 ```
 
-React consume exclusivamente la API NestJS. NestJS valida, conserva los archivos y persiste metadatos, reportes, segmentos, fuentes y ground truth en PostgreSQL. FastAPI extrae texto, interpreta etiquetas visibles del PDF y calcula una alineación textual; no se conecta a PostgreSQL ni reproduce algoritmos de Turnitin. Los archivos se guardan en el volumen local `turniting_uploads`.
+React consume exclusivamente la API NestJS. NestJS valida, conserva los archivos y persiste documentos, páginas, ejecuciones OCR, reportes, segmentos, fuentes y ground truth en PostgreSQL. FastAPI extrae texto y clasifica cada página antes de usar PaddleOCR local en CPU solo donde hace falta; también interpreta etiquetas visibles del PDF y calcula alineaciones textuales. No se conecta a PostgreSQL ni reproduce algoritmos de Turnitin. Los documentos se guardan en `turniting_uploads`; los modelos públicos se guardan por separado en `turniting_ai_models`.
 
 ## Stack
 
@@ -43,7 +44,7 @@ docker-compose.yml
 
 - Docker Desktop con Docker Compose v2 para ejecutar la pila local.
 - Node.js y npm para los comandos de desarrollo y QA del backend/frontend.
-- Python 3.12 o superior para ejecutar el servicio IA fuera de Docker.
+- Python 3.12 para ejecutar localmente el servicio IA con las ruedas OCR fijadas.
 
 ## Inicio local con Docker
 
@@ -102,15 +103,16 @@ Los comandos de cada paquete y la preparación local están en [docs/LOCAL_SETUP
 
 ## Supabase y Cloud Run
 
-SUPABASE = DEFERRED_TO_F011. F001 y F002 no crean proyectos ni conexiones Supabase; sus migraciones se ejecutan solo contra PostgreSQL local. La guía existente [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) queda como referencia para F011.
+SUPABASE = DEFERRED_TO_F011. F001, F002 y F003 no crean proyectos ni conexiones Supabase; sus migraciones se ejecutan solo contra PostgreSQL local. La guía existente [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) queda como referencia para F011.
 
-CLOUD_RUN = DEFERRED_TO_F011. F001 y F002 no crean proyectos GCP ni despliegan servicios. [docs/CLOUD_RUN_DEPLOYMENT.md](docs/CLOUD_RUN_DEPLOYMENT.md) queda como referencia futura.
+CLOUD_RUN = DEFERRED_TO_F011. F001, F002 y F003 no crean proyectos GCP ni despliegan servicios. [docs/CLOUD_RUN_DEPLOYMENT.md](docs/CLOUD_RUN_DEPLOYMENT.md) queda como referencia futura.
 
 ## Documentación
 
 - [Arquitectura](docs/ARCHITECTURE.md)
 - [Ingesta de documentos F001](docs/F001_DOCUMENT_INGESTION.md)
 - [Parser de reportes Turnitin F002](docs/F002_TURNITIN_REPORT_PARSER.md)
+- [OCR selectivo y reconstrucción F003](docs/F003_OCR.md)
 - [Instalación local](docs/LOCAL_SETUP.md)
 - [Configuración de Supabase](docs/SUPABASE_SETUP.md)
 - [Despliegue en Cloud Run](docs/CLOUD_RUN_DEPLOYMENT.md)

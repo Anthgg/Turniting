@@ -21,6 +21,7 @@ import {
   AiExtractResponse,
   AiService,
   AiDocumentFile,
+  AiOcrProcessResponse,
 } from '../src/ai/ai.service.js';
 import { configureApplication } from '../src/common/configure-application.js';
 import { validateEnvironment } from '../src/config/env.validation.js';
@@ -40,6 +41,8 @@ type StoredVersion = {
   wordCount: number | null;
   characterCount: number | null;
   requiresOcr: boolean;
+  ocrStatus: string;
+  averageOcrConfidence: number | null;
   warnings: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -64,6 +67,8 @@ type UpdateData = {
 
 function createInMemoryPrisma() {
   const rows = new Map<string, StoredDocument>();
+  const pages = new Map<string, Record<string, any>>();
+  const runs = new Map<string, Record<string, any>>();
   let sequence = 0;
   const document = {
     create: vi.fn(
@@ -99,6 +104,8 @@ function createInMemoryPrisma() {
             wordCount: null,
             characterCount: null,
             requiresOcr: false,
+            ocrStatus: 'NOT_NEEDED',
+            averageOcrConfidence: null,
             warnings: [],
             createdAt: now,
             updatedAt: now,
@@ -140,11 +147,80 @@ function createInMemoryPrisma() {
       return row;
     }),
   };
+  const documentPage = {
+    upsert: vi.fn(async (args: {
+      where: {
+        documentVersionId_pageNumber: {
+          documentVersionId: string;
+          pageNumber: number;
+        };
+      };
+      create: Record<string, any>;
+      update: Record<string, any>;
+    }) => {
+      const unique = args.where.documentVersionId_pageNumber;
+      const key = `${unique.documentVersionId}:${unique.pageNumber}`;
+      const row = pages.get(key) ?? { id: randomUUID(), ...args.create };
+      Object.assign(row, args.update);
+      pages.set(key, row);
+      return row;
+    }),
+    findMany: vi.fn(async (args: { where: { documentVersionId: string } }) =>
+      [...pages.values()]
+        .filter((page) => page.documentVersionId === args.where.documentVersionId)
+        .sort((left, right) => left.pageNumber - right.pageNumber),
+    ),
+    findUnique: vi.fn(async (args: {
+      where: {
+        documentVersionId_pageNumber: {
+          documentVersionId: string;
+          pageNumber: number;
+        };
+      };
+    }) => {
+      const unique = args.where.documentVersionId_pageNumber;
+      return pages.get(`${unique.documentVersionId}:${unique.pageNumber}`) ?? null;
+    }),
+  };
+  const ocrRun = {
+    create: vi.fn(async (args: { data: Record<string, any> }) => {
+      const row = { id: randomUUID(), createdAt: new Date(), ...args.data };
+      runs.set(row.id, row);
+      return row;
+    }),
+    update: vi.fn(async (args: {
+      where: { id: string };
+      data: Record<string, any>;
+    }) => {
+      const row = runs.get(args.where.id);
+      if (!row) throw new Error('record not found');
+      Object.assign(row, args.data);
+      return row;
+    }),
+    findMany: vi.fn(async (args: { where: { documentVersionId: string } }) =>
+      [...runs.values()].filter(
+        (run) => run.documentVersionId === args.where.documentVersionId,
+      ),
+    ),
+  };
+  const turnitinReport = {
+    updateMany: vi.fn(async () => ({ count: 0 })),
+  };
+  const transaction = { document, documentPage, ocrRun, turnitinReport };
   return {
     document,
+    documentPage,
+    ocrRun,
+    pages,
+    runs,
+    $transaction: vi.fn(async (operation: any) =>
+      Array.isArray(operation) ? Promise.all(operation) : operation(transaction),
+    ),
     rows,
     reset() {
       rows.clear();
+      pages.clear();
+      runs.clear();
       sequence = 0;
       vi.clearAllMocks();
     },
@@ -155,10 +231,13 @@ function extractionFor(
   file: AiDocumentFile,
   overrides: Partial<AiExtractResponse> = {},
 ): AiExtractResponse {
-  const fileType = file.originalName
+  const extension = file.originalName
     .split('.')
     .pop()
-    ?.toLowerCase() as AiExtractResponse['fileType'];
+    ?.toLowerCase();
+  const fileType = (
+    extension === 'jpg' ? 'jpeg' : extension
+  ) as AiExtractResponse['fileType'];
   const text = 'Extracted document text';
   return {
     status: 'success',
@@ -169,7 +248,57 @@ function extractionFor(
     characterCount: text.length,
     requiresOcr: false,
     warnings: [],
+    pages: [],
     ...overrides,
+  };
+}
+
+function syntheticOcrResponse(): AiOcrProcessResponse {
+  const text = 'Texto sintético recuperado con cajas y confianza observadas.';
+  return {
+    status: 'success',
+    engine: 'paddleocr',
+    engineVersion: '3.7.0',
+    model: 'PP-OCRv5_mobile_det+latin_PP-OCRv5_mobile_rec',
+    language: 'es',
+    pipelineVersion: 'f003-v1',
+    pages: [
+      {
+        pageNumber: 1,
+        classification: 'OCR_REQUIRED',
+        width: 595,
+        height: 842,
+        rotation: 0,
+        digitalText: '',
+        canonicalText: text,
+        extractionMethod: 'OCR',
+        requiresOcr: false,
+        imageAreaRatio: 1,
+        warnings: [],
+        ocrText: text,
+        confidence: 0.95,
+        blocks: [
+          {
+            text,
+            confidence: 0.95,
+            bbox: { x0: 40, y0: 70, x1: 520, y1: 90 },
+            readingOrder: 1,
+            lowConfidence: false,
+            duplicateOfDigital: false,
+          },
+        ],
+        deskewAngle: 0,
+        processingMs: 25,
+        ocrErrorCode: null,
+      },
+    ],
+    pagesRequested: 1,
+    pagesProcessed: 1,
+    pagesSkipped: 0,
+    pagesFailed: 0,
+    averageConfidence: 0.95,
+    durationMs: 30,
+    warnings: [],
   };
 }
 
@@ -182,6 +311,10 @@ describe('document ingestion endpoints', () => {
     extractDocument: ReturnType<
       typeof vi.fn<(file: AiDocumentFile) => Promise<AiExtractResponse>>
     >;
+    processDocumentOcr: ReturnType<
+      typeof vi.fn<() => Promise<AiOcrProcessResponse>>
+    >;
+    parseTurnitinOcrText: ReturnType<typeof vi.fn>;
   };
   let storage: LocalStorageService;
 
@@ -193,6 +326,8 @@ describe('document ingestion endpoints', () => {
       extractDocument: vi.fn(async (file: AiDocumentFile) =>
         extractionFor(file),
       ),
+      processDocumentOcr: vi.fn(async () => syntheticOcrResponse()),
+      parseTurnitinOcrText: vi.fn(),
     };
 
     const moduleFixture = await Test.createTestingModule({
@@ -236,6 +371,9 @@ describe('document ingestion endpoints', () => {
     ai.extractDocument
       .mockReset()
       .mockImplementation(async (file) => extractionFor(file));
+    ai.processDocumentOcr
+      .mockReset()
+      .mockImplementation(async () => syntheticOcrResponse());
     await rm(uploadDir, { recursive: true, force: true });
     await mkdir(uploadDir, { recursive: true });
   });
@@ -524,6 +662,126 @@ describe('document ingestion endpoints', () => {
     await request(app.getHttpServer())
       .post(`/api/documents/${uploaded.body.id}/reprocess`)
       .expect(201);
+  });
+
+  it('persists selective OCR pages, canonical text, confidence, and run history', async () => {
+    const buffer = Buffer.from('%PDF-1.7 synthetic scanned page');
+    ai.extractDocument.mockResolvedValueOnce(
+      extractionFor(
+        { buffer, mimeType: 'application/pdf', originalName: 'scan.pdf' },
+        { text: '', wordCount: 0, characterCount: 0, requiresOcr: true },
+      ),
+    );
+    const uploaded = await request(app.getHttpServer())
+      .post('/api/documents')
+      .attach('file', buffer, {
+        filename: 'scan.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+    ai.processDocumentOcr.mockResolvedValueOnce(syntheticOcrResponse());
+
+    const processed = await request(app.getHttpServer())
+      .post(`/api/documents/${uploaded.body.id}/ocr`)
+      .expect(201);
+
+    expect(processed.body.document.status).toBe(DocumentStatus.EXTRACTED);
+    expect(processed.body.document.ocrStatus).toBe('COMPLETED');
+    expect(processed.body.document.textPreview).toContain(
+      'Texto sintético recuperado',
+    );
+    expect(processed.body.ocr.pagesProcessed).toBe(1);
+    expect(db.pages.size).toBe(1);
+    expect([...db.pages.values()][0]).toMatchObject({
+      extractionMethod: 'OCR',
+      ocrConfidence: 0.95,
+      ocrBlockCount: 1,
+    });
+    expect([...db.runs.values()][0]).toMatchObject({
+      status: 'COMPLETED',
+      pagesProcessed: 1,
+      averageConfidence: 0.95,
+    });
+    const pageList = await request(app.getHttpServer())
+      .get(`/api/documents/${uploaded.body.id}/pages`)
+      .expect(200);
+    expect(pageList.body.items[0]).toMatchObject({
+      pageNumber: 1,
+      extractionMethod: 'OCR',
+      ocrConfidence: 0.95,
+    });
+  });
+
+  it('restores the prior document state when the OCR engine fails', async () => {
+    const buffer = Buffer.from('%PDF-1.7 synthetic scanned page');
+    ai.extractDocument.mockResolvedValueOnce(
+      extractionFor(
+        { buffer, mimeType: 'application/pdf', originalName: 'engine-fail.pdf' },
+        {
+          text: 'Existing extracted text',
+          wordCount: 3,
+          characterCount: 23,
+          requiresOcr: true,
+        },
+      ),
+    );
+    const uploaded = await request(app.getHttpServer())
+      .post('/api/documents')
+      .attach('file', buffer, {
+        filename: 'engine-fail.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+    ai.processDocumentOcr.mockRejectedValueOnce(new Error('private engine detail'));
+
+    await request(app.getHttpServer())
+      .post(`/api/documents/${uploaded.body.id}/ocr`)
+      .expect(503);
+
+    const document = db.rows.get(uploaded.body.id);
+    expect(document?.status).toBe(DocumentStatus.OCR_REQUIRED);
+    expect(document?.currentVersion?.ocrStatus).toBe('REQUIRED');
+    expect(document?.currentVersion?.extractedText).toBe('Existing extracted text');
+    expect([...db.runs.values()][0]).toMatchObject({
+      status: 'FAILED',
+      errorCode: 'OCR_PROCESSING_FAILED',
+    });
+  });
+
+  it('restores the prior OCR state and canonical text when OCR persistence fails', async () => {
+    const buffer = Buffer.from('%PDF-1.7 synthetic scanned page');
+    ai.extractDocument.mockResolvedValueOnce(
+      extractionFor(
+        { buffer, mimeType: 'application/pdf', originalName: 'persist-fail.pdf' },
+        {
+          text: 'Existing extracted text',
+          wordCount: 3,
+          characterCount: 23,
+          requiresOcr: true,
+        },
+      ),
+    );
+    const uploaded = await request(app.getHttpServer())
+      .post('/api/documents')
+      .attach('file', buffer, {
+        filename: 'persist-fail.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+    db.documentPage.upsert.mockRejectedValueOnce(new Error('database detail'));
+
+    await request(app.getHttpServer())
+      .post(`/api/documents/${uploaded.body.id}/ocr`)
+      .expect(500);
+
+    const document = db.rows.get(uploaded.body.id);
+    expect(document?.status).toBe(DocumentStatus.OCR_REQUIRED);
+    expect(document?.currentVersion?.ocrStatus).toBe('REQUIRED');
+    expect(document?.currentVersion?.extractedText).toBe('Existing extracted text');
+    expect([...db.runs.values()][0]).toMatchObject({
+      status: 'FAILED',
+      errorCode: 'OCR_PERSIST_FAILED',
+    });
   });
 
   it('deletes the database record and cascaded version before cleaning the physical file', async () => {

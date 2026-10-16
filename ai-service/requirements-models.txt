@@ -1,0 +1,2 @@
+# PaddleX imports its official model-source adapters during PaddleOCR startup.
+modelscope==1.36.3

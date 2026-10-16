@@ -6,6 +6,7 @@ import {
   getTurnitinReport,
   listTurnitinSegments,
   listTurnitinSources,
+  ocrReparseTurnitinReport,
   reparseTurnitinReport,
   turnitinQueryKeys,
 } from '../../api/turnitin'
@@ -65,6 +66,15 @@ export function TurnitinReportDetailPage() {
       void queryClient.invalidateQueries({ queryKey: ['turnitin-reports', 'segments', id] })
     },
   })
+  const ocrReparse = useMutation({
+    mutationFn: () => ocrReparseTurnitinReport(id),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(turnitinQueryKeys.detail(id), updated)
+      void queryClient.invalidateQueries({ queryKey: turnitinQueryKeys.all })
+      void queryClient.invalidateQueries({ queryKey: ['turnitin-reports', 'sources', id] })
+      void queryClient.invalidateQueries({ queryKey: ['turnitin-reports', 'segments', id] })
+    },
+  })
   const remove = useMutation({
     mutationFn: () => deleteTurnitinReport(id),
     onSuccess: () => {
@@ -93,12 +103,14 @@ export function TurnitinReportDetailPage() {
         <div className="document-detail-actions">
           <Link className="button button-quiet" to="/turnitin-reports">Todos los reportes</Link>
           {record && <button className="button button-quiet" type="button" onClick={() => reparse.mutate()} disabled={reparse.isPending}>{reparse.isPending ? 'Releyendo…' : 'Reprocesar'}</button>}
+          {record?.requiresOcr && <button className="button button-primary" type="button" onClick={() => ocrReparse.mutate()} disabled={ocrReparse.isPending} aria-busy={ocrReparse.isPending}>{ocrReparse.isPending ? 'Procesando OCR…' : 'Procesar OCR local'}</button>}
           {record && <button className="button button-danger-quiet" type="button" onClick={confirmDelete} disabled={remove.isPending}>Eliminar</button>}
         </div>
       </div>
 
       {report.isError && <ApiErrorNotice error={report.error} title="No se pudo cargar el reporte" />}
       {reparse.isError && <ApiErrorNotice error={reparse.error} title="No se pudo reprocesar el reporte" />}
+      {ocrReparse.isError && <ApiErrorNotice error={ocrReparse.error} title="No se pudo aplicar OCR al reporte" />}
       {remove.isError && <ApiErrorNotice error={remove.error} title="No se pudo eliminar el reporte" />}
       {report.isPending && <div className="documents-empty-state" role="status"><span className="state-indicator is-animated" /><span>Cargando reporte…</span></div>}
 
@@ -122,7 +134,9 @@ export function TurnitinReportDetailPage() {
           {(record.status === 'PARTIAL' || record.status === 'OCR_REQUIRED' || record.status === 'FAILED' || record.contentMatchStatus === 'MISMATCH') && (
             <section className="document-warnings turnitin-warnings" role="status">
               <h2>Revisión necesaria</h2>
-              <p>{record.status === 'OCR_REQUIRED' ? 'El PDF tiene poco texto seleccionable. La fase F002 no ejecuta OCR.' : record.status === 'FAILED' ? 'No se pudo interpretar el reporte. Puedes volver a procesarlo.' : record.contentMatchStatus === 'MISMATCH' ? 'El contenido no coincide con el documento vinculado; verifica la asociación.' : 'Algunos datos visibles no se pudieron leer. Revisa los campos y segmentos disponibles.'}</p>
+              <p>{record.status === 'OCR_REQUIRED' ? 'El PDF tiene poco texto seleccionable. Puedes procesarlo con OCR local para recuperar los datos legibles.' : record.status === 'FAILED' ? 'No se pudo interpretar el reporte. Puedes volver a procesarlo.' : record.contentMatchStatus === 'MISMATCH' ? 'El contenido no coincide con el documento vinculado; verifica la asociación.' : 'Algunos datos visibles no se pudieron leer. Revisa los campos y segmentos disponibles.'}</p>
+              {ocrReparse.isPending && <p role="status">Procesando páginas localmente. No hay porcentaje de progreso disponible.</p>}
+              {record.alignmentStale && <p>La alineación previa quedó desactualizada y debe volver a compararse con el texto OCR.</p>}
               {record.warnings.length > 0 && <ul>{record.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul>}
             </section>
           )}
