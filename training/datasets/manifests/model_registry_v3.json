@@ -1,0 +1,143 @@
+{
+  "modelRegistrySchemaVersion": 1,
+  "datasetVersion": "TURNITING_DATASET_V2",
+  "models": [
+    {
+      "name": "CANDIDATE_MODEL_V3",
+      "architecture": "microsoft/mdeberta-v3-base",
+      "variant": "TURNITING_RESEARCH_V3_SPANISH_ACADEMIC",
+      "modelType": "TRANSFORMER",
+      "status": "CANDIDATE",
+      "trainingEnvironment": "Google Colab A100 40GB (bf16), global 1,000,000 windows + 200,000 refinement windows",
+      "commercialEligibility": "RESEARCH_ONLY",
+      "gitCommit": "c09a0dbd47a5d3b648873e62b9c19272d477a0c5",
+      "artifact": {
+        "provider": "GOOGLE_DRIVE",
+        "path": "MyDrive/turniting/v3/models/spanish_academic",
+        "external": true,
+        "note": "checkpoint MyDrive/turniting/v3/checkpoints/20261017_0604_v3_es_acad/best; weights not in Git"
+      },
+      "metrics": {
+        "source": "training/reports/TRAINING_V3_REPORT.md summary (3 decimals); full JSON in Drive v3/reports/eval",
+        "byEvalSet": {
+          "validation_v2": {
+            "primary": 0.932
+          },
+          "test_v2": {
+            "macro_f1": 0.879,
+            "roc_auc": 0.953,
+            "fpr": 0.158
+          },
+          "test_v2_spanish": {
+            "macro_f1": 0.893
+          },
+          "test_v2_academic": {
+            "macro_f1": 0.935,
+            "fpr": 0.069
+          },
+          "test_v2_mixed": {
+            "recall": 0.853
+          },
+          "test_v2_ai_edited": {
+            "macro_f1": 0.899
+          },
+          "test_v2_unseen_generator": {
+            "macro_f1": 0.887
+          },
+          "test_v2_unseen_domain": {
+            "macro_f1": 0.806
+          },
+          "test_v2_adversarial": {
+            "recall": 0.921
+          },
+          "synthetic_zero_width": {
+            "macro_f1": 0.887
+          },
+          "synthetic_homoglyph": {
+            "macro_f1": 0.89
+          },
+          "dataset_holdout_aigtxt": {
+            "macro_f1": 0.859
+          },
+          "external_holdout_2026": {
+            "roc_auc": 0.99,
+            "recall": 1.0,
+            "fpr": 0.16
+          },
+          "v1_test": {
+            "macro_f1": 0.844,
+            "fpr": 0.275
+          },
+          "v1_test_spanish": {
+            "macro_f1": 0.831,
+            "fpr": 0.269
+          },
+          "v1_ood": {
+            "macro_f1": 0.937
+          },
+          "v1_adversarial": {
+            "macro_f1": 0.919
+          },
+          "span_detection": {
+            "token_f1": 0.916
+          }
+        },
+        "candidateModelV2Reference": {
+          "v1_test": {
+            "macro_f1": 0.888,
+            "fpr": 0.135
+          },
+          "v1_test_spanish": {
+            "macro_f1": 0.869,
+            "fpr": 0.145
+          },
+          "test_v2": {
+            "macro_f1": 0.744,
+            "roc_auc": 0.846,
+            "fpr": 0.162
+          }
+        },
+        "datasetV2": {
+          "rows": 4303857,
+          "human": 1316737,
+          "ai_generated_or_paraphrased": 2261144,
+          "mixed": 221480,
+          "ai_edited": 504496,
+          "span_labelled": 227532,
+          "spanish": 126379,
+          "academic": 1701181,
+          "generator_families": 39,
+          "languages": 27,
+          "exact_duplicates_removed": 840042,
+          "near_duplicates_removed": 82946,
+          "leakage": "0/0/0/0 PASS",
+          "validation_docs": 20000
+        }
+      },
+      "limitations": [
+        "Frozen V1 test FPR 0.275 at its BALANCED threshold vs 0.135 for CANDIDATE_MODEL_V2 (V1 Spanish 0.269 vs 0.145).",
+        "Document-window scores move for unchanged neighbouring paragraphs; use paragraph-local scoring for versions.",
+        "Trained with non-commercial / undeclared-licence sources: research use only.",
+        "Independent research detector; not a Turnitin model or score."
+      ],
+      "metadata": {
+        "warnings": [
+          {
+            "code": "FROZEN_V1_FPR_REGRESSION",
+            "severity": "HIGH",
+            "v3_fpr": 0.275,
+            "v2_fpr": 0.135,
+            "action": "use a validation-selected LOW_FALSE_POSITIVE profile or the V2/V3 ensemble"
+          },
+          {
+            "code": "WINDOW_CONTEXT_DRIFT",
+            "severity": "MEDIUM",
+            "action": "paragraph-local scoring (F005)"
+          }
+        ],
+        "datasetVersion": "TURNITING_DATASET_V2",
+        "sourceBranch": "claude/project-thread-fm8si4"
+      }
+    }
+  ]
+}

@@ -162,3 +162,15 @@ describe('AnalyzerModelsService', () => {
     expect(down.items[0].availability).toBe('AI_SERVICE_UNREACHABLE');
   });
 });
+
+describe('CANDIDATE_MODEL_V3 registry', () => {
+  it('is a valid model registry that never activates the model and carries the FPR warning', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { validateModelRegistry } = await import('../datasets/manifest-schemas.js');
+    const raw = JSON.parse(readFileSync(new URL('../../../training/datasets/manifests/model_registry_v3.json', import.meta.url), 'utf8'));
+    const registry = validateModelRegistry(raw);
+    expect(registry.datasetVersion).toBe('TURNITING_DATASET_V2');
+    expect(registry.models[0].status).toBe('CANDIDATE');
+    expect(JSON.stringify(registry.models[0].metadata)).toContain('FROZEN_V1_FPR_REGRESSION');
+  });
+});

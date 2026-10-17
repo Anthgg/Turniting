@@ -38,3 +38,4 @@ known-first-party = ["app"]
 # F005 analyzer: long provenance docstrings/warnings and Spanish synthetic fixtures
 "app/services/analyzer/*.py" = ["E501"]
 "tests/test_analyzer.py" = ["E501"]
+"scripts/f005_*.py" = ["E501", "E402"]

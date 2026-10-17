@@ -82,3 +82,7 @@ training/checkpoints/
 !backend/src/datasets/
 !frontend/src/features/datasets/
 !backend/test/fixtures/datasets/
+
+# F005 local analyzer: per-document evaluation scores and copied validation data (never committed)
+data/eval/
+data/v2/
