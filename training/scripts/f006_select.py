@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from f006_lib import write_json  # noqa: E402
+from f006_lib import selection_score, write_json  # noqa: E402
 
 DRIVE = Path("/content/drive/MyDrive/turniting/f006")
 
@@ -23,7 +23,7 @@ def load(run: str) -> dict:
 
 
 def key(r: dict):
-    s = r["best"]["selection"]
+    s = selection_score(r["best"]["subsets"])  # recomputed with the current (documented) formula
     return (s["eligible"], s["score"])
 
 
@@ -39,6 +39,7 @@ def main() -> int:
         for p in sorted((DRIVE / "runs").glob("*/run.json")):
             r = json.loads(p.read_text())
             b = r["best"]
+            b["selection"] = selection_score(b["subsets"])
             rows.append({"run": r["run"], "stage": r["stage"], "config": r["config"], "best_step": b["step"],
                          "selection": b["selection"], "threshold_general_fpr_0.04": b["threshold_general_fpr_0.04"],
                          "subsets": {k: {m: v.get(m) for m in ("n", "n_human", "fpr", "recall", "macro_f1", "roc_auc")}
@@ -47,8 +48,11 @@ def main() -> int:
                          "sample_audit": {k: r["sampleAudit"].get(k) for k in ("training_windows", "human_share_windows",
                                                                                 "hard_share_of_human_windows", "paragraph_share")}})
         v3 = DRIVE / "runs" / "V3_INIT_validation.json"
+        v3d = json.loads(v3.read_text()) if v3.exists() else None
+        if v3d:
+            v3d["selection"] = selection_score(v3d["subsets"])
         out = {"selection_rule": "eligible (FPR all validation humans <= 0.05 at general-human FPR 0.04) first, then max F006_SELECTION_SCORE",
-               "v3_init_on_f006_validation": json.loads(v3.read_text()) if v3.exists() else None, "runs": rows}
+               "v3_init_on_f006_validation": v3d, "runs": rows}
         write_json(DRIVE / "reports" / "ablation_results.json", out)
         write_json(Path(a.repo_reports) / "ablation_results.json", out)
         for r in sorted(rows, key=lambda x: (x["selection"]["eligible"], x["selection"]["score"]), reverse=True):

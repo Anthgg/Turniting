@@ -10,6 +10,10 @@ F006_SELECTION_SCORE (fixed BEFORE any F006 training; used for ablation choice a
       + 0.10*macroF1_ai_edited + 0.10*macroF1_ood + 0.15*recall_unseen_generator_proxy
       - 2*max(0, FPR_all_humans - 0.05) - 2*max(0, FPR_spanish - 0.08) - 2*max(0, FPR_academic - 0.05)
       - 2*max(0, FPR_unseen_generator_proxy_humans - 0.10) - 1*max(0, FPR_ood_humans - 0.10)
+      - 1*max(0, FPR_unseen_domain_proxy_humans - 0.10)
+  (amendment, 2026-10-17, made before any F006-trained checkpoint was evaluated, after seeing only the V3
+   reference on F006 validation: the unseen-domain proxy (reports) human FPR term was added because V3 shows
+   FPR 0.43 there, i.e. it is the clearest human-shift failure the validation exposes)
   Configurations are eligible only when FPR_all_humans <= 0.05 at t_g; terms with no data are dropped and
   the positive weights renormalised.
 
@@ -35,7 +39,7 @@ SCORE_WEIGHTS = {"general_macro_f1": 0.20, "spanish_macro_f1": 0.15, "academic_m
                  "mixed_recall": 0.15, "ai_edited_macro_f1": 0.10, "ood_macro_f1": 0.10,
                  "unseen_generator_recall": 0.15}
 PENALTIES = [("fpr_all_humans", 0.05, 2.0), ("spanish_fpr", 0.08, 2.0), ("academic_fpr", 0.05, 2.0),
-             ("unseen_generator_fpr", 0.10, 2.0), ("ood_fpr", 0.10, 1.0)]
+             ("unseen_generator_fpr", 0.10, 2.0), ("ood_fpr", 0.10, 1.0), ("unseen_domain_fpr", 0.10, 1.0)]
 
 
 def log(*a):
@@ -219,7 +223,8 @@ def selection_score(rep: dict) -> dict:
              "ai_edited_macro_f1": g("ai_edited", "macro_f1"), "ood_macro_f1": g("ood", "macro_f1"),
              "unseen_generator_recall": g("unseen_generator", "recall")}
     fprs = {"fpr_all_humans": g("all", "fpr"), "spanish_fpr": g("spanish", "fpr"), "academic_fpr": g("academic", "fpr"),
-            "unseen_generator_fpr": g("unseen_generator", "fpr"), "ood_fpr": g("ood", "fpr")}
+            "unseen_generator_fpr": g("unseen_generator", "fpr"), "ood_fpr": g("ood", "fpr"),
+            "unseen_domain_fpr": g("unseen_domain", "fpr")}
     avail = {k: v for k, v in terms.items() if v is not None}
     wsum = sum(SCORE_WEIGHTS[k] for k in avail) or 1.0
     pos = sum(SCORE_WEIGHTS[k] * v for k, v in avail.items()) / wsum
