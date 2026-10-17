@@ -33,3 +33,8 @@ select = ["E", "F", "I"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
+
+[tool.ruff.lint.per-file-ignores]
+# F005 analyzer: long provenance docstrings/warnings and Spanish synthetic fixtures
+"app/services/analyzer/*.py" = ["E501"]
+"tests/test_analyzer.py" = ["E501"]

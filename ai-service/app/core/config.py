@@ -117,6 +117,71 @@ class Settings(BaseSettings):
         validation_alias="OCR_CONTRAST_RANGE",
     )
 
+    # F005 local AI analyzer. Artifact paths are configured server-side only; a missing
+    # artifact makes the model UNAVAILABLE, never the service unhealthy.
+    ai_model_v2_path: Path | None = Field(
+        default=None, validation_alias="AI_MODEL_V2_PATH"
+    )
+    ai_model_v3_path: Path | None = Field(
+        default=None, validation_alias="AI_MODEL_V3_PATH"
+    )
+    ai_baseline_model_path: Path | None = Field(
+        default=None,
+        validation_alias="AI_BASELINE_MODEL_PATH",
+    )
+    ai_model_device: Literal["auto", "cpu", "cuda", "mps"] = Field(
+        default="auto",
+        validation_alias="AI_MODEL_DEVICE",
+    )
+    ai_model_max_resident: int = Field(
+        default=1,
+        ge=1,
+        le=3,
+        validation_alias="MODEL_MAX_RESIDENT",
+    )
+    ai_model_max_jobs: int = Field(
+        default=1, ge=1, le=4, validation_alias="MODEL_MAX_JOBS"
+    )
+    ai_model_cpu_threads: int = Field(
+        default=4,
+        ge=1,
+        le=32,
+        validation_alias="AI_MODEL_CPU_THREADS",
+    )
+    ai_analyzer_profiles_dir: Path = Field(
+        default=Path(__file__).resolve().parents[1]
+        / "services"
+        / "analyzer"
+        / "profiles",
+        validation_alias="AI_ANALYZER_PROFILES_DIR",
+    )
+    ai_max_analysis_chars: int = Field(
+        default=400_000,
+        ge=1_000,
+        validation_alias="AI_MAX_ANALYSIS_CHARS",
+    )
+    min_paragraph_chars: int = Field(
+        default=120, ge=1, validation_alias="MIN_PARAGRAPH_CHARS"
+    )
+    min_paragraph_words: int = Field(
+        default=20, ge=1, validation_alias="MIN_PARAGRAPH_WORDS"
+    )
+    min_paragraph_tokens: int = Field(
+        default=32, ge=1, validation_alias="MIN_PARAGRAPH_TOKENS"
+    )
+    paragraph_target_tokens: int = Field(
+        default=384,
+        ge=64,
+        le=510,
+        validation_alias="PARAGRAPH_TARGET_TOKENS",
+    )
+    paragraph_context_tokens: int = Field(
+        default=64,
+        ge=0,
+        le=128,
+        validation_alias="PARAGRAPH_CONTEXT_TOKENS",
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:
