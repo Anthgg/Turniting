@@ -410,6 +410,12 @@ def stage2(work: Path, names: list[str], cfg: dict) -> pd.DataFrame:
     split[adv_eval & (row_base == VALIDATION)] = ADV_VAL
     split[adv_eval & (row_base == TEST)] = ADV_TEST
     split[is_v1] = v1_split[is_v1]
+    # bridge components are joined only through new rows, which are excluded: their V1 rows keep
+    # their own (frozen, disjoint) V1 groups so group bookkeeping matches what is actually used
+    v1_in_bridge = is_v1 & np.isin(comp, list(bridge))
+    gid = df["group_id"].values.astype(object)
+    gid[v1_in_bridge] = "v1:" + df["v1_group_id"].astype(str).values[v1_in_bridge]
+    df["group_id"] = gid
     st_kept = status == "KEPT"
     status[st_kept & (reason != None)] = reason[st_kept & (reason != None)]  # noqa: E711
     split[status != "KEPT"] = None
