@@ -109,7 +109,7 @@ def main() -> int:
         print(f"  {rel}  {digest[:16]}  {target.stat().st_size / 1e6:.1f} MB")
     (dst / "IMPORT_MANIFEST.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
     print(f"imported {args.model} -> {dst}")
-    print(f"configure: {spec['env']}={dst}   (Docker: /data/models/local/{spec["slug"]})")
+    print(f"configure: {spec['env']}={dst}   (Docker: /data/models/local/{spec['slug']})")
     return 0
 
 
