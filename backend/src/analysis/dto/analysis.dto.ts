@@ -24,7 +24,7 @@ export class AnalyzeDocumentDto {
   granularity: (typeof GRANULARITIES)[number] = 'PARAGRAPH';
 
   @IsIn(PARAGRAPH_MODES)
-  paragraphMode: (typeof PARAGRAPH_MODES)[number] = 'CONTEXTUAL_PARAGRAPH';
+  paragraphMode: (typeof PARAGRAPH_MODES)[number] = 'STRICT_PARAGRAPH';
 }
 
 export class CompareAnalysesDto {

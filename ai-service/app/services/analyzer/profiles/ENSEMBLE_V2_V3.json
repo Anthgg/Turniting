@@ -1,0 +1,14 @@
+{
+  "model": "ENSEMBLE_V2_V3",
+  "calibrationVersion": "f005-v1",
+  "method": "weighted_probability",
+  "w2": 0.5,
+  "thresholds": {
+    "BALANCED": 0.59,
+    "LOW_FALSE_POSITIVE": 0.53,
+    "VERY_LOW_FALSE_POSITIVE": 0.665
+  },
+  "validationIdsHash": "f2449a52895fc5bdc42e27170e4a12a47aa709f7cd8c277fb73dfe2e2a3dea63",
+  "selectedOn": "VALIDATION only",
+  "status": "EXPERIMENTAL (not production)"
+}

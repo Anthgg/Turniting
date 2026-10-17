@@ -1,0 +1,69 @@
+{
+  "model": "CANDIDATE_MODEL_V3",
+  "calibration": "isotonic",
+  "profiles": {
+    "BALANCED": {
+      "threshold": 0.45,
+      "rule": "max validation macro F1",
+      "macro_f1": 0.932,
+      "precision": 0.952316076294278,
+      "recall": 0.912532637075718,
+      "fpr": 0.047683923705722074,
+      "fnr": 0.08746736292428199,
+      "roc_auc": 0.982278156814479,
+      "ece": 8.271161533457416e-18,
+      "brier": 0.04954282792751341,
+      "n": 3000,
+      "by_group_fpr": {
+        "spanish_human": 0.05581395348837209,
+        "academic_human": 0.10588235294117647,
+        "v1_validation": 0.04560530679933665
+      }
+    },
+    "LOW_FALSE_POSITIVE": {
+      "threshold": 0.45,
+      "rule": "max recall with validation FPR <= 0.05",
+      "note": null,
+      "recall_lost_vs_balanced": 0.0,
+      "macro_f1": 0.932,
+      "precision": 0.952316076294278,
+      "recall": 0.912532637075718,
+      "fpr": 0.047683923705722074,
+      "fnr": 0.08746736292428199,
+      "roc_auc": 0.982278156814479,
+      "ece": 8.271161533457416e-18,
+      "brier": 0.04954282792751341,
+      "n": 3000,
+      "by_group_fpr": {
+        "spanish_human": 0.05581395348837209,
+        "academic_human": 0.10588235294117647,
+        "v1_validation": 0.04560530679933665
+      }
+    },
+    "VERY_LOW_FALSE_POSITIVE": {
+      "threshold": 0.845,
+      "rule": "max recall with validation FPR <= 0.02",
+      "note": null,
+      "recall_lost_vs_balanced": 0.05678851174934718,
+      "macro_f1": 0.9171778116685777,
+      "precision": 0.9798206278026906,
+      "recall": 0.8557441253263708,
+      "fpr": 0.018392370572207085,
+      "fnr": 0.14425587467362924,
+      "roc_auc": 0.982278156814479,
+      "ece": 8.271161533457416e-18,
+      "brier": 0.04954282792751341,
+      "n": 3000,
+      "by_group_fpr": {
+        "spanish_human": 0.023255813953488372,
+        "academic_human": 0.011764705882352941,
+        "v1_validation": 0.017412935323383085
+      }
+    }
+  },
+  "fpr_targets": {
+    "LOW_FALSE_POSITIVE": 0.05,
+    "VERY_LOW_FALSE_POSITIVE": 0.02
+  },
+  "validationIdsHash": "f2449a52895fc5bdc42e27170e4a12a47aa709f7cd8c277fb73dfe2e2a3dea63"
+}

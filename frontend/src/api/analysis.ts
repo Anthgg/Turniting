@@ -7,7 +7,7 @@ const classification = z.enum(['MACHINE_SIGNAL', 'LOW_SIGNAL', 'INSUFFICIENT_TEX
 
 export const ANALYZERS = ['V3_ONLY', 'V2_ONLY', 'ENSEMBLE'] as const
 export const THRESHOLD_PROFILES = ['BALANCED', 'LOW_FALSE_POSITIVE', 'VERY_LOW_FALSE_POSITIVE'] as const
-export const PARAGRAPH_MODES = ['CONTEXTUAL_PARAGRAPH', 'STRICT_PARAGRAPH'] as const
+export const PARAGRAPH_MODES = ['STRICT_PARAGRAPH', 'CONTEXTUAL_PARAGRAPH'] as const
 export type AnalyzerName = (typeof ANALYZERS)[number]
 export type ThresholdProfileName = (typeof THRESHOLD_PROFILES)[number]
 export type ParagraphModeName = (typeof PARAGRAPH_MODES)[number]

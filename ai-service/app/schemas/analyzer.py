@@ -33,7 +33,7 @@ class ParagraphAnalysisRequest(BaseModel):
     analyzer: AnalyzerMode = "V3_ONLY"
     thresholdProfile: ThresholdProfile = "BALANCED"
     customThreshold: float | None = Field(default=None, gt=0, lt=1)
-    paragraphMode: ParagraphMode = "CONTEXTUAL_PARAGRAPH"
+    paragraphMode: ParagraphMode = "STRICT_PARAGRAPH"
 
 
 class CompareVersionsRequest(BaseModel):
@@ -44,7 +44,7 @@ class CompareVersionsRequest(BaseModel):
     analyzer: AnalyzerMode = "V3_ONLY"
     thresholdProfile: ThresholdProfile = "BALANCED"
     customThreshold: float | None = Field(default=None, gt=0, lt=1)
-    paragraphMode: ParagraphMode = "CONTEXTUAL_PARAGRAPH"
+    paragraphMode: ParagraphMode = "STRICT_PARAGRAPH"
 
 
 class AlignRequest(BaseModel):

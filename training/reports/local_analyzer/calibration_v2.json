@@ -1,0 +1,48 @@
+{
+  "model": "CANDIDATE_MODEL_V2",
+  "selected": "isotonic",
+  "cv": {
+    "none": {
+      "cv_ece": 0.1279080718420066,
+      "cv_brier": 0.11626714783522683,
+      "cv_macro_f1_at_balanced": 0.9084190317284604,
+      "cv_fpr_at_balanced": 0.12465940054495912,
+      "cv_recall_at_balanced": 0.9406005221932114
+    },
+    "temperature": {
+      "cv_ece": 0.13230602825765986,
+      "cv_brier": 0.10219333121672397,
+      "cv_macro_f1_at_balanced": 0.9090937853570586,
+      "cv_fpr_at_balanced": 0.12329700272479564,
+      "cv_recall_at_balanced": 0.9406005221932114
+    },
+    "platt": {
+      "cv_ece": 0.03426964587281988,
+      "cv_brier": 0.06684191638150362,
+      "cv_macro_f1_at_balanced": 0.908750086765409,
+      "cv_fpr_at_balanced": 0.12465940054495912,
+      "cv_recall_at_balanced": 0.9412532637075718
+    },
+    "isotonic": {
+      "cv_ece": 0.015714675411150066,
+      "cv_brier": 0.06651533470967617,
+      "cv_macro_f1_at_balanced": 0.9047187190718913,
+      "cv_fpr_at_balanced": 0.1307901907356948,
+      "cv_recall_at_balanced": 0.9392950391644909
+    }
+  },
+  "rule": "lowest out-of-fold ECE + Brier",
+  "validationIdsHash": "f2449a52895fc5bdc42e27170e4a12a47aa709f7cd8c277fb73dfe2e2a3dea63",
+  "n": 3000,
+  "raw_validation": {
+    "macro_f1": 0.8503136763858969,
+    "precision": 0.7850808555033907,
+    "recall": 0.9823759791122716,
+    "fpr": 0.28065395095367845,
+    "fnr": 0.01762402088772846,
+    "roc_auc": 0.9724834769246092,
+    "ece": 0.1279080718420066,
+    "brier": 0.11626714783522683,
+    "n": 3000
+  }
+}

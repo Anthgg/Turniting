@@ -1,0 +1,705 @@
+{
+  "selection_formula": "(at each candidate's LOW_FALSE_POSITIVE threshold):\n      S = 0.30*macroF1_all + 0.20*macroF1_es + 0.20*macroF1_academic + 0.20*recall_mixed_edited\n          + 0.10*recall_adversarial - 2.0*max(0, FPR_all - 0.05) - 1.0*max(0, FPR_es - 0.08)\n      (terms without validation rows are dropped and the weights renormalised)",
+  "validationIdsHash": "f2449a52895fc5bdc42e27170e4a12a47aa709f7cd8c277fb73dfe2e2a3dea63",
+  "n": 3000,
+  "grid": [
+    {
+      "method": "weighted_probability",
+      "w2": 0.0,
+      "w3": 1.0,
+      "threshold_low_fp": 0.45,
+      "score": 0.9276502152609675,
+      "parts": {
+        "macro_f1_all": 0.932,
+        "macro_f1_es": 0.9250087811731647,
+        "macro_f1_academic": 0.9254072059211247,
+        "recall_adversarial": 0.9243697478991597,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.047683923705722074,
+        "fpr_es": 0.05581395348837209,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.932,
+      "recall": 0.912532637075718,
+      "fpr": 0.047683923705722074
+    },
+    {
+      "method": "weighted_probability",
+      "w2": 0.1,
+      "w3": 0.9,
+      "threshold_low_fp": 0.485,
+      "score": 0.9310631175872643,
+      "parts": {
+        "macro_f1_all": 0.9353314938736035,
+        "macro_f1_es": 0.9273606286595437,
+        "macro_f1_academic": 0.9254072059211247,
+        "recall_adversarial": 0.9369747899159664,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.0497275204359673,
+        "fpr_es": 0.05581395348837209,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9353314938736035,
+      "recall": 0.9210182767624021,
+      "fpr": 0.0497275204359673
+    },
+    {
+      "method": "weighted_probability",
+      "w2": 0.2,
+      "w3": 0.8,
+      "threshold_low_fp": 0.49,
+      "score": 0.933384462550526,
+      "parts": {
+        "macro_f1_all": 0.9369969128487297,
+        "macro_f1_es": 0.9320470397137667,
+        "macro_f1_academic": 0.9254072059211247,
+        "recall_adversarial": 0.9411764705882353,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.0497275204359673,
+        "fpr_es": 0.05116279069767442,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9369969128487297,
+      "recall": 0.9242819843342036,
+      "fpr": 0.0497275204359673
+    },
+    {
+      "method": "weighted_probability",
+      "w2": 0.3,
+      "w3": 0.7,
+      "threshold_low_fp": 0.51,
+      "score": 0.9315775946406123,
+      "parts": {
+        "macro_f1_all": 0.9363321377923652,
+        "macro_f1_es": 0.922655542443121,
+        "macro_f1_academic": 0.9306692344727974,
+        "recall_adversarial": 0.9369747899159664,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.047683923705722074,
+        "fpr_es": 0.05581395348837209,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9363321377923652,
+      "recall": 0.9210182767624021,
+      "fpr": 0.047683923705722074
+    },
+    {
+      "method": "weighted_probability",
+      "w2": 0.4,
+      "w3": 0.6,
+      "threshold_low_fp": 0.51,
+      "score": 0.9343133911468179,
+      "parts": {
+        "macro_f1_all": 0.9369969128487297,
+        "macro_f1_es": 0.9273606286595437,
+        "macro_f1_academic": 0.93591017169665,
+        "recall_adversarial": 0.9369747899159664,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.0497275204359673,
+        "fpr_es": 0.05581395348837209,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9369969128487297,
+      "recall": 0.9242819843342036,
+      "fpr": 0.0497275204359673
+    },
+    {
+      "method": "weighted_probability",
+      "w2": 0.5,
+      "w3": 0.5,
+      "threshold_low_fp": 0.53,
+      "score": 0.9345058068244213,
+      "parts": {
+        "macro_f1_all": 0.9369979769350372,
+        "macro_f1_es": 0.9250087811731647,
+        "macro_f1_academic": 0.9411309261001158,
+        "recall_adversarial": 0.9327731092436975,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.048365122615803814,
+        "fpr_es": 0.05581395348837209,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9369979769350372,
+      "recall": 0.922976501305483,
+      "fpr": 0.048365122615803814
+    },
+    {
+      "method": "weighted_probability",
+      "w2": 0.6,
+      "w3": 0.4,
+      "threshold_low_fp": 0.54,
+      "score": 0.9214558721620677,
+      "parts": {
+        "macro_f1_all": 0.928665113151353,
+        "macro_f1_es": 0.9296555814259982,
+        "macro_f1_academic": 0.9388004895960833,
+        "recall_adversarial": 0.8487394957983193,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.04632152588555858,
+        "fpr_es": 0.04186046511627907,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.928665113151353,
+      "recall": 0.9046997389033943,
+      "fpr": 0.04632152588555858
+    },
+    {
+      "method": "weighted_probability",
+      "w2": 0.7,
+      "w3": 0.3,
+      "threshold_low_fp": 0.555,
+      "score": 0.9192564571355926,
+      "parts": {
+        "macro_f1_all": 0.9273317507803504,
+        "macro_f1_es": 0.9296555814259982,
+        "macro_f1_academic": 0.9362045537189556,
+        "recall_adversarial": 0.8403361344537815,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.047683923705722074,
+        "fpr_es": 0.04186046511627907,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9273317507803504,
+      "recall": 0.9033942558746736,
+      "fpr": 0.047683923705722074
+    },
+    {
+      "method": "weighted_probability",
+      "w2": 0.8,
+      "w3": 0.2,
+      "threshold_low_fp": 0.57,
+      "score": 0.9174556223886047,
+      "parts": {
+        "macro_f1_all": 0.9253306452365618,
+        "macro_f1_es": 0.9296555814259982,
+        "macro_f1_academic": 0.9362045537189556,
+        "recall_adversarial": 0.8319327731092437,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.048365122615803814,
+        "fpr_es": 0.04186046511627907,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9253306452365618,
+      "recall": 0.9001305483028721,
+      "fpr": 0.048365122615803814
+    },
+    {
+      "method": "weighted_probability",
+      "w2": 0.9,
+      "w3": 0.1,
+      "threshold_low_fp": 0.585,
+      "score": 0.8961478566297685,
+      "parts": {
+        "macro_f1_all": 0.906947880473941,
+        "macro_f1_es": 0.9178146223432042,
+        "macro_f1_academic": 0.9261028826246218,
+        "recall_adversarial": 0.7605042016806722,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.04904632152588556,
+        "fpr_es": 0.037209302325581395,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.906947880473941,
+      "recall": 0.8648825065274152,
+      "fpr": 0.04904632152588556
+    },
+    {
+      "method": "weighted_probability",
+      "w2": 1.0,
+      "w3": 0.0,
+      "threshold_low_fp": 0.605,
+      "score": 0.8916703859934414,
+      "parts": {
+        "macro_f1_all": 0.9042490618687847,
+        "macro_f1_es": 0.9106497797356828,
+        "macro_f1_academic": 0.9236077512668381,
+        "recall_adversarial": 0.7521008403361344,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.04564032697547684,
+        "fpr_es": 0.03255813953488372,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9042490618687847,
+      "recall": 0.856396866840731,
+      "fpr": 0.04564032697547684
+    },
+    {
+      "method": "weighted_logodds",
+      "w2": 0.0,
+      "w3": 1.0,
+      "threshold_low_fp": 0.45,
+      "score": 0.9276502152609675,
+      "parts": {
+        "macro_f1_all": 0.932,
+        "macro_f1_es": 0.9250087811731647,
+        "macro_f1_academic": 0.9254072059211247,
+        "recall_adversarial": 0.9243697478991597,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.047683923705722074,
+        "fpr_es": 0.05581395348837209,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.932,
+      "recall": 0.912532637075718,
+      "fpr": 0.047683923705722074
+    },
+    {
+      "method": "weighted_logodds",
+      "w2": 0.1,
+      "w3": 0.9,
+      "threshold_low_fp": 0.485,
+      "score": 0.9319713703433751,
+      "parts": {
+        "macro_f1_all": 0.9359976959170531,
+        "macro_f1_es": 0.9273606286595437,
+        "macro_f1_academic": 0.9280409138803938,
+        "recall_adversarial": 0.9369747899159664,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.0497275204359673,
+        "fpr_es": 0.05581395348837209,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9359976959170531,
+      "recall": 0.9223237597911227,
+      "fpr": 0.0497275204359673
+    },
+    {
+      "method": "weighted_logodds",
+      "w2": 0.2,
+      "w3": 0.8,
+      "threshold_low_fp": 0.49,
+      "score": 0.9322906770762145,
+      "parts": {
+        "macro_f1_all": 0.9366648651339415,
+        "macro_f1_es": 0.9250087811731647,
+        "macro_f1_academic": 0.9306692344727974,
+        "recall_adversarial": 0.9369747899159664,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.048365122615803814,
+        "fpr_es": 0.05581395348837209,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9366648651339415,
+      "recall": 0.9223237597911227,
+      "fpr": 0.048365122615803814
+    },
+    {
+      "method": "weighted_logodds",
+      "w2": 0.3,
+      "w3": 0.7,
+      "threshold_low_fp": 0.51,
+      "score": 0.9336630437251418,
+      "parts": {
+        "macro_f1_all": 0.9369988169777854,
+        "macro_f1_es": 0.922655542443121,
+        "macro_f1_academic": 0.93591017169665,
+        "recall_adversarial": 0.9411764705882353,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.04700272479564033,
+        "fpr_es": 0.05581395348837209,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9369988169777854,
+      "recall": 0.9216710182767625,
+      "fpr": 0.04700272479564033
+    },
+    {
+      "method": "weighted_logodds",
+      "w2": 0.4,
+      "w3": 0.6,
+      "threshold_low_fp": 0.515,
+      "score": 0.9343786402125839,
+      "parts": {
+        "macro_f1_all": 0.9369969128487297,
+        "macro_f1_es": 0.9250087811731647,
+        "macro_f1_academic": 0.9385230154460924,
+        "recall_adversarial": 0.9369747899159664,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.0497275204359673,
+        "fpr_es": 0.05581395348837209,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9369969128487297,
+      "recall": 0.9242819843342036,
+      "fpr": 0.0497275204359673
+    },
+    {
+      "method": "weighted_logodds",
+      "w2": 0.5,
+      "w3": 0.5,
+      "threshold_low_fp": 0.54,
+      "score": 0.9317765270096638,
+      "parts": {
+        "macro_f1_all": 0.9359976959170531,
+        "macro_f1_es": 0.9203008344312692,
+        "macro_f1_academic": 0.9385230154460924,
+        "recall_adversarial": 0.9285714285714286,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.0497275204359673,
+        "fpr_es": 0.05581395348837209,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9359976959170531,
+      "recall": 0.9223237597911227,
+      "fpr": 0.0497275204359673
+    },
+    {
+      "method": "weighted_logodds",
+      "w2": 0.6,
+      "w3": 0.4,
+      "threshold_low_fp": 0.555,
+      "score": 0.9317087723927485,
+      "parts": {
+        "macro_f1_all": 0.9349996461091844,
+        "macro_f1_es": 0.9273223413659248,
+        "macro_f1_academic": 0.9411309261001158,
+        "recall_adversarial": 0.9117647058823529,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.04700272479564033,
+        "fpr_es": 0.046511627906976744,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9349996461091844,
+      "recall": 0.9177545691906005,
+      "fpr": 0.04700272479564033
+    },
+    {
+      "method": "weighted_logodds",
+      "w2": 0.7,
+      "w3": 0.3,
+      "threshold_low_fp": 0.56,
+      "score": 0.9291919256746044,
+      "parts": {
+        "macro_f1_all": 0.9319999697777643,
+        "macro_f1_es": 0.9296555814259982,
+        "macro_f1_academic": 0.9437340153452686,
+        "recall_adversarial": 0.8907563025210085,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.04700272479564033,
+        "fpr_es": 0.04186046511627907,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9319999697777643,
+      "recall": 0.9118798955613577,
+      "fpr": 0.04700272479564033
+    },
+    {
+      "method": "weighted_logodds",
+      "w2": 0.8,
+      "w3": 0.2,
+      "threshold_low_fp": 0.57,
+      "score": 0.9253377462746463,
+      "parts": {
+        "macro_f1_all": 0.9289996134423398,
+        "macro_f1_es": 0.9296555814259982,
+        "macro_f1_academic": 0.9412211935931101,
+        "recall_adversarial": 0.8739495798319328,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.048365122615803814,
+        "fpr_es": 0.04186046511627907,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9289996134423398,
+      "recall": 0.9073107049608355,
+      "fpr": 0.048365122615803814
+    },
+    {
+      "method": "weighted_logodds",
+      "w2": 0.9,
+      "w3": 0.1,
+      "threshold_low_fp": 0.585,
+      "score": 0.902776486634917,
+      "parts": {
+        "macro_f1_all": 0.9129748497315725,
+        "macro_f1_es": 0.9154864532019704,
+        "macro_f1_academic": 0.9311992355470617,
+        "recall_adversarial": 0.7899159663865546,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.0497275204359673,
+        "fpr_es": 0.04186046511627907,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9129748497315725,
+      "recall": 0.8772845953002611,
+      "fpr": 0.0497275204359673
+    },
+    {
+      "method": "weighted_logodds",
+      "w2": 1.0,
+      "w3": 0.0,
+      "threshold_low_fp": 0.605,
+      "score": 0.8916703859934414,
+      "parts": {
+        "macro_f1_all": 0.9042490618687847,
+        "macro_f1_es": 0.9106497797356828,
+        "macro_f1_academic": 0.9236077512668381,
+        "recall_adversarial": 0.7521008403361344,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.04564032697547684,
+        "fpr_es": 0.03255813953488372,
+        "penalty": 0.0
+      },
+      "macro_f1": 0.9042490618687847,
+      "recall": 0.856396866840731,
+      "fpr": 0.04564032697547684
+    }
+  ],
+  "best": {
+    "method": "weighted_probability",
+    "w2": 0.5,
+    "w3": 0.5,
+    "threshold_low_fp": 0.53,
+    "score": 0.9345058068244213,
+    "parts": {
+      "macro_f1_all": 0.9369979769350372,
+      "macro_f1_es": 0.9250087811731647,
+      "macro_f1_academic": 0.9411309261001158,
+      "recall_adversarial": 0.9327731092436975,
+      "weights": {
+        "macro_f1_all": 0.375,
+        "macro_f1_es": 0.25000000000000006,
+        "macro_f1_academic": 0.25000000000000006,
+        "recall_adversarial": 0.12500000000000003
+      },
+      "fpr": 0.048365122615803814,
+      "fpr_es": 0.05581395348837209,
+      "penalty": 0.0
+    },
+    "macro_f1": 0.9369979769350372,
+    "recall": 0.922976501305483,
+    "fpr": 0.048365122615803814
+  },
+  "best_profiles": {
+    "BALANCED": {
+      "threshold": 0.59,
+      "rule": "max validation macro F1",
+      "macro_f1": 0.9389907198106022,
+      "precision": 0.9713487071977638,
+      "recall": 0.9073107049608355,
+      "fpr": 0.027929155313351498,
+      "fnr": 0.0926892950391645,
+      "roc_auc": 0.9846227794338401,
+      "ece": 0.03053095309491357,
+      "brier": 0.04801512418330712,
+      "n": 3000,
+      "by_group_fpr": {
+        "spanish_human": 0.027906976744186046,
+        "academic_human": 0.058823529411764705,
+        "v1_validation": 0.020729684908789386
+      }
+    },
+    "LOW_FALSE_POSITIVE": {
+      "threshold": 0.53,
+      "rule": "max recall with validation FPR <= 0.05",
+      "note": null,
+      "recall_lost_vs_balanced": -0.015665796344647487,
+      "macro_f1": 0.9369979769350372,
+      "precision": 0.9521885521885521,
+      "recall": 0.922976501305483,
+      "fpr": 0.048365122615803814,
+      "fnr": 0.07702349869451697,
+      "roc_auc": 0.9846227794338401,
+      "ece": 0.03053095309491357,
+      "brier": 0.04801512418330712,
+      "n": 3000,
+      "by_group_fpr": {
+        "spanish_human": 0.05581395348837209,
+        "academic_human": 0.07058823529411765,
+        "v1_validation": 0.04311774461028192
+      }
+    },
+    "VERY_LOW_FALSE_POSITIVE": {
+      "threshold": 0.665,
+      "rule": "max recall with validation FPR <= 0.02",
+      "note": null,
+      "recall_lost_vs_balanced": 0.022845953002611052,
+      "macro_f1": 0.9312794564271722,
+      "precision": 0.9790462427745664,
+      "recall": 0.8844647519582245,
+      "fpr": 0.019754768392370572,
+      "fnr": 0.11553524804177545,
+      "roc_auc": 0.9846227794338401,
+      "ece": 0.03053095309491357,
+      "brier": 0.04801512418330712,
+      "n": 3000,
+      "by_group_fpr": {
+        "spanish_human": 0.018604651162790697,
+        "academic_human": 0.03529411764705882,
+        "v1_validation": 0.01658374792703151
+      }
+    }
+  },
+  "agreement_rule_validation": {
+    "HIGH_CONFIDENCE": {
+      "rows": 1304,
+      "precision": 0.9800613496932515,
+      "fpr": 0.017711171662125342
+    },
+    "REVIEW": {
+      "rows": 239,
+      "machine_share": 0.6443514644351465
+    },
+    "LOW_SIGNAL": {
+      "rows": 1457,
+      "machine_share": 0.06863417982155114
+    },
+    "thresholds": {
+      "V2": 0.605,
+      "V3": 0.45
+    }
+  },
+  "analyzer_scores_at_low_false_positive": {
+    "V2_ONLY": 0.8916703859934414,
+    "V3_ONLY": 0.9276502152609675,
+    "ENSEMBLE": 0.9345058068244213
+  },
+  "single_model_parts": {
+    "CANDIDATE_MODEL_V2": {
+      "threshold_low_fp": 0.605,
+      "parts": {
+        "macro_f1_all": 0.9042490618687847,
+        "macro_f1_es": 0.9106497797356828,
+        "macro_f1_academic": 0.9236077512668381,
+        "recall_adversarial": 0.7521008403361344,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.04564032697547684,
+        "fpr_es": 0.03255813953488372,
+        "penalty": 0.0
+      }
+    },
+    "CANDIDATE_MODEL_V3": {
+      "threshold_low_fp": 0.45,
+      "parts": {
+        "macro_f1_all": 0.932,
+        "macro_f1_es": 0.9250087811731647,
+        "macro_f1_academic": 0.9254072059211247,
+        "recall_adversarial": 0.9243697478991597,
+        "weights": {
+          "macro_f1_all": 0.375,
+          "macro_f1_es": 0.25000000000000006,
+          "macro_f1_academic": 0.25000000000000006,
+          "recall_adversarial": 0.12500000000000003
+        },
+        "fpr": 0.047683923705722074,
+        "fpr_es": 0.05581395348837209,
+        "penalty": 0.0
+      }
+    }
+  },
+  "recommended_analyzer_by_validation": "ENSEMBLE"
+}

@@ -1,0 +1,69 @@
+{
+  "model": "CANDIDATE_MODEL_V2",
+  "calibration": "isotonic",
+  "profiles": {
+    "BALANCED": {
+      "threshold": 0.335,
+      "rule": "max validation macro F1",
+      "macro_f1": 0.9084190317284604,
+      "precision": 0.8873152709359606,
+      "recall": 0.9406005221932114,
+      "fpr": 0.12465940054495912,
+      "fnr": 0.05939947780678851,
+      "roc_auc": 0.9737862920724811,
+      "ece": 1.1476930517062555e-17,
+      "brier": 0.06280039859813596,
+      "n": 3000,
+      "by_group_fpr": {
+        "spanish_human": 0.10697674418604651,
+        "academic_human": 0.15294117647058825,
+        "v1_validation": 0.11276948590381426
+      }
+    },
+    "LOW_FALSE_POSITIVE": {
+      "threshold": 0.605,
+      "rule": "max recall with validation FPR <= 0.05",
+      "note": null,
+      "recall_lost_vs_balanced": 0.08420365535248042,
+      "macro_f1": 0.9042490618687847,
+      "precision": 0.9514140681653372,
+      "recall": 0.856396866840731,
+      "fpr": 0.04564032697547684,
+      "fnr": 0.14360313315926893,
+      "roc_auc": 0.9737862920724811,
+      "ece": 1.1476930517062555e-17,
+      "brier": 0.06280039859813596,
+      "n": 3000,
+      "by_group_fpr": {
+        "spanish_human": 0.03255813953488372,
+        "academic_human": 0.07058823529411765,
+        "v1_validation": 0.03648424543946932
+      }
+    },
+    "VERY_LOW_FALSE_POSITIVE": {
+      "threshold": 0.83,
+      "rule": "max recall with validation FPR <= 0.02",
+      "note": null,
+      "recall_lost_vs_balanced": 0.15143603133159267,
+      "macro_f1": 0.8823021695633411,
+      "precision": 0.9773645917542442,
+      "recall": 0.7891644908616188,
+      "fpr": 0.01907356948228883,
+      "fnr": 0.2108355091383812,
+      "roc_auc": 0.9737862920724811,
+      "ece": 1.1476930517062555e-17,
+      "brier": 0.06280039859813596,
+      "n": 3000,
+      "by_group_fpr": {
+        "spanish_human": 0.018604651162790697,
+        "academic_human": 0.029411764705882353,
+        "v1_validation": 0.013266998341625208
+      }
+    }
+  },
+  "fpr_targets": {
+    "LOW_FALSE_POSITIVE": 0.05,
+    "VERY_LOW_FALSE_POSITIVE": 0.02
+  },
+  "validationIdsHash": "f2449a52895fc5bdc42e27170e4a12a47aa709f7cd8c277fb73dfe2e2a3dea63"
+}

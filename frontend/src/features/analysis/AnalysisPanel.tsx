@@ -37,7 +37,7 @@ export function AnalysisPanel({ documentId, hasText }: { documentId: string; has
   const queryClient = useQueryClient()
   const [analyzer, setAnalyzer] = useState<AnalyzerName>('V3_ONLY')
   const [profile, setProfile] = useState<ThresholdProfileName>('LOW_FALSE_POSITIVE')
-  const [mode, setMode] = useState<ParagraphModeName>('CONTEXTUAL_PARAGRAPH')
+  const [mode, setMode] = useState<ParagraphModeName>('STRICT_PARAGRAPH')
   const [selectedRun, setSelectedRun] = useState<string | null>(null)
 
   const models = useQuery({ queryKey: analysisQueryKeys.models(), queryFn: listAnalyzerModels, retry: 1 })

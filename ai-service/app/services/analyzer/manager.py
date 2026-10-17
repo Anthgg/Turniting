@@ -24,7 +24,7 @@ from app.services.analyzer.paragraphs import split_paragraphs
 from app.services.analyzer.preprocessing import PROFILES, profile_for_view
 from app.services.analyzer.registry import MODELS, V2, V3, ModelSpec, artifact_path
 from app.services.analyzer.scoring import (
-    CONTEXTUAL,
+    STRICT,
     aggregate_document,
     score_document,
     score_paragraphs,
@@ -294,7 +294,7 @@ class ModelManager:
         text: str,
         profile: str = "BALANCED",
         custom: float | None = None,
-        mode: str = CONTEXTUAL,
+        mode: str = STRICT,
     ) -> dict:
         threshold, th_source = self.resolve_threshold(name, profile, custom)
         s = self.settings
