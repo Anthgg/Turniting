@@ -35,6 +35,7 @@ if ! step download; then ts download
 if ! step build; then ts build
   python scripts/v3_build_dataset.py --raw $RAW --v1-master /content/v1/master --work $WORK \
     --v1-eval-sets datasets/manifests/eval_sets.parquet 2>&1 | tee $LOG/build.log
+  python -c "import json,sys; r=json.load(open('$WORK/stage2_summary.json'))['leakage']; print('leakage', r); sys.exit(0 if r['result']=='PASS' else 3)"
   rsync -a --delete $WORK/master_v2/ $D/datasets/master_v2/
   cp $WORK/*.parquet $WORK/*.json $D/datasets/
   cp $WORK/dataset_v2_statistics.json $WORK/master_v2_manifest.json $D/manifests/
