@@ -11,6 +11,8 @@ import {
 import { TrainingFilesService } from './training-files.service.js';
 
 export const DEFAULT_MODEL_REGISTRY = 'datasets/manifests/model_registry.json';
+/** F005: CANDIDATE_MODEL_V3 (TURNITING_DATASET_V2) metadata, metrics and structural warnings. */
+export const ANALYZER_MODEL_REGISTRY = 'datasets/manifests/model_registry_v3.json';
 
 /**
  * Metadata-only registry of trained models. Weights are never loaded or downloaded here,
@@ -50,6 +52,24 @@ export class ModelVersionService {
       models.push(await this.upsert(entry, dataset.id, `training/${path}`));
     }
     return { registered: models.length, models };
+  }
+
+  /**
+   * Registers the models of a registry whose dataset version may not be registered in the
+   * database yet (TURNITING_DATASET_V2 lives in Google Drive): they are linked when the
+   * dataset exists and kept unlinked otherwise. Never marks a model ACTIVE.
+   */
+  async importAnalyzerRegistry(path = ANALYZER_MODEL_REGISTRY) {
+    const registry = validateModelRegistry(await this.files.readJson(path));
+    const cut = registry.datasetVersion.lastIndexOf('_');
+    const dataset = await this.prisma.datasetVersion.findFirst({
+      where: { name: registry.datasetVersion.slice(0, cut), version: registry.datasetVersion.slice(cut + 1) },
+    });
+    const models = [];
+    for (const entry of registry.models) {
+      models.push(await this.upsert(entry, dataset?.id ?? null, `training/${path}`));
+    }
+    return { registered: models.length, datasetVersion: registry.datasetVersion, datasetLinked: Boolean(dataset), models };
   }
 
   async register(body: RegisterModelVersionDto) {

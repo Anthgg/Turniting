@@ -45,3 +45,10 @@ class CompareVersionsRequest(BaseModel):
     thresholdProfile: ThresholdProfile = "BALANCED"
     customThreshold: float | None = Field(default=None, gt=0, lt=1)
     paragraphMode: ParagraphMode = "CONTEXTUAL_PARAGRAPH"
+
+
+class AlignRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    baseText: str
+    targetText: str

@@ -8,6 +8,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from app.core.config import get_settings
 from app.schemas.analyzer import (
+    AlignRequest,
     CompareModelsRequest,
     CompareVersionsRequest,
     ModelName,
@@ -15,11 +16,13 @@ from app.schemas.analyzer import (
     PredictRequest,
 )
 from app.services.analyzer import service
+from app.services.analyzer.comparison import align_paragraphs, document_similarity
 from app.services.analyzer.manager import (
     AnalyzerBusyError,
     ModelUnavailableError,
     get_manager,
 )
+from app.services.analyzer.paragraphs import split_paragraphs
 from app.services.analyzer.registry import MODELS
 
 router = APIRouter(tags=["analyzer"])
@@ -134,3 +137,40 @@ async def analysis_compare_versions(payload: CompareVersionsRequest) -> dict:
         payload.customThreshold,
         payload.paragraphMode,
     )
+
+
+def _paragraph_view(p) -> dict:
+    return {
+        "paragraphIndex": p.index,
+        "charStart": p.char_start,
+        "charEnd": p.char_end,
+        "pageNumber": p.page_number,
+        "textHash": p.text_hash,
+        "normalizedHash": p.normalized_hash,
+        "words": p.words,
+    }
+
+
+@router.post("/analysis/align")
+def analysis_align(payload: AlignRequest) -> dict:
+    """Paragraph alignment only (no model): used to compare stored analyses."""
+    _check_size(payload.baseText, payload.targetText)
+    base, target = (
+        split_paragraphs(payload.baseText),
+        split_paragraphs(payload.targetText),
+    )
+    return {
+        "documentSimilarity": document_similarity(base, target),
+        "base": [_paragraph_view(p) for p in base],
+        "target": [_paragraph_view(p) for p in target],
+        "alignment": [
+            {
+                "status": a.status,
+                "baseParagraphIndex": a.base_index,
+                "targetParagraphIndex": a.target_index,
+                "similarity": a.similarity,
+                "match": a.match,
+            }
+            for a in align_paragraphs(base, target)
+        ],
+    }

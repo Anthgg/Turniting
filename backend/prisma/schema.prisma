@@ -63,6 +63,7 @@ model DocumentVersion {
   turnitinReports      TurnitinReport[]
   groundTruthCases     GroundTruthCase[]
   trainingSamples      TrainingSample[]
+  analysisRuns         AnalysisRun[]
 }
 
 enum OcrStatus {
@@ -591,7 +592,136 @@ model ModelVersion {
   updatedAt             DateTime              @updatedAt @db.Timestamptz(6)
   datasetVersion        DatasetVersion?       @relation(fields: [datasetVersionId], references: [id], onDelete: SetNull)
   artifacts             DatasetArtifact[]
+  analysisModelResults  AnalysisModelResult[]
+  analysisSegments      AnalysisSegment[]
 
   @@index([status, createdAt])
   @@index([datasetVersionId])
+}
+
+// ------------------------------------------------------------------ F005 local AI analyzer
+// Independent AI-signal analysis (never a Turnitin score). Segment text is not duplicated:
+// it is materialized on read from DocumentVersion.extractedText through the stored offsets.
+
+enum AnalysisRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum AnalyzerMode {
+  V2_ONLY
+  V3_ONLY
+  ENSEMBLE
+}
+
+enum AnalysisGranularity {
+  DOCUMENT
+  PARAGRAPH
+}
+
+enum AnalysisClassification {
+  MACHINE_SIGNAL
+  LOW_SIGNAL
+  INSUFFICIENT_TEXT
+}
+
+model AnalysisRun {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  documentVersionId      String                  @db.Uuid
+  status                 AnalysisRunStatus       @default(PENDING)
+  analyzerMode           AnalyzerMode
+  analyzerVersion        String
+  thresholdProfile       String
+  threshold              Float?
+  granularity            AnalysisGranularity     @default(PARAGRAPH)
+  paragraphMode          String?
+  documentAggregation    String?
+  documentScore          Float?
+  documentClassification AnalysisClassification?
+  signalLevel            String?
+  scoredSegments         Int                     @default(0)
+  insufficientSegments   Int                     @default(0)
+  inferenceMs            Int?
+  textHash               String?                 @db.Char(64)
+  errorCode              String?
+  error                  String?                 @db.Text
+  metadata               Json?
+  createdAt              DateTime                @default(now()) @db.Timestamptz(6)
+  completedAt            DateTime?               @db.Timestamptz(6)
+  documentVersion        DocumentVersion         @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+  modelResults           AnalysisModelResult[]
+  segments               AnalysisSegment[]
+  comparisonsAsBase      AnalysisComparison[]    @relation("ComparisonBase")
+  comparisonsAsTarget    AnalysisComparison[]    @relation("ComparisonTarget")
+
+  @@index([documentVersionId, createdAt])
+  @@index([status, createdAt])
+}
+
+model AnalysisModelResult {
+  id               String                  @id @default(uuid()) @db.Uuid
+  analysisRunId    String                  @db.Uuid
+  modelVersionId   String?                 @db.Uuid
+  modelName        String
+  modelVariant     String?
+  rawScore         Float?
+  calibratedScore  Float?
+  thresholdProfile String
+  threshold        Float?
+  classification   AnalysisClassification?
+  confidence       String?
+  calibration      String?
+  preprocessing    String?
+  inferenceMs      Int?
+  createdAt        DateTime                @default(now()) @db.Timestamptz(6)
+  analysisRun      AnalysisRun             @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+  modelVersion     ModelVersion?           @relation(fields: [modelVersionId], references: [id], onDelete: SetNull)
+
+  @@index([analysisRunId])
+}
+
+model AnalysisSegment {
+  id              String                 @id @default(uuid()) @db.Uuid
+  analysisRunId   String                 @db.Uuid
+  paragraphIndex  Int
+  textHash        String                 @db.Char(64)
+  charStart       Int
+  charEnd         Int
+  pageNumber      Int?
+  words           Int?
+  tokens          Int?
+  rawScore        Float?
+  calibratedScore Float?
+  classification  AnalysisClassification
+  signalLevel     String?
+  confidence      String?
+  modelVersionId  String?                @db.Uuid
+  modelName       String
+  createdAt       DateTime               @default(now()) @db.Timestamptz(6)
+  analysisRun     AnalysisRun            @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+  modelVersion    ModelVersion?          @relation(fields: [modelVersionId], references: [id], onDelete: SetNull)
+
+  @@unique([analysisRunId, paragraphIndex])
+  @@index([analysisRunId])
+}
+
+model AnalysisComparison {
+  id                  String      @id @default(uuid()) @db.Uuid
+  baseAnalysisRunId   String      @db.Uuid
+  targetAnalysisRunId String      @db.Uuid
+  documentSimilarity  Float?
+  globalScoreDelta    Float?
+  changedSegments     Int         @default(0)
+  unchangedSegments   Int         @default(0)
+  addedSegments       Int         @default(0)
+  removedSegments     Int         @default(0)
+  details             Json
+  createdAt           DateTime    @default(now()) @db.Timestamptz(6)
+  baseAnalysisRun     AnalysisRun @relation("ComparisonBase", fields: [baseAnalysisRunId], references: [id], onDelete: Cascade)
+  targetAnalysisRun   AnalysisRun @relation("ComparisonTarget", fields: [targetAnalysisRunId], references: [id], onDelete: Cascade)
+
+  @@index([baseAnalysisRunId])
+  @@index([targetAnalysisRunId])
 }

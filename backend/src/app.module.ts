@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AiModule } from './ai/ai.module.js';
+import { AnalysisModule } from './analysis/analysis.module.js';
 import { validateEnvironment } from './config/env.validation.js';
 import { DatasetsModule } from './datasets/datasets.module.js';
 import { DocumentsModule } from './documents/documents.module.js';
@@ -20,6 +21,7 @@ import { TurnitinModule } from './turnitin/turnitin.module.js';
     HealthModule,
     TurnitinModule,
     DatasetsModule,
+    AnalysisModule,
   ],
 })
 export class AppModule {}

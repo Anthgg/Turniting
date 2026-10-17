@@ -1,4 +1,12 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  PayloadTooLargeException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AiAuthService } from './ai-auth.service.js';
 
@@ -129,12 +137,95 @@ export type AiTurnitinAlignmentResponse = {
   warnings: string[];
 };
 
+
+// ------------------------------------------------------------------ F005 local AI analyzer
+export type AnalyzerModeName = 'V2_ONLY' | 'V3_ONLY' | 'ENSEMBLE';
+export type AnalyzerClassification = 'MACHINE_SIGNAL' | 'LOW_SIGNAL' | 'INSUFFICIENT_TEXT';
+
+export type AiAnalyzerModelStatus = {
+  model: string;
+  registered: boolean;
+  status: string;
+  state: 'UNAVAILABLE' | 'AVAILABLE' | 'LOADING' | 'READY' | 'ERROR';
+  artifactPresent: boolean;
+  artifactValid: boolean;
+  missing: string[];
+  error: string | null;
+  architecture: string;
+  variant: string;
+  dataset: string;
+  artifactProvider: string;
+  preprocessing: string[];
+  thresholdProfiles: string[];
+  thresholdSource: string | null;
+  approxMemoryMb: number;
+  loadMs: number | null;
+  servable: boolean;
+  warnings: string[];
+};
+
+export type AiAnalyzerSegment = {
+  paragraphIndex: number;
+  charStart: number;
+  charEnd: number;
+  pageNumber: number | null;
+  textHash: string;
+  words: number;
+  tokens: number;
+  rawScore: number | null;
+  calibratedScore: number | null;
+  classification: AnalyzerClassification;
+  signalLevel: string | null;
+  confidence: string | null;
+  agreement?: string | null;
+};
+
+export type AiParagraphAnalysis = {
+  analyzer: AnalyzerModeName;
+  model: string;
+  modelVersion: string;
+  paragraphMode: string;
+  thresholdProfile: string;
+  threshold: number;
+  thresholdSource: string | null;
+  calibration: string;
+  documentAggregation: string;
+  documentScore: number | null;
+  documentClassification: AnalyzerClassification | null;
+  documentSignalLevel: string | null;
+  scoredParagraphs: number;
+  insufficientParagraphs: number;
+  segments: AiAnalyzerSegment[];
+  preprocessingVersion: string;
+  inferenceMs: number;
+};
+
+export type AiAlignment = {
+  documentSimilarity: number;
+  base: Array<{ paragraphIndex: number; textHash: string; charStart: number; charEnd: number }>;
+  target: Array<{ paragraphIndex: number; textHash: string; charStart: number; charEnd: number }>;
+  alignment: Array<{
+    status: 'UNCHANGED' | 'MODIFIED' | 'ADDED' | 'REMOVED';
+    baseParagraphIndex: number | null;
+    targetParagraphIndex: number | null;
+    similarity: number;
+    match: string;
+  }>;
+};
+
+export class AnalyzerUnavailableException extends ServiceUnavailableException {
+  constructor(readonly code: string) {
+    super({ code, message: 'The selected analyzer model is not available on this server' });
+  }
+}
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
   private readonly ocrTimeoutMs: number;
+  private readonly analysisTimeoutMs: number;
   private readonly authMode: 'none' | 'google-id-token';
 
   constructor(
@@ -144,6 +235,7 @@ export class AiService {
     this.baseUrl = this.config.getOrThrow<string>('AI_SERVICE_URL').replace(/\/$/, '');
     this.timeoutMs = this.config.getOrThrow<number>('AI_SERVICE_TIMEOUT_MS');
     this.ocrTimeoutMs = this.config.get<number>('AI_OCR_TIMEOUT_MS') ?? 180000;
+    this.analysisTimeoutMs = this.config.get<number>('AI_ANALYSIS_TIMEOUT_MS') ?? 600000;
     this.authMode = this.config.getOrThrow<'none' | 'google-id-token'>('AI_SERVICE_AUTH_MODE');
   }
 
@@ -328,6 +420,58 @@ export class AiService {
       throw this.unavailable();
     }
     return response;
+  }
+
+  async listAnalyzerModels(): Promise<{ models: AiAnalyzerModelStatus[]; policy: Record<string, unknown> }> {
+    return this.analyzerRequest('/models', { method: 'GET' }, this.timeoutMs);
+  }
+
+  async analyzeParagraphs(body: {
+    text: string;
+    analyzer: AnalyzerModeName;
+    thresholdProfile: string;
+    customThreshold?: number;
+    paragraphMode: string;
+  }): Promise<AiParagraphAnalysis> {
+    return this.analyzerRequest('/analysis/paragraphs', { method: 'POST', body: JSON.stringify(body) },
+      this.analysisTimeoutMs);
+  }
+
+  async alignVersions(baseText: string, targetText: string): Promise<AiAlignment> {
+    return this.analyzerRequest('/analysis/align', { method: 'POST', body: JSON.stringify({ baseText, targetText }) },
+      this.timeoutMs);
+  }
+
+  /** Analyzer calls keep the ai-service error code (model unavailable, busy, invalid). */
+  private async analyzerRequest<T>(path: string, init: RequestInit, timeoutMs: number): Promise<T> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    let response: Response;
+    try {
+      const headers = new Headers(init.headers);
+      headers.set('accept', 'application/json');
+      if (init.body) headers.set('content-type', 'application/json');
+      if (this.authMode === 'google-id-token') {
+        const authHeaders = await this.auth.getIdTokenHeaders(this.baseUrl);
+        for (const [name, value] of Object.entries(authHeaders)) headers.set(name, value);
+      }
+      response = await fetch(`${this.baseUrl}${path}`, { ...init, headers, signal: controller.signal });
+    } catch (error) {
+      const errorType = error instanceof Error ? error.name : 'UnknownError';
+      this.logger.warn(JSON.stringify({ event: 'ai_analyzer_request_failed', path, errorType }));
+      throw this.unavailable();
+    } finally {
+      clearTimeout(timeout);
+    }
+    if (response.ok) return (await response.json()) as T;
+    const body = (await response.json().catch(() => ({}))) as { detail?: { code?: string; message?: string } };
+    const code = body.detail?.code ?? 'AI_ANALYZER_ERROR';
+    this.logger.warn(JSON.stringify({ event: 'ai_analyzer_error', path, status: response.status, code }));
+    if (response.status === 503) throw new AnalyzerUnavailableException(code);
+    if (response.status === 429) throw new HttpException({ code, message: 'The analyzer is busy' }, HttpStatus.TOO_MANY_REQUESTS);
+    if (response.status === 413) throw new PayloadTooLargeException({ code, message: 'Text is too large to analyze' });
+    if (response.status === 422) throw new BadRequestException({ code, message: body.detail?.message ?? 'Invalid analysis request' });
+    throw this.unavailable();
   }
 
   private async request<T>(

@@ -11,5 +11,6 @@ import { TrainingFilesService } from './training-files.service.js';
   imports: [PrismaModule],
   controllers: [DatasetsController, ModelVersionsController],
   providers: [DatasetRepository, DatasetService, GroundTruthDatasetService, ModelVersionService, TrainingFilesService],
+  exports: [ModelVersionService],
 })
 export class DatasetsModule {}

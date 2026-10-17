@@ -6,6 +6,7 @@ export type Environment = {
   AI_SERVICE_URL: string;
   AI_SERVICE_TIMEOUT_MS: number;
   AI_OCR_TIMEOUT_MS: number;
+  AI_ANALYSIS_TIMEOUT_MS: number;
   AI_SERVICE_AUTH_MODE: 'none' | 'google-id-token';
   CORS_ORIGIN: string;
   UPLOAD_DIR: string;
@@ -139,6 +140,7 @@ export function validateEnvironment(config: Record<string, unknown>): Environmen
     AI_SERVICE_URL: aiUrl.toString().replace(/\/$/, ''),
     AI_SERVICE_TIMEOUT_MS: parseInteger(config.AI_SERVICE_TIMEOUT_MS, 'AI_SERVICE_TIMEOUT_MS', 30000, 100, 30000),
     AI_OCR_TIMEOUT_MS: parseInteger(config.AI_OCR_TIMEOUT_MS, 'AI_OCR_TIMEOUT_MS', 180000, 1000, 600000),
+    AI_ANALYSIS_TIMEOUT_MS: parseInteger(config.AI_ANALYSIS_TIMEOUT_MS, 'AI_ANALYSIS_TIMEOUT_MS', 600000, 1000, 3600000),
     AI_SERVICE_AUTH_MODE: authMode,
     CORS_ORIGIN: corsOrigins,
     UPLOAD_DIR: requiredString(config.UPLOAD_DIR ?? '/data/uploads', 'UPLOAD_DIR'),
