@@ -42,12 +42,11 @@ class V3Like:
 
     def probs(self, texts):
         import v3_evaluate as E
+        from f006_score import doc_logits
 
-        lgs = []
-        for view in self.sc._views(texts):
-            s = E.score_texts(self.sc.model, self.sc.tok, view, 512, 128, self.sc.icfg.get("max_windows_per_doc", 8), batch_size=512, device=E.DEVICE)
-            lgs.append(np.array([E.aggregate(x["a"], self.sc.icfg["aggregation"]) for x in s]))
-        return self.cal.predict(np.mean(lgs, axis=0))
+        lg = doc_logits(self.sc.model, self.sc.tok, texts, self.sc.icfg.get("view", "canonical"), self.sc.icfg["aggregation"],
+                        self.sc.icfg.get("max_windows_per_doc", 8), device=E.DEVICE)
+        return self.cal.predict(lg)
 
 
 def report_all(frame: pd.DataFrame, p: np.ndarray, th: dict) -> dict:

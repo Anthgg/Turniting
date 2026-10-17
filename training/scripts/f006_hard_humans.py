@@ -36,21 +36,17 @@ def score(model_dir: Path, texts: list[str], max_windows: int = 4) -> np.ndarray
     import torch
     from transformers import AutoTokenizer
 
-    from turniting_train.canon import canonicalize
-    from turniting_train.v3model import V3Detector, aggregate, score_texts
+    from turniting_train.v3model import V3Detector
 
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     model = V3Detector.load(model_dir, dev)
     tok = AutoTokenizer.from_pretrained(model_dir / "backbone")
     icfg = json.loads((model_dir / "inference_config.json").read_text())
-    out = np.zeros(len(texts), np.float32)
-    step = 20000
+    from f006_score import doc_logits
+
     t0 = time.time()
-    for s in range(0, len(texts), step):
-        chunk = [canonicalize(t) for t in texts[s:s + step]]
-        sc = score_texts(model, tok, chunk, 512, 128, max_windows, batch_size=512, device=dev)
-        out[s:s + step] = [aggregate(x["a"], icfg.get("aggregation", "mean")) for x in sc]
-        log(f"  scored {min(s + step, len(texts)):,}/{len(texts):,} ({(s + step) / (time.time() - t0):.0f} docs/s)")
+    out = doc_logits(model, tok, texts, "canonical", icfg.get("aggregation", "mean"), max_windows, device=dev)
+    log(f"  scored {len(texts):,} docs in {time.time() - t0:.0f}s")
     del model
     torch.cuda.empty_cache()
     return out

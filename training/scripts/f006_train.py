@@ -37,10 +37,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from f006_lib import evaluate_scores, log, write_json  # noqa: E402
 from turniting_train import adapters_v2 as A  # noqa: E402
-from turniting_train.canon import attack_homoglyph, attack_whitespace, attack_zero_width, canonicalize  # noqa: E402
+from turniting_train.canon import attack_homoglyph, attack_whitespace, attack_zero_width  # noqa: E402
 from turniting_train.common import CONFIG_DIR, git_commit, hardware_info, library_versions, load_yaml, set_seed, utc_now  # noqa: E402
 from turniting_train.sampling import weighted_sample  # noqa: E402
-from turniting_train.v3model import FINE_TO_B, V3Detector, aggregate, doc_windows, score_texts  # noqa: E402
+from turniting_train.v3model import FINE_TO_B, V3Detector, doc_windows  # noqa: E402
 from v3_train import META, Collate, DriveSync, GpuMonitor, WindowData, auto_batch, epoch_batches, read_split  # noqa: E402
 
 MIN_CHARS, MIN_WORDS, MIN_TOKENS = 120, 20, 32
@@ -305,14 +305,10 @@ def build_cache(a, cfg, tok_path, cache: Path) -> dict:
 # ------------------------------------------------------------------ evaluation on F006 VALIDATION
 
 def doc_logits(model, tok, texts: list[str], icfg: dict, device) -> np.ndarray:
-    view = icfg.get("view", "canonical")
-    views = [[canonicalize(t) for t in texts]] if view == "canonical" else [texts] if view == "raw" else \
-        [[canonicalize(t) for t in texts], texts]
-    out = []
-    for v in views:
-        sc = score_texts(model, tok, v, 512, 128, icfg.get("max_windows_per_doc", 8), batch_size=512, device=device)
-        out.append(np.array([aggregate(s["a"], icfg.get("aggregation", "mean")) for s in sc]))
-    return np.mean(out, axis=0)
+    from f006_score import doc_logits as fast
+
+    return fast(model, tok, texts, icfg.get("view", "canonical"), icfg.get("aggregation", "mean"),
+                icfg.get("max_windows_per_doc", 8), device=device)
 
 
 def run_eval(model, tok, val: pd.DataFrame, icfg, device) -> tuple[dict, np.ndarray]:
