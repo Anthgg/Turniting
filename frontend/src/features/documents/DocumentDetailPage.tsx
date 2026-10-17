@@ -16,6 +16,7 @@ import {
   reprocessDocument,
 } from '../../api/documents'
 import { Icon } from '../../components/Icon'
+import { AnalysisPanel } from '../analysis/AnalysisPanel'
 import { ApiErrorNotice } from './ApiErrorNotice'
 import { formatBytes, formatDate, statusClass, statusLabel } from './document-utils'
 
@@ -282,11 +283,7 @@ export function DocumentDetailPage() {
             </section>
           </div>
 
-          <section className="analysis-coming-soon" aria-label="Análisis académico">
-            <span className="analysis-coming-icon"><Icon name="spark" size={18} /></span>
-            <span><strong>Análisis académico</strong><small>Próximamente · Esta fase se centra en recibir y extraer texto de documentos.</small></span>
-            <span className="coming-soon-tag">Próximamente</span>
-          </section>
+          <AnalysisPanel documentId={id} hasText={Boolean(text.data?.text?.trim())} />
         </>
       )}
     </div>

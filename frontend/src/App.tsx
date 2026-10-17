@@ -5,6 +5,8 @@ import { getHealth } from './api/health'
 import type { HealthService } from './api/health'
 import { Icon } from './components/Icon'
 import { ServiceStatusCard } from './components/ServiceStatusCard'
+import { ComparePage } from './features/analysis/ComparePage'
+import { ModelsPage } from './features/analysis/ModelsPage'
 import { DocumentDetailPage } from './features/documents/DocumentDetailPage'
 import { DocumentListPage } from './features/documents/DocumentListPage'
 import { DatasetDetailPage } from './features/datasets/DatasetDetailPage'
@@ -29,6 +31,10 @@ function WorkspaceLayout() {
         ? 'Reportes Turnitin'
       : location.pathname.startsWith('/datasets')
         ? 'Datasets'
+      : location.pathname.startsWith('/models')
+        ? 'Modelos'
+      : location.pathname.startsWith('/analysis')
+        ? 'Comparar versiones'
       : 'Detalle del documento'
 
   return (
@@ -69,6 +75,14 @@ function WorkspaceLayout() {
             <Icon name="database" size={19} />
             <span>Datasets</span>
           </NavLink>
+          <NavLink to="/models" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
+            <Icon name="brain" size={19} />
+            <span>Modelos</span>
+          </NavLink>
+          <NavLink to="/analysis/compare" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
+            <Icon name="spark" size={19} />
+            <span>Comparar versiones</span>
+          </NavLink>
           <span className="nav-item is-disabled" aria-disabled="true" aria-label="Historial, próxima fase">
             <Icon name="clock" size={19} />
             <span>Historial</span>
@@ -80,7 +94,7 @@ function WorkspaceLayout() {
             <span className="phase-icon"><Icon name="spark" size={17} /></span>
             <span className="phase-copy">
               <span>Fase actual</span>
-            <strong>F004 · Datasets</strong>
+            <strong>F005 · Analizador local</strong>
             </span>
           </div>
           <p className="sidebar-footnote">Un espacio para análisis académico responsable.</p>
@@ -251,6 +265,8 @@ export default function App() {
         <Route path="turnitin-reports/:id" element={<TurnitinReportDetailPage />} />
         <Route path="datasets" element={<DatasetsPage />} />
         <Route path="datasets/:id" element={<DatasetDetailPage />} />
+        <Route path="models" element={<ModelsPage />} />
+        <Route path="analysis/compare" element={<ComparePage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
