@@ -128,6 +128,17 @@ pytest
 
 Después ejecuta el smoke test de carga desde `http://localhost:8080/documents` con PDF, DOCX, TXT, PDF escaneado y un archivo inválido. Consulta el procedimiento y las rutas en [docs/F001_DOCUMENT_INGESTION.md](F001_DOCUMENT_INGESTION.md).
 
+## Datasets F004
+
+Compose monta `./training` en el backend como solo lectura (`TRAINING_DIR=/app/training`). En ejecución individual, `backend/.env` usa `TRAINING_DIR=../training`. Para registrar el dataset y los modelos ya entrenados (sin entrenar ni descargar nada):
+
+```powershell
+Invoke-RestMethod -Method Post http://127.0.0.1:3000/api/datasets/register -ContentType 'application/json' -Body '{"name":"TURNITING_DATASET","version":"V1","manifestPath":"datasets/manifests","statisticsPath":"reports/dataset_statistics.json"}'
+Invoke-RestMethod -Method Post http://127.0.0.1:3000/api/model-versions/import-registry -ContentType 'application/json' -Body '{"datasetVersionId":"<id>"}'
+```
+
+Abre `http://localhost:8080/datasets`. Los datos crudos, Parquet, modelos y checkpoints de `training/` están en `.gitignore` y no entran en ninguna imagen Docker. Ver [F004_DATASET.md](F004_DATASET.md).
+
 ## Puertos
 
 | Dirección | Servicio |

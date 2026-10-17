@@ -12,6 +12,7 @@ flowchart TD
     BE -->|JSON /turnitin/align| AI
     AI -->|texto, páginas, cajas y confianza| BE
     AI -->|PaddleOCR CPU local| MODEL[(Docker model volume)]
+    BE -->|read-only manifests| TR[(training/ montado :ro)]
 ```
 
 ## Responsabilidades
@@ -76,6 +77,18 @@ flowchart TD
 ## Datos de F001–F003
 
 F001 define `User`, `Document`, `DocumentVersion` y `Analysis`. F002 agrega reportes y ground truth. F003 agrega una fila por página y un historial por ejecución OCR con UUID, estado, motor, modelo, páginas procesadas, confianza y duración. `DocumentVersion.extractedText` es la reconstrucción canónica por página. Los binarios quedan en almacenamiento local; el volumen de modelos contiene únicamente pesos públicos de PaddleOCR. No se generan muestras de entrenamiento ni detector de IA o motor de similitud.
+
+## Datos de F004
+
+F004 agrega `DatasetVersion`, `DatasetSource`, `DatasetArtifact`, `TrainingSplitManifest`, `TrainingSample` y `ModelVersion`. PostgreSQL guarda solo metadata (versiones, procedencia, licencias, estadísticas, hashes, splits y muestras locales); los Parquet públicos y los pesos viven fuera del repo y de la base de datos y se referencian como artefactos externos (`LOCAL` o `GOOGLE_DRIVE`, con ruta lógica y sin credenciales). NestJS lee los manifests de `TRAINING_DIR` (en Compose, `./training` montado en `/app/training` de solo lectura). Las muestras derivadas de Turnitin solo crean candidatos `MACHINE` desde `AI_FLAGGED`; `NOT_FLAGGED` nunca se convierte en `HUMAN`. Ningún modelo se marca `ACTIVE` ni participa del análisis en F004. Detalle en [F004_DATASET.md](F004_DATASET.md).
+
+```
+PUBLIC DATASETS → training pipeline → TURNITING_DATASET_V1 → DatasetVersion
+                                                              ├── DatasetSource
+                                                              ├── DatasetArtifact
+                                                              └── TrainingSplitManifest → ModelVersion → CANDIDATE_MODEL_V2
+TURNITIN REPORT → GroundTruthCase → TurnitinSegment → TrainingSample → futuras versiones de dataset
+```
 
 ## Referencias técnicas
 
