@@ -492,7 +492,7 @@ def main() -> int:
                     f"lr={sched.get_last_lr()[0]:.2e} {seen / el:.0f} win/s mem={torch.cuda.max_memory_allocated() / 1e9 if device.type == 'cuda' else 0:.1f}GB")
             last_step = step == total or (a.max_steps and step >= a.max_steps)
             if step % eval_every == 0 or last_step:
-                ev, _ = run_eval(model, tok, val, icfg, device)
+                ev, lg = run_eval(model, tok, val, icfg, device)
                 model.train()
                 rec = {"step": step, "epoch": round(step / steps_per_epoch, 3), **ev, "elapsed_s": round(time.time() - t0, 1),
                        "gpu": mon.summary()}
@@ -505,6 +505,8 @@ def main() -> int:
                     (local / "best" / "inference_config.json").write_text(json.dumps(icfg, indent=2))
                     sync.push(local / "best", run_dir / "best")
                     sync.wait()
+                    pd.DataFrame({"id": val["id"].values, "label": val["label"].values, "logit": lg}).to_parquet(
+                        run_dir / "validation_doc_logits.parquet", index=False)
                 elif step / steps_per_epoch >= a.min_epochs_before_stop:
                     bad += 1
                 if a.stage == "full":
@@ -527,11 +529,6 @@ def main() -> int:
     mon.stop_flag = True
     train_s = time.time() - t0
     best_rec = max(history[1:] or history, key=lambda r: r["selection"]["score"] - (0 if r["selection"]["eligible"] else 1.0))
-    # full validation doc logits of the best checkpoint (for calibration / thresholds / ensembles)
-    if (run_dir / "best" / "heads.pt").exists():
-        bm = V3Detector.load(run_dir / "best", device)
-        _, lg = run_eval(bm, tok, val, icfg, device)
-        pd.DataFrame({"id": val["id"].values, "label": val["label"].values, "logit": lg}).to_parquet(run_dir / "validation_doc_logits.parquet", index=False)
     write_json(run_dir / "run.json", {
         "run": a.run, "stage": a.stage, "timestamp": utc_now(), "gitCommit": git_commit(), "init": a.init,
         "config": {k: getattr(a, k) for k in ("windows", "human_share", "hard_ratio", "es_w", "aca_w", "para_frac", "emphasis",

@@ -36,7 +36,7 @@ if ! step splits; then ts splits
 
 # 3. hard human pool from TRAIN only (fixed V3)
 if ! step hard; then ts hard
-  python -W ignore scripts/f006_hard_humans.py --master $MASTER --model $V3M --out $F6 --tag hard_human_pool_v1 --n 400000 2>&1 | tee $LOG/hard.log
+  python -W ignore scripts/f006_hard_humans.py --master $MASTER --model $V3M --out $F6 --tag hard_human_pool_v1 --n 250000 2>&1 | tee $LOG/hard.log
   done_ hard; fi
 
 [ "${STOP_AFTER:-}" = "hard" ] && { echo "=== STOP_AFTER=hard"; exit 0; }
@@ -80,7 +80,7 @@ S --summary | tee $LOG/ablation_summary.log
 FW=${FULL_WINDOWS:-450000}
 if ! step full; then ts full
   T --run F006_FULL --stage full --windows $FW --human-share $H --hard-ratio $R --loss $L --human-weight $HW \
-    --focal-gamma $FG --es-w $ES --aca-w $ACA --emphasis --eval-every 1000 --min-epochs-before-stop 0.75 --patience 3
+    --focal-gamma $FG --es-w $ES --aca-w $ACA --emphasis --eval-every 1500 --min-epochs-before-stop 0.75 --patience 3
   done_ full; fi
 S --summary > /dev/null
 
