@@ -1,0 +1,122 @@
+# TURNITING_DATASET_V2 build + TURNITING_RESEARCH_V3 training (Colab A100).
+build:
+  seed: 42
+  shard_rows: 50000
+  validation: {min_chars: 20, min_words: 3}
+  dedup:
+    exact: sha256 of the canonical view (whitespace collapsed); raw text for adversarial rows
+    num_perm: 64
+    bands: 8
+    max_chars: 3000
+    jaccard_threshold: 0.8
+  splits:
+    train: 0.8
+    validation: 0.1
+    test: 0.1
+    # whole modern families kept out of training (machine rows) -> unseen_generator_test
+    holdout_generator_families: [mistral, cohere, deepseek]
+    # V1 holdouts + professional reports (OpAI reports, Beige Book) -> unseen_domain_test
+    holdout_domains: [reviews, recipes, reports]
+  dataset_priority:          # which copy survives exact / near dedup among new sources (V1 always wins)
+    - het_ai_spans
+    - opai_bench
+    - editlens
+    - mgtpd
+    - detectrl_x
+    - mgtbench2_academic
+    - academic_arxiv_gpt_gemini
+    - nigerian_academic
+    - aigtxt
+    - txd22
+    - gradtex
+    - beemo
+    - outfox
+    - mdta
+    - seqxgpt
+    - openllmtext
+    - coling2025_mgt_en
+  eval_sets:
+    validation_docs: 20000     # V2 validation (V1 used 900)
+    test_docs: 20000
+    subset_docs: 4000
+    attack_docs: 1500
+    stability_pairs: 1200
+
+train:
+  seed: 42
+  model: microsoft/mdeberta-v3-base
+  revision: a0484667b22365f84929a935b5e50a51f71f159d
+  max_length: 512
+  stride: 128
+  windows_per_doc: 3           # first window + up to 2 random others
+  train_windows: 1000000       # task target 750k-1.5M
+  epochs: 2
+  learning_rate: 2.0e-05
+  weight_decay: 0.01
+  warmup_ratio: 0.04
+  bf16: true
+  micro_batch: auto            # auto-batch probe (A100 40GB: ~34-37 GB, 80GB: ~68-74 GB)
+  effective_batch: 64
+  eval_every_steps: 2500
+  min_epochs_before_early_stop: 1.0
+  early_stopping_patience: 3
+  eval_docs_during_training: 6000   # stratified slice of validation_v2 (full 20k at the end)
+  num_workers: auto            # min(max(cpu-1,1),12)
+  prefetch_factor: 4
+  # multi-task heads
+  heads:
+    binary_weight: 1.0         # HEAD A: HUMAN vs MACHINE_SIGNAL (any AI involvement)
+    fine_weight: 0.5           # HEAD B: HUMAN / GENERATED / EDITED / MIXED
+    token_weight: 0.3          # HEAD C: token AI probability (rows with spans only)
+  # dual view + synthetic attacks (label independent)
+  canonical_view_prob: 0.5
+  attack_prob: 0.10            # zero-width / homoglyph / whitespace on the raw view
+  sampling:
+    label_balance: 0.5
+    adversarial_cap: 0.15
+    dataset_weights:
+      # very high
+      mgtbench2_academic: 3.0
+      mgtpd: 3.0
+      detectrl_x: 3.0
+      academic_arxiv_gpt_gemini: 3.0
+      opai_bench: 3.0
+      het_ai_spans: 3.0
+      editlens: 3.0
+      # high
+      gradtex: 2.0
+      txd22: 2.0
+      nigerian_academic: 2.0
+      mdta: 2.0
+      outfox: 2.0
+      beemo: 2.0
+      # medium
+      coling2025_mgt_en: 1.0
+      openllmtext: 1.0
+      seqxgpt: 0.8
+      # V1 keeps contributing
+      iberautextification: 2.0
+      autextification2023: 1.5
+      semeval2024_task8: 1.0
+      m4: 1.0
+      mage: 1.0
+      hc3: 0.6
+      hc3_chinese: 0.3
+      raid: 1.2
+      turingbench: 0.4
+      ghostbuster_essay: 0.8
+      default: 1.0
+    spanish_weight_candidates: [1.0, 1.5, 2.0, 2.5, 3.0]
+    academic_weight_candidates: [1.0, 1.25, 1.5, 2.0]
+    spanish_weight: 2.0        # default; replaced by the validation selection (scripts/v3_select_weights.py)
+    academic_weight: 1.5
+  refinement:
+    train_windows: 200000
+    target_fraction: 0.7       # Spanish / academic / essays / mixed / AI-edited; 30 % global replay
+    learning_rate: 1.0e-05
+    epochs: 1
+    eval_every_steps: 1000
+  calibration:
+    methods: [temperature, platt, isotonic]
+    low_fpr_max: 0.01
+    high_precision_target: 0.95
