@@ -1,0 +1,68 @@
+{
+  "model": "CANDIDATE_MODEL_V3",
+  "pairs": 83,
+  "pair_kinds": {
+    "synthetic_minor_edit": 42,
+    "synthetic_paragraph_replacement": 41
+  },
+  "modes": {
+    "WINDOW_DOCUMENT": {
+      "unchanged_paragraphs": 550,
+      "median": 0.0,
+      "p90": 0.0714285714285714,
+      "p95": 0.22115384615384615,
+      "mean": 0.042423804774432625,
+      "by_kind": {
+        "synthetic_minor_edit": {
+          "n": 309,
+          "median": 0.0,
+          "p95": 0.0
+        },
+        "synthetic_paragraph_replacement": {
+          "n": 241,
+          "median": 0.0,
+          "p95": 0.6944444444444444
+        }
+      }
+    },
+    "STRICT_PARAGRAPH": {
+      "unchanged_paragraphs": 399,
+      "median": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "mean": 4.5157939894782095e-05,
+      "by_kind": {
+        "synthetic_minor_edit": {
+          "n": 188,
+          "median": 0.0,
+          "p95": 0.0
+        },
+        "synthetic_paragraph_replacement": {
+          "n": 211,
+          "median": 0.0,
+          "p95": 0.0
+        }
+      }
+    },
+    "CONTEXTUAL_PARAGRAPH": {
+      "unchanged_paragraphs": 399,
+      "median": 0.0,
+      "p90": 0.04878048780487809,
+      "p95": 0.12126708892512206,
+      "mean": 0.02877177912449446,
+      "by_kind": {
+        "synthetic_minor_edit": {
+          "n": 188,
+          "median": 0.0,
+          "p95": 0.02519262513809642
+        },
+        "synthetic_paragraph_replacement": {
+          "n": 211,
+          "median": 0.0,
+          "p95": 0.31518369369794597
+        }
+      }
+    }
+  },
+  "note": "TEST-side pairs, evaluated once after the paragraph mode was chosen on validation"
+}
