@@ -17,6 +17,11 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
+# F005 local AI analyzer: CPU inference runtime (weights are mounted, never baked in)
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.5.1
+COPY requirements-analyzer.txt .
+RUN pip install --no-cache-dir -r requirements-analyzer.txt
+
 COPY app ./app
 COPY scripts ./scripts
 

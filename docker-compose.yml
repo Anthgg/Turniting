@@ -50,10 +50,23 @@ services:
       OCR_DESKEW_MIN_ANGLE: ${OCR_DESKEW_MIN_ANGLE:-1.0}
       OCR_CONTRAST_RANGE: ${OCR_CONTRAST_RANGE:-70}
       PADDLE_PDX_CACHE_HOME: /data/models/paddleocr
+      # F005 local AI analyzer: weights are imported with scripts/import_model_artifact.py into
+      # ./data/models (Git-ignored) and mounted read-only; missing weights only make a model UNAVAILABLE.
+      AI_MODEL_V2_PATH: /data/models/local/candidate-v2
+      AI_MODEL_V3_PATH: /data/models/local/candidate-v3
+      AI_BASELINE_MODEL_PATH: /data/models/local/baseline
+      AI_MODEL_DEVICE: ${AI_MODEL_DEVICE:-auto}
+      MODEL_MAX_RESIDENT: ${MODEL_MAX_RESIDENT:-1}
+      MODEL_MAX_JOBS: ${MODEL_MAX_JOBS:-1}
+      AI_MODEL_CPU_THREADS: ${AI_MODEL_CPU_THREADS:-4}
+      MIN_PARAGRAPH_CHARS: ${MIN_PARAGRAPH_CHARS:-120}
+      MIN_PARAGRAPH_WORDS: ${MIN_PARAGRAPH_WORDS:-20}
+      MIN_PARAGRAPH_TOKENS: ${MIN_PARAGRAPH_TOKENS:-32}
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
       - turniting_ai_models:/data/models/paddleocr
+      - ./data/models:/data/models/local:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
       interval: 10s
@@ -74,6 +87,7 @@ services:
       AI_SERVICE_URL: http://ai-service:8000
       AI_SERVICE_TIMEOUT_MS: ${AI_SERVICE_TIMEOUT_MS:-30000}
       AI_OCR_TIMEOUT_MS: ${AI_OCR_TIMEOUT_MS:-180000}
+      AI_ANALYSIS_TIMEOUT_MS: ${AI_ANALYSIS_TIMEOUT_MS:-600000}
       AI_SERVICE_AUTH_MODE: none
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-20}
       MAX_TURNITIN_REPORT_MB: ${MAX_TURNITIN_REPORT_MB:-30}

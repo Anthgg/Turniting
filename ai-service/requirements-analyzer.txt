@@ -1,0 +1,6 @@
+# F005 local AI analyzer (CPU inference). torch is installed from the PyTorch CPU index in the
+# Dockerfile; CUDA/MPS builds can be used on hosts that have them.
+transformers==4.46.3
+sentencepiece==0.2.0
+safetensors>=0.4.5
+protobuf>=5.28
