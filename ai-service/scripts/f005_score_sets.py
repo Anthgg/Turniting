@@ -53,6 +53,23 @@ def v1_frame(v1_dir: Path, cap_val: int, cap_test: int) -> pd.DataFrame:
         df = pd.concat(parts)
         df["source"], df["role"] = f"v1_{name}", "test"
         frames.append(df)
+    # local synthetic attacks on the same frozen V1 test rows (deterministic, label independent)
+    import random
+
+    from app.services.analyzer.canon import attack_homoglyph, attack_zero_width
+
+    base = next(f for f in frames if f["source"].iloc[0] == "v1_test")
+    base = base[base["attack"].isin(["none", None])].sample(min(len(base), cap_test // 2), random_state=7)
+    for name, fn in (("synthetic_zero_width_v1", attack_zero_width), ("synthetic_homoglyph_v1", attack_homoglyph)):
+        rng = random.Random(7)
+        att = base.copy()
+        att["text"] = [fn(t, rng) for t in att["text"]]
+        att["id"] = att["id"].astype(str) + f"#{name}"
+        att["source"], att["attack"] = name, name.replace("synthetic_", "").replace("_v1", "")
+        frames.append(att)
+    clean = base.copy()
+    clean["source"] = "synthetic_clean_reference_v1"
+    frames.append(clean)
     out = pd.concat(frames, ignore_index=True)
     out["fine_label"] = out["label"].map({0: "HUMAN", 1: "AI_GENERATED"})
     out["label"] = out["label"].astype(int)
