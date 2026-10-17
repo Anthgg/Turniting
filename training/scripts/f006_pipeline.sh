@@ -15,7 +15,7 @@ mkdir -p "$F6"/{datasets,manifests,runs,models,reports,logs} /content/turniting-
 step() { [ -f "$LOG/$1.done" ]; }
 done_() { date -u +%FT%TZ > "$LOG/$1.done"; echo "=== STEP $1 DONE $(date -u +%T)"; }
 ts() { echo "=== STEP $1 START $(date -u +%T)"; git pull -q || true; }
-T() { python scripts/f006_train.py "$@" 2>&1 | grep -v -i "warn" | tee -a "$LOG/train_runs.log"; }
+T() { python scripts/f006_train.py "$@" 2>&1 | grep --line-buffered -v -i "warn" | tee -a "$LOG/train_runs.log"; }
 S() { python scripts/f006_select.py "$@"; }
 
 # 0. data on fast local disk
