@@ -40,7 +40,10 @@ def main() -> int:
         "v3_manifests": tree(v3 / "manifests", 1),
     }
     idx = pd.read_parquet(v3 / "datasets" / "index_v2.parquet")
-    k = idx[idx["status"] == "KEPT"]
+    k = idx[idx["status"] == "KEPT"].copy()
+    for c in k.columns:
+        if str(k[c].dtype) == "category":
+            k[c] = k[c].astype(str)
     rep["index_columns"] = list(idx.columns)
     rep["kept_rows"] = int(len(k))
     rep["split_x_label"] = {str(s): g["fine_label"].value_counts().to_dict() for s, g in k.groupby("split")}
@@ -48,7 +51,7 @@ def main() -> int:
     for s in ("unseen_generator_test", "unseen_domain_test", "ood_test", "adversarial_test", "adversarial_validation"):
         g = k[k["split"] == s]
         rep[f"{s}_by_family"] = g["generator_family"].value_counts().to_dict()
-        rep[f"{s}_by_dataset"] = g.groupby(["dataset", "fine_label"]).size().astype(int).rename(lambda x: "|".join(x)).to_dict()
+        rep[f"{s}_by_dataset"] = (g["dataset"] + "|" + g["fine_label"]).value_counts().to_dict()
         rep[f"{s}_by_domain"] = g["domain"].value_counts().to_dict()
     for s in ("train", "validation", "test"):
         g = k[k["split"] == s]
