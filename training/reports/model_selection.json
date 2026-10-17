@@ -1,0 +1,39 @@
+{
+  "candidates": {
+    "BEST_BASELINE": {
+      "val_macro_f1": 0.9188527232507326,
+      "val_fpr": 0.08181818181818182,
+      "val_ece": 0.0280667203483784,
+      "val_spanish_macro_f1": 0.9133329053476807,
+      "val_academic_macro_f1": 0.9055925193310556,
+      "primary": 0.9094627123393682
+    },
+    "GLOBAL_MULTILINGUAL_TRANSFORMER": {
+      "val_macro_f1": 0.806160290338712,
+      "val_fpr": 0.12272727272727273,
+      "val_ece": 0.1543581745312851,
+      "val_spanish_macro_f1": 0.8476854156296665,
+      "val_academic_macro_f1": 0.769718047447522,
+      "primary": 0.8087017315385943
+    },
+    "SPANISH_ACADEMIC_TRANSFORMER": {
+      "val_macro_f1": 0.8186737598558289,
+      "val_fpr": 0.12727272727272726,
+      "val_ece": 0.1467867499272683,
+      "val_spanish_macro_f1": 0.8532289628180039,
+      "val_academic_macro_f1": 0.817485754985755,
+      "primary": 0.8353573589018795
+    },
+    "CALIBRATED_SPANISH_ACADEMIC_TRANSFORMER": {
+      "val_macro_f1": 0.81872574205674,
+      "val_fpr": 0.1318181818181818,
+      "val_ece": 0.02412448823916709,
+      "val_spanish_macro_f1": 0.8532608695652174,
+      "val_academic_macro_f1": 0.8151529998663757,
+      "primary": 0.8342069347157965
+    }
+  },
+  "recommended": "BEST_BASELINE",
+  "best_transformer": "CALIBRATED_SPANISH_ACADEMIC_TRANSFORMER",
+  "rule": "Pick the recommended model on VALIDATION only and materialise models/transformer/best.\n\nObjective (documented, not tuned on TEST):\n  primary   = mean(validation Spanish macro F1, validation academic macro F1)\n  guard     = validation FPR must be <= min FPR among candidates + 0.02\n  tie-break = primary within 0.01 counts as a tie -> lower validation ECE (calibration), then lower FPR\nOOD / adversarial / unseen sets are TEST-side: they are reported, never used to choose."
+}

@@ -1,0 +1,126 @@
+{
+  "auditedAt": "2026-10-15",
+  "policy": {
+    "use": "Internal research training of an independent detector (Turniting AI Detector V1). No dataset or derived dataset is redistributed; raw/normalized data and weights are kept local and out of Git.",
+    "exclusion_rule": "A dataset is EXCLUDED_LICENSE only if its licence clearly forbids research training. Access-restricted sources are BLOCKED_ACCESS, not licence exclusions.",
+    "text_in_reports": "Raw text snippets appear in reports only for permissive licences (MIT, Apache-2.0, CC-BY). NC/ND/SA/unspecified sources are reported by dataset + sample id + score only."
+  },
+  "datasets": [
+    {
+      "dataset": "iberautextification",
+      "source": "https://huggingface.co/datasets/Genaios/iberautextification (official, Genaios/organizers)",
+      "license": "CC-BY-NC-ND-4.0",
+      "allowed_for_research": true,
+      "redistribution_constraints": "Non-commercial; no redistribution of adapted/derived versions of the dataset. Organizers ask to be contacted (organizers.autextification@gmail.com) to adapt or build upon it. Commercial deployment of a model trained on it needs organizer permission.",
+      "text_allowed_in_reports": false,
+      "citation": "Sarvazyan et al. Overview of IberAuTexTification at IberLEF 2024. Procesamiento del Lenguaje Natural 73 (2024).",
+      "status": "INCLUDED",
+      "notes": "Primary Spanish/Iberian source (ca, en, es, eu, gl, pt). Used locally for research training only; normalized copy is never redistributed."
+    },
+    {
+      "dataset": "autextification2023",
+      "source": "https://huggingface.co/datasets/symanto/autextification2023 (official, Symanto/organizers). Zenodo record 7956207 is access-restricted.",
+      "license": "CC-BY-NC-SA-4.0",
+      "allowed_for_research": true,
+      "redistribution_constraints": "Non-commercial; share-alike for adaptations. Commercial use of the trained model needs clearance.",
+      "text_allowed_in_reports": false,
+      "citation": "Sarvazyan et al. Overview of AuTexTification at IberLEF 2023. Procesamiento del Lenguaje Natural 71 (2023). arXiv:2309.11285.",
+      "status": "INCLUDED",
+      "notes": "English + Spanish. Official test set uses domains not present in train (news, reviews)."
+    },
+    {
+      "dataset": "multitude",
+      "source": "https://zenodo.org/records/10013755 (official)",
+      "license": "CC-BY-4.0 (per Zenodo metadata)",
+      "allowed_for_research": true,
+      "redistribution_constraints": "Licence permissive, but files are access-restricted: the Zenodo record requires the owners to approve an access request.",
+      "text_allowed_in_reports": false,
+      "citation": "Macko et al. MULTITuDE: Large-Scale Multilingual Machine-Generated Text Detection Benchmark. EMNLP 2023.",
+      "status": "BLOCKED_ACCESS",
+      "notes": "No official open mirror exists (HF search returns unrelated repos). An access request must be submitted by the project owner on Zenodo; not done automatically. Not a licence exclusion."
+    },
+    {
+      "dataset": "semeval2024_task8",
+      "source": "https://zenodo.org/records/11002158 (official data archive SemEval2024-Task8-data.zip); task repo https://github.com/mbzuai-nlp/SemEval2024-task8",
+      "license": "Not declared on Zenodo/GitHub (public shared-task release for research)",
+      "allowed_for_research": true,
+      "redistribution_constraints": "No explicit licence: treat as research-only, no redistribution. Underlying human texts come from M4 sources with their own terms.",
+      "text_allowed_in_reports": false,
+      "citation": "Wang et al. SemEval-2024 Task 8: Multidomain, Multimodel and Multilingual Machine-Generated Text Detection. SemEval 2024.",
+      "status": "INCLUDED",
+      "notes": "Subtask A binary (mono+multilingual, official gold test included); Subtask B generator metadata; Subtask C mixed human->machine boundary texts kept as MIXED only. Preferred over the third-party HF mirror d0rj/SemEval2024-task8."
+    },
+    {
+      "dataset": "m4",
+      "source": "https://github.com/mbzuai-nlp/M4 (data/*.jsonl)",
+      "license": "Not declared in repository (public research benchmark)",
+      "allowed_for_research": true,
+      "redistribution_constraints": "No explicit licence: research-only, no redistribution. Underlying sources (Wikipedia, WikiHow, Reddit, arXiv, PeerRead, ...) keep their own terms.",
+      "text_allowed_in_reports": false,
+      "citation": "Wang et al. M4: Multi-generator, Multi-domain, and Multi-lingual Black-Box Machine-Generated Text Detection. EACL 2024.",
+      "status": "INCLUDED",
+      "notes": "Each row pairs human_text and machine_text for the same source_ID; both kept in the same group. Overlaps SemEval-2024 Task 8 (handled by dedup + group union)."
+    },
+    {
+      "dataset": "mage",
+      "source": "https://huggingface.co/datasets/yaful/MAGE (official)",
+      "license": "Apache-2.0",
+      "allowed_for_research": true,
+      "redistribution_constraints": "Apache-2.0; underlying human sources keep their own terms.",
+      "text_allowed_in_reports": true,
+      "citation": "Li et al. MAGE: Machine-generated Text Detection in the Wild. ACL 2024. arXiv:2305.13242.",
+      "status": "INCLUDED",
+      "notes": "LABEL SEMANTICS INVERTED: official label 0 = machine-generated, 1 = human-written (github.com/yafuly/MAGE README; verified: every *_human src has label 1). Normalized to 0=HUMAN,1=MACHINE."
+    },
+    {
+      "dataset": "hc3",
+      "source": "https://huggingface.co/datasets/Hello-SimpleAI/HC3 and Hello-SimpleAI/HC3-Chinese (official)",
+      "license": "CC-BY-SA-4.0",
+      "allowed_for_research": true,
+      "redistribution_constraints": "Attribution + share-alike for redistributed adaptations (none redistributed).",
+      "text_allowed_in_reports": false,
+      "citation": "Guo et al. How Close is ChatGPT to Human Experts? Comparison Corpus, Evaluation, and Detection. arXiv:2301.07597.",
+      "status": "INCLUDED",
+      "notes": "English + Chinese. Each answer is a sample; group = question to avoid leakage."
+    },
+    {
+      "dataset": "raid",
+      "source": "https://huggingface.co/datasets/liamdugan/raid (official)",
+      "license": "MIT",
+      "allowed_for_research": true,
+      "redistribution_constraints": "MIT; keep copyright notice.",
+      "text_allowed_in_reports": true,
+      "citation": "Dugan et al. RAID: A Shared Benchmark for Robust Evaluation of Machine-Generated Text Detectors. ACL 2024. arXiv:2405.07940.",
+      "status": "INCLUDED",
+      "notes": "train.csv (~11.8 GB, labelled, includes 11 adversarial attacks). Processed in streaming chunks; stratified sample by model/domain/attack/decoding/repetition_penalty. extra.csv and unlabeled test.csv not used."
+    },
+    {
+      "dataset": "turingbench",
+      "source": "https://huggingface.co/datasets/turingbench/TuringBench (official)",
+      "license": "Apache-2.0",
+      "allowed_for_research": true,
+      "redistribution_constraints": "Apache-2.0; news articles keep publisher terms.",
+      "text_allowed_in_reports": true,
+      "citation": "Uchendu et al. TURINGBENCH: A Benchmark Environment for Turing Test in the Age of Neural Text Generation. Findings of EMNLP 2021.",
+      "status": "INCLUDED",
+      "notes": "ADDITIONAL. 19 older generators (GPT-1/2/3, GROVER, CTRL, XLNet, ...), English news. TT_* binary folders used; AA attribution folder skipped (same texts)."
+    },
+    {
+      "dataset": "ghostbuster_essay",
+      "source": "https://github.com/vivek3141/ghostbuster-data (essay/)",
+      "license": "CC-BY-3.0",
+      "allowed_for_research": true,
+      "redistribution_constraints": "Attribution required.",
+      "text_allowed_in_reports": true,
+      "citation": "Verma et al. Ghostbuster: Detecting Text Ghostwritten by Large Language Models. NAACL 2024. arXiv:2305.15047.",
+      "status": "INCLUDED",
+      "notes": "ADDITIONAL. Student essays (academic) with ChatGPT and Claude counterparts written from the same prompt; group = essay id."
+    }
+  ],
+  "considered_not_included": [
+    {"dataset": "DetectRL (WUJUNCHAO/DetectRL-X)", "license": "MIT", "reason": "Each attack file is 0.7-1.4 GB (~30 GB total); does not fit the safe-disk budget next to RAID."},
+    {"dataset": "Beemo (toloka/beemo)", "license": "MIT", "reason": "Expert-edited (mixed authorship) texts; would need a mixed-label scheme. Deferred."},
+    {"dataset": "MixSet (ONE-Lab/MixSet)", "license": "see card", "reason": "Mixed human/LLM texts; deferred together with SemEval Subtask C boundary work."},
+    {"dataset": "d0rj/SemEval2024-task8", "license": "apache-2.0 (mirror)", "reason": "Third-party mirror; official Zenodo archive used instead."}
+  ]
+}

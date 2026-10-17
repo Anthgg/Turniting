@@ -63,3 +63,22 @@ logs/
 .idea/
 .DS_Store
 Thumbs.db
+
+# AI detector training: code/configs/manifests/reports are versioned; data and weights are not
+!training/datasets/
+training/datasets/raw/
+training/datasets/normalized/
+training/datasets/cache/
+training/models/
+training/checkpoints/
+*.bin
+*.safetensors
+*.ckpt
+*.joblib
+*.parquet
+*.npy
+
+# F004 source folders named "datasets" are code, not data
+!backend/src/datasets/
+!frontend/src/features/datasets/
+!backend/test/fixtures/datasets/

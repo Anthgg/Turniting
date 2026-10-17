@@ -28,6 +28,7 @@ export type Environment = {
   OCR_BLANK_PAGE_THRESHOLD: number;
   OCR_DESKEW_MIN_ANGLE: number;
   OCR_CONTRAST_RANGE: number;
+  TRAINING_DIR: string;
 };
 
 function requiredString(value: unknown, key: string): string {
@@ -164,5 +165,6 @@ export function validateEnvironment(config: Record<string, unknown>): Environmen
     OCR_BLANK_PAGE_THRESHOLD: parseDecimal(config.OCR_BLANK_PAGE_THRESHOLD, 'OCR_BLANK_PAGE_THRESHOLD', 0.004, 0, 1),
     OCR_DESKEW_MIN_ANGLE: parseDecimal(config.OCR_DESKEW_MIN_ANGLE, 'OCR_DESKEW_MIN_ANGLE', 1, 0, 10),
     OCR_CONTRAST_RANGE: parseInteger(config.OCR_CONTRAST_RANGE, 'OCR_CONTRAST_RANGE', 70, 1, 255),
+    TRAINING_DIR: requiredString(config.TRAINING_DIR ?? '../training', 'TRAINING_DIR'),
   };
 }

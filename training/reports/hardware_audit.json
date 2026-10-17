@@ -1,0 +1,42 @@
+{
+  "platform": "Windows-10-10.0.26200-SP0",
+  "python": "3.11.15",
+  "cpu": "AMD Ryzen 7 5700U with Radeon Graphics",
+  "cpu_physical_cores": 8,
+  "cpu_logical_cores": 16,
+  "ram_gb": 12.16,
+  "disk": {
+    "total_gb": 510.81,
+    "free_gb": 59.58,
+    "used_gb": 451.23
+  },
+  "gpu": null,
+  "vram_gb": null,
+  "cuda": null,
+  "mps": false,
+  "torch": "2.5.1+cpu",
+  "display_adapters": [
+    "AMD Radeon(TM) Graphics"
+  ],
+  "nvidia_smi": "not found (no NVIDIA driver/GPU)",
+  "disk_free_before_gb": 73.5,
+  "disk_free_before_note": "measured before any download (Get-PSDrive C:)",
+  "safe_disk_threshold_gb": 51.1,
+  "auditedAt": "2026-10-16T00:09:54Z",
+  "versions": {
+    "torch": "2.5.1+cpu",
+    "transformers": "4.46.3",
+    "datasets": "3.1.0",
+    "accelerate": "1.1.1",
+    "sklearn": "1.5.2",
+    "pandas": "2.2.3",
+    "numpy": "1.26.4",
+    "pyarrow": "18.0.0",
+    "rapidfuzz": "3.10.1",
+    "datasketch": "1.6.5",
+    "sentencepiece": "0.2.0",
+    "safetensors": "0.4.5",
+    "huggingface_hub": "0.26.2",
+    "langid": "unknown"
+  }
+}

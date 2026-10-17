@@ -1,0 +1,50 @@
+# Build configuration for TURNITING_DATASET_V1 (scripts/build_dataset.py)
+dataset_version: TURNITING_DATASET_V1
+seed: 42
+
+validation:
+  min_chars: 20          # configurable; short texts are kept unless below this
+  min_words: 3
+
+normalization:
+  unicode: NFC           # NFKC rejected: it folds confusables/full-width forms (see README)
+  strip_zero_width_in_clean_rows: true
+  preserve_adversarial_text: true
+
+dedup:
+  exact: sha256 of NFC text with zero-width removed and whitespace collapsed (clean rows); raw text for adversarial rows
+  near:
+    method: minhash_lsh
+    shingle: word_3gram     # char 5-gram for CJK
+    max_chars: 3000
+    num_perm: 64
+    bands: 8
+    rows_per_band: 8
+    jaccard_threshold: 0.8
+  # Same-label clean near duplicates are removed; anything else is only linked into one group.
+
+raid:
+  target_rows: 320000    # stratified by model|domain|attack|decoding|repetition_penalty
+  sampling: bottom-k by sha256(id) inside each stratum (deterministic)
+
+splits:
+  train: 0.8
+  validation: 0.1
+  test: 0.1
+  # official test / OOD rows force their whole group to the evaluation side
+  holdout_generator_families: [mistral, cohere]
+  holdout_domains: [reviews, recipes]
+
+dataset_priority:        # which copy survives exact dedup
+  - iberautextification
+  - autextification2023
+  - ghostbuster_essay
+  - semeval2024_task8
+  - m4
+  - hc3
+  - hc3_chinese
+  - mage
+  - raid
+  - turingbench
+
+shard_rows: 50000

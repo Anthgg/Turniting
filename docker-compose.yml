@@ -78,12 +78,15 @@ services:
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-20}
       MAX_TURNITIN_REPORT_MB: ${MAX_TURNITIN_REPORT_MB:-30}
       UPLOAD_DIR: /data/uploads
+      TRAINING_DIR: /app/training
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080,http://127.0.0.1:8080}
     command: ["npm", "run", "start:with-migrations"]
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
       - turniting_uploads:/data/uploads
+      # F004: versioned training manifests/reports, read-only (no datasets or weights are baked into the image)
+      - ./training:/app/training:ro
     depends_on:
       db:
         condition: service_healthy

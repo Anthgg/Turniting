@@ -1,0 +1,480 @@
+{
+  "modelRegistrySchemaVersion": 1,
+  "datasetVersion": "TURNITING_DATASET_V1",
+  "models": [
+    {
+      "name": "BEST_BASELINE",
+      "architecture": "stacked TF-IDF LR/SVM + stylometric GBM",
+      "variant": "ensemble_tfidf_stylometric",
+      "modelType": "BASELINE",
+      "status": "EXPERIMENTAL",
+      "trainingEnvironment": "local CPU (AMD Ryzen 7 5700U)",
+      "commercialEligibility": "RESEARCH_ONLY",
+      "artifact": {
+        "provider": "LOCAL",
+        "path": "training/models/baseline/best",
+        "external": true,
+        "note": "joblib bundle kept on the training workstation; not versioned"
+      },
+      "metrics": {
+        "selection_primary": 0.9094,
+        "validation": {
+          "validation": {
+            "n": 900,
+            "accuracy": 0.9189,
+            "precision": 0.9216,
+            "recall": 0.9196,
+            "f1": 0.9206,
+            "macro_f1": 0.9189,
+            "roc_auc": 0.9749,
+            "pr_auc": 0.9785,
+            "fpr": 0.0818,
+            "fnr": 0.0804,
+            "mcc": 0.8377,
+            "ece": 0.0281,
+            "brier": 0.0627
+          },
+          "validation_spanish": {
+            "n": 450,
+            "accuracy": 0.9133,
+            "precision": 0.9279,
+            "recall": 0.8996,
+            "f1": 0.9135,
+            "macro_f1": 0.9133,
+            "roc_auc": 0.9724,
+            "pr_auc": 0.9695,
+            "fpr": 0.0724,
+            "fnr": 0.1004,
+            "mcc": 0.8271,
+            "ece": 0.0364,
+            "brier": 0.0623
+          },
+          "validation_academic": {
+            "n": 450,
+            "accuracy": 0.9067,
+            "precision": 0.9084,
+            "recall": 0.9231,
+            "f1": 0.9157,
+            "macro_f1": 0.9056,
+            "roc_auc": 0.9721,
+            "pr_auc": 0.9814,
+            "fpr": 0.1133,
+            "fnr": 0.0769,
+            "mcc": 0.8113,
+            "ece": 0.0533,
+            "brier": 0.0662
+          }
+        },
+        "final": {
+          "test": {
+            "n": 4000,
+            "accuracy": 0.8652,
+            "precision": 0.8464,
+            "recall": 0.9094,
+            "f1": 0.8768,
+            "macro_f1": 0.8641,
+            "roc_auc": 0.9462,
+            "pr_auc": 0.9535,
+            "fpr": 0.184,
+            "fnr": 0.0906,
+            "mcc": 0.7308,
+            "ece": 0.0418,
+            "brier": 0.0973
+          },
+          "spanish_test": {
+            "n": 1200,
+            "accuracy": 0.8517,
+            "precision": 0.8333,
+            "recall": 0.8703,
+            "f1": 0.8514,
+            "macro_f1": 0.8517,
+            "roc_auc": 0.9316,
+            "pr_auc": 0.9269,
+            "fpr": 0.1661,
+            "fnr": 0.1297,
+            "mcc": 0.7041,
+            "ece": 0.044,
+            "brier": 0.1075
+          },
+          "academic_test": {
+            "n": 1000,
+            "accuracy": 0.918,
+            "precision": 0.9413,
+            "recall": 0.9191,
+            "f1": 0.93,
+            "macro_f1": 0.9155,
+            "roc_auc": 0.9776,
+            "pr_auc": 0.9861,
+            "fpr": 0.0835,
+            "fnr": 0.0809,
+            "mcc": 0.8314,
+            "ece": 0.0272,
+            "brier": 0.057
+          },
+          "ood": {
+            "n": 1500,
+            "accuracy": 0.7913,
+            "precision": 0.7532,
+            "recall": 0.8667,
+            "f1": 0.806,
+            "macro_f1": 0.7901,
+            "roc_auc": 0.9023,
+            "pr_auc": 0.9083,
+            "fpr": 0.284,
+            "fnr": 0.1333,
+            "mcc": 0.5894,
+            "ece": 0.0892,
+            "brier": 0.1411
+          },
+          "adversarial": {
+            "n": 2400,
+            "accuracy": 0.92,
+            "precision": 0.9758,
+            "recall": 0.9164,
+            "f1": 0.9452,
+            "macro_f1": 0.8986,
+            "roc_auc": 0.9742,
+            "pr_auc": 0.9916,
+            "fpr": 0.069,
+            "fnr": 0.0836,
+            "mcc": 0.8032,
+            "ece": 0.0475,
+            "brier": 0.0592
+          },
+          "unseen_generator": {
+            "n": 2400,
+            "accuracy": 0.7754,
+            "precision": 0.7642,
+            "recall": 0.7967,
+            "f1": 0.7801,
+            "macro_f1": 0.7753,
+            "roc_auc": 0.8665,
+            "pr_auc": 0.8635,
+            "fpr": 0.2458,
+            "fnr": 0.2033,
+            "mcc": 0.5513,
+            "ece": 0.0994,
+            "brier": 0.1608
+          },
+          "unseen_domain": {
+            "n": 1200,
+            "accuracy": 0.7817,
+            "precision": 0.7522,
+            "recall": 0.84,
+            "f1": 0.7937,
+            "macro_f1": 0.7809,
+            "roc_auc": 0.8666,
+            "pr_auc": 0.8784,
+            "fpr": 0.2767,
+            "fnr": 0.16,
+            "mcc": 0.5672,
+            "ece": 0.0843,
+            "brier": 0.1595
+          }
+        },
+        "robustness_f1": {
+          "clean": 0.9750231267345051,
+          "adversarial_all": 0.9560947429231658,
+          "alternative_spelling": 0.9704918032786886,
+          "article_deletion": 0.9629629629629629,
+          "homoglyph": 0.9619377162629758,
+          "insert_paragraphs": 0.9833887043189369,
+          "number": 0.9759450171821306,
+          "paraphrase": 0.8560606060606061,
+          "perplexity_misspelling": 0.9790209790209791,
+          "synonym": 0.9694915254237289,
+          "upper_lower": 0.9692832764505119,
+          "whitespace": 0.9690721649484536,
+          "zero_width_space": 0.9662162162162162
+        }
+      },
+      "thresholds": {
+        "BALANCED": 0.525,
+        "LOW_FALSE_POSITIVE": 0.9,
+        "HIGH_PRECISION_AI": 0.655
+      },
+      "calibration": {
+        "method": "sigmoid (SVM) / stacked LogReg probabilities",
+        "fitted_on": "VALIDATION"
+      },
+      "limitations": [
+        "OOD FPR high (0.284 at BALANCED)",
+        "paraphrase attacks lower recall (F1 0.856)",
+        "license restrictions: trained with non-commercial datasets"
+      ],
+      "metadata": {
+        "reports": [
+          "training/reports/baseline_metrics.json",
+          "training/reports/eval/BEST_BASELINE.json"
+        ],
+        "robust_to_character_attacks": true
+      }
+    },
+    {
+      "name": "CANDIDATE_MODEL_V2",
+      "architecture": "microsoft/mdeberta-v3-base",
+      "variant": "CALIBRATED_SPANISH_ACADEMIC_TRANSFORMER_GPU",
+      "modelType": "TRANSFORMER",
+      "status": "CANDIDATE",
+      "trainingEnvironment": "Google Colab Pro, NVIDIA A100-SXM4-40GB, CUDA 13.0, bf16",
+      "commercialEligibility": "RESEARCH_ONLY",
+      "gitCommit": "3415eb2",
+      "artifact": {
+        "provider": "GOOGLE_DRIVE",
+        "path": "MyDrive/turniting/workdir/models/gpu/calibrated_spanish_academic",
+        "external": true,
+        "sizeBytes": 1135930811,
+        "note": "logical path only; no credentials or signed URLs are stored"
+      },
+      "metrics": {
+        "selection_primary": 0.9274,
+        "validation": {
+          "validation": {
+            "n": 900,
+            "accuracy": 0.9233,
+            "precision": 0.9316,
+            "recall": 0.9174,
+            "f1": 0.9244,
+            "macro_f1": 0.9233,
+            "roc_auc": 0.9819,
+            "pr_auc": 0.9805,
+            "fpr": 0.0705,
+            "fnr": 0.0826,
+            "mcc": 0.8467,
+            "ece": 0.0081,
+            "brier": 0.0527
+          },
+          "validation_spanish": {
+            "n": 450,
+            "accuracy": 0.9178,
+            "precision": 0.9528,
+            "recall": 0.8821,
+            "f1": 0.9161,
+            "macro_f1": 0.9177,
+            "roc_auc": 0.9833,
+            "pr_auc": 0.9839,
+            "fpr": 0.0452,
+            "fnr": 0.1179,
+            "mcc": 0.8381,
+            "ece": 0.0341,
+            "brier": 0.0511
+          },
+          "validation_academic": {
+            "n": 450,
+            "accuracy": 0.9378,
+            "precision": 0.9469,
+            "recall": 0.9393,
+            "f1": 0.9431,
+            "macro_f1": 0.9372,
+            "roc_auc": 0.9822,
+            "pr_auc": 0.9851,
+            "fpr": 0.064,
+            "fnr": 0.0607,
+            "mcc": 0.8745,
+            "ece": 0.0278,
+            "brier": 0.0527
+          }
+        },
+        "final": {
+          "test": {
+            "n": 4000,
+            "accuracy": 0.8895,
+            "precision": 0.8836,
+            "recall": 0.9104,
+            "f1": 0.8968,
+            "macro_f1": 0.8889,
+            "roc_auc": 0.9568,
+            "pr_auc": 0.9498,
+            "fpr": 0.1338,
+            "fnr": 0.0896,
+            "mcc": 0.7784,
+            "ece": 0.0356,
+            "brier": 0.0819
+          },
+          "spanish_test": {
+            "n": 1200,
+            "accuracy": 0.8692,
+            "precision": 0.8534,
+            "recall": 0.884,
+            "f1": 0.8684,
+            "macro_f1": 0.8692,
+            "roc_auc": 0.9369,
+            "pr_auc": 0.9168,
+            "fpr": 0.145,
+            "fnr": 0.116,
+            "mcc": 0.7389,
+            "ece": 0.0565,
+            "brier": 0.1015
+          },
+          "academic_test": {
+            "n": 1000,
+            "accuracy": 0.912,
+            "precision": 0.9272,
+            "recall": 0.9241,
+            "f1": 0.9257,
+            "macro_f1": 0.9089,
+            "roc_auc": 0.975,
+            "pr_auc": 0.9822,
+            "fpr": 0.1057,
+            "fnr": 0.0759,
+            "mcc": 0.8178,
+            "ece": 0.0326,
+            "brier": 0.0645
+          },
+          "ood": {
+            "n": 1500,
+            "accuracy": 0.8633,
+            "precision": 0.7908,
+            "recall": 0.988,
+            "f1": 0.8785,
+            "macro_f1": 0.8612,
+            "roc_auc": 0.9796,
+            "pr_auc": 0.9742,
+            "fpr": 0.2613,
+            "fnr": 0.012,
+            "mcc": 0.7504,
+            "ece": 0.1441,
+            "brier": 0.111
+          },
+          "adversarial": {
+            "n": 2400,
+            "accuracy": 0.8337,
+            "precision": 0.9571,
+            "recall": 0.8156,
+            "f1": 0.8807,
+            "macro_f1": 0.8032,
+            "roc_auc": 0.9398,
+            "pr_auc": 0.9773,
+            "fpr": 0.1111,
+            "fnr": 0.1844,
+            "mcc": 0.6339,
+            "ece": 0.0916,
+            "brier": 0.1089
+          },
+          "unseen_generator": {
+            "n": 2400,
+            "accuracy": 0.79,
+            "precision": 0.7915,
+            "recall": 0.7875,
+            "f1": 0.7895,
+            "macro_f1": 0.79,
+            "roc_auc": 0.8642,
+            "pr_auc": 0.8347,
+            "fpr": 0.2075,
+            "fnr": 0.2125,
+            "mcc": 0.58,
+            "ece": 0.1171,
+            "brier": 0.1631
+          },
+          "unseen_domain": {
+            "n": 1200,
+            "accuracy": 0.8042,
+            "precision": 0.7911,
+            "recall": 0.8267,
+            "f1": 0.8085,
+            "macro_f1": 0.8041,
+            "roc_auc": 0.8989,
+            "pr_auc": 0.9068,
+            "fpr": 0.2183,
+            "fnr": 0.1733,
+            "mcc": 0.609,
+            "ece": 0.0932,
+            "brier": 0.139
+          }
+        },
+        "robustness_f1": {
+          "clean": 0.9752,
+          "adversarial_all": 0.8973,
+          "alternative_spelling": 0.9644,
+          "article_deletion": 0.9568,
+          "homoglyph": 0.5833,
+          "insert_paragraphs": 0.9737,
+          "number": 0.973,
+          "paraphrase": 0.9165,
+          "perplexity_misspelling": 0.9617,
+          "synonym": 0.9347,
+          "upper_lower": 0.9416,
+          "whitespace": 0.9766,
+          "zero_width_space": 0.1205
+        },
+        "unseen_generator_families": {
+          "cohere": {
+            "n": 720,
+            "recall": 0.7611,
+            "f1": 0.8644
+          },
+          "mistral": {
+            "n": 480,
+            "recall": 0.8271,
+            "f1": 0.9054
+          }
+        }
+      },
+      "thresholds": {
+        "BALANCED": 0.505,
+        "LOW_FALSE_POSITIVE": 0.875,
+        "HIGH_PRECISION_AI": 0.585
+      },
+      "calibration": {
+        "method": "isotonic",
+        "fitted_on": "VALIDATION",
+        "cv_report": {
+          "none": {
+            "cv_ece": 0.13060672086399416,
+            "cv_brier": 0.11298423192036292
+          },
+          "temperature": {
+            "cv_ece": 0.13646828081497137,
+            "cv_brier": 0.09842870650372265
+          },
+          "platt": {
+            "cv_ece": 0.03017335833822026,
+            "cv_brier": 0.05743798627908641
+          },
+          "isotonic": {
+            "cv_ece": 0.023499104469450114,
+            "cv_brier": 0.05691884886852135
+          }
+        }
+      },
+      "limitations": [
+        "zero-width-space attack: machine recall 0.066 (F1 0.12)",
+        "homoglyph attack: machine recall 0.42 (F1 0.58)",
+        "academic test macro F1 slightly below BEST_BASELINE (0.909 vs 0.916)",
+        "OOD FPR high (0.261 at BALANCED)",
+        "license restrictions: trained with non-commercial datasets (IberAuTexTification, AuTexTification)"
+      ],
+      "metadata": {
+        "experiments": {
+          "global": {
+            "train_windows": 148344,
+            "epochs": 3,
+            "stopped_at_step": 4000,
+            "train_seconds": 2128.5
+          },
+          "refine": {
+            "train_windows": 30000,
+            "epochs": 1,
+            "stopped_at_step": 938,
+            "train_seconds": 502.9
+          }
+        },
+        "sample_audit": {
+          "training_windows": 148344,
+          "raid_windows": 17066,
+          "spanish_windows": 29215,
+          "academic_windows": 21332
+        },
+        "outputs": [
+          "P(HUMAN)",
+          "P(MACHINE)"
+        ],
+        "notTurnitin": "Independent detector; not a Turnitin model.",
+        "reports": [
+          "training/reports/TRAINING_GPU_REPORT.md",
+          "training/reports/TRAINING_GPU_REPORT.json"
+        ]
+      }
+    }
+  ]
+}

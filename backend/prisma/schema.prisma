@@ -62,6 +62,7 @@ model DocumentVersion {
   ocrRuns              OcrRun[]
   turnitinReports      TurnitinReport[]
   groundTruthCases     GroundTruthCase[]
+  trainingSamples      TrainingSample[]
 }
 
 enum OcrStatus {
@@ -292,6 +293,7 @@ model TurnitinSegment {
   createdAt           DateTime            @default(now()) @db.Timestamptz(6)
   report              TurnitinReport      @relation(fields: [reportId], references: [id], onDelete: Cascade)
   source              TurnitinSource?     @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  trainingSamples     TrainingSample[]
 
   @@unique([reportId, segmentIndex])
   @@index([reportId, segmentType, segmentIndex])
@@ -316,7 +318,280 @@ model GroundTruthCase {
   aiReport           TurnitinReport?            @relation("GroundTruthAIReport", fields: [aiReportId], references: [id], onDelete: Restrict)
   similarityReport   TurnitinReport?            @relation("GroundTruthSimilarityReport", fields: [similarityReportId], references: [id], onDelete: Restrict)
   documentVersion    DocumentVersion?           @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+  trainingSamples    TrainingSample[]
 
   @@index([caseType, createdAt])
   @@index([documentVersionId])
+}
+
+// ---------------------------------------------------------------- F004 dataset formalization
+// Massive public datasets stay in Parquet files under training/. The database keeps versions,
+// provenance, licences, statistics, artifacts, split manifests, model metadata and the small
+// set of locally derived training samples.
+
+enum DatasetStatus {
+  DRAFT
+  BUILDING
+  READY
+  INVALID
+  ARCHIVED
+}
+
+enum DatasetSourceStatus {
+  INCLUDED
+  BLOCKED_ACCESS
+  EXCLUDED_LICENSE
+  CONSIDERED
+}
+
+enum DatasetSourceType {
+  HUGGINGFACE
+  ZENODO
+  GITHUB
+  LOCAL
+  TURNITIN
+  OTHER
+}
+
+enum LicenseStatus {
+  ALLOWED
+  NON_COMMERCIAL_ONLY
+  UNDECLARED
+  RESTRICTED
+  UNKNOWN
+  BLOCKED
+}
+
+enum CommercialUseStatus {
+  ALLOWED
+  NOT_ALLOWED
+  UNCLEAR
+}
+
+enum DatasetArtifactType {
+  MANIFEST
+  LICENSE_AUDIT
+  STATISTICS
+  SPLIT_MANIFEST
+  PARQUET_SHARD
+  TRAINING_REPORT
+  EVALUATION_REPORT
+  CONFIG
+  MODEL_WEIGHTS
+}
+
+enum StorageProvider {
+  REPOSITORY
+  LOCAL
+  GOOGLE_DRIVE
+}
+
+enum DatasetSplit {
+  TRAIN
+  VALIDATION
+  TEST
+  OOD
+  ADVERSARIAL_TEST
+  ADVERSARIAL_VALIDATION
+  UNSEEN_GENERATOR_TEST
+  UNSEEN_DOMAIN_TEST
+  MIXED
+  UNKNOWN
+}
+
+enum TrainingLabel {
+  HUMAN
+  MACHINE
+  MIXED
+  UNKNOWN
+}
+
+enum LabelSource {
+  PUBLIC_DATASET
+  TURNITIN_AI_FLAGGED
+  MANUAL
+  SYNTHETIC
+  DERIVED
+  UNKNOWN
+}
+
+enum PrivacyClass {
+  PUBLIC
+  PRIVATE
+  SYNTHETIC
+}
+
+enum ModelStatus {
+  EXPERIMENTAL
+  CANDIDATE
+  ACTIVE
+  RETIRED
+  INVALID
+}
+
+enum ModelType {
+  BASELINE
+  TRANSFORMER
+  ENSEMBLE
+}
+
+enum CommercialEligibility {
+  RESEARCH_ONLY
+  COMMERCIAL_ALLOWED
+  UNKNOWN
+}
+
+model DatasetVersion {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  name                   String
+  version                String
+  status                 DatasetStatus           @default(DRAFT)
+  description            String?                 @db.Text
+  schemaVersion          Int                     @default(1)
+  createdFromGitCommit   String?
+  totalRows              Int?
+  humanRows              Int?
+  machineRows            Int?
+  mixedRows              Int?
+  spanishRows            Int?
+  academicRows           Int?
+  languageCount          Int?
+  domainCount            Int?
+  generatorCount         Int?
+  exactDuplicatesRemoved Int?
+  nearDuplicatesRemoved  Int?
+  labelConflicts         Int?
+  leakageStatus          String?
+  manifestPath           String?
+  statisticsPath         String?
+  metadata               Json?
+  createdAt              DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime                @updatedAt @db.Timestamptz(6)
+  sources                DatasetSource[]
+  artifacts              DatasetArtifact[]
+  splitManifests         TrainingSplitManifest[]
+  samples                TrainingSample[]
+  modelVersions          ModelVersion[]
+
+  @@unique([name, version])
+  @@index([status, createdAt])
+}
+
+model DatasetSource {
+  id                  String              @id @default(uuid()) @db.Uuid
+  datasetVersionId    String              @db.Uuid
+  name                String
+  status              DatasetSourceStatus @default(INCLUDED)
+  sourceUrl           String?
+  sourceType          DatasetSourceType   @default(OTHER)
+  license             String?
+  licenseStatus       LicenseStatus       @default(UNKNOWN)
+  commercialUseStatus CommercialUseStatus @default(UNCLEAR)
+  rowsAvailable       Int?
+  rowsUsed            Int?
+  spanishRows         Int?
+  academicRows        Int?
+  samplingWeight      Float?
+  sha256              String?
+  metadata            Json?
+  createdAt           DateTime            @default(now()) @db.Timestamptz(6)
+  datasetVersion      DatasetVersion      @relation(fields: [datasetVersionId], references: [id], onDelete: Cascade)
+  samples             TrainingSample[]
+
+  @@unique([datasetVersionId, name])
+  @@index([datasetVersionId, licenseStatus])
+}
+
+model DatasetArtifact {
+  id               String              @id @default(uuid()) @db.Uuid
+  datasetVersionId String?             @db.Uuid
+  modelVersionId   String?             @db.Uuid
+  artifactType     DatasetArtifactType
+  storageProvider  StorageProvider     @default(REPOSITORY)
+  path             String
+  sha256           String?             @db.Char(64)
+  sizeBytes        BigInt?
+  external         Boolean             @default(false)
+  metadata         Json?
+  createdAt        DateTime            @default(now()) @db.Timestamptz(6)
+  datasetVersion   DatasetVersion?     @relation(fields: [datasetVersionId], references: [id], onDelete: Cascade)
+  modelVersion     ModelVersion?       @relation(fields: [modelVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([datasetVersionId, artifactType, path])
+  @@index([modelVersionId])
+}
+
+model TrainingSplitManifest {
+  id               String         @id @default(uuid()) @db.Uuid
+  datasetVersionId String         @db.Uuid
+  split            DatasetSplit
+  rowCount         Int
+  groupCount       Int?
+  manifestPath     String?
+  sha256           String?        @db.Char(64)
+  metadata         Json?
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  datasetVersion   DatasetVersion @relation(fields: [datasetVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([datasetVersionId, split])
+}
+
+model TrainingSample {
+  id                  String           @id @default(uuid()) @db.Uuid
+  datasetVersionId    String?          @db.Uuid
+  datasetSourceId     String?          @db.Uuid
+  documentVersionId   String?          @db.Uuid
+  turnitinSegmentId   String?          @db.Uuid
+  groundTruthCaseId   String?          @db.Uuid
+  externalSampleId    String?
+  text                String?          @db.Text
+  textHash            String           @db.Char(64)
+  label               TrainingLabel    @default(UNKNOWN)
+  labelSource         LabelSource      @default(UNKNOWN)
+  language            String?
+  domain              String?
+  generator           String?
+  split               DatasetSplit?
+  eligibleForTraining Boolean          @default(false)
+  confidence          Float?
+  privacyClass        PrivacyClass     @default(PRIVATE)
+  metadata            Json?
+  createdAt           DateTime         @default(now()) @db.Timestamptz(6)
+  datasetVersion      DatasetVersion?  @relation(fields: [datasetVersionId], references: [id], onDelete: Cascade)
+  datasetSource       DatasetSource?   @relation(fields: [datasetSourceId], references: [id], onDelete: SetNull)
+  documentVersion     DocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+  turnitinSegment     TurnitinSegment? @relation(fields: [turnitinSegmentId], references: [id], onDelete: SetNull)
+  groundTruthCase     GroundTruthCase? @relation(fields: [groundTruthCaseId], references: [id], onDelete: SetNull)
+
+  @@unique([datasetVersionId, turnitinSegmentId])
+  @@index([datasetVersionId, label, split])
+  @@index([groundTruthCaseId])
+  @@index([textHash])
+}
+
+model ModelVersion {
+  id                    String                @id @default(uuid()) @db.Uuid
+  name                  String                @unique
+  architecture          String
+  variant               String?
+  datasetVersionId      String?               @db.Uuid
+  status                ModelStatus           @default(EXPERIMENTAL)
+  modelType             ModelType
+  trainingEnvironment   String?
+  commercialEligibility CommercialEligibility @default(UNKNOWN)
+  artifactProvider      StorageProvider?
+  artifactPath          String?
+  gitCommit             String?
+  metrics               Json
+  thresholds            Json?
+  calibration           Json?
+  limitations           String[]              @default([])
+  metadata              Json?
+  createdAt             DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime              @updatedAt @db.Timestamptz(6)
+  datasetVersion        DatasetVersion?       @relation(fields: [datasetVersionId], references: [id], onDelete: SetNull)
+  artifacts             DatasetArtifact[]
+
+  @@index([status, createdAt])
+  @@index([datasetVersionId])
 }

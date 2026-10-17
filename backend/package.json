@@ -23,7 +23,8 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:migrate:deploy": "prisma migrate deploy"
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "export:training-samples": "node scripts/export-training-samples.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

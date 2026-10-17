@@ -1,0 +1,83 @@
+{
+  "available_rows": 5615820,
+  "strata": 3360,
+  "per_stratum_cap": 96,
+  "selected_rows": 322560,
+  "coverage": 0.05743773838905093,
+  "available_by_attack": {
+    "alternative_spelling": 467985,
+    "article_deletion": 467985,
+    "homoglyph": 467985,
+    "insert_paragraphs": 467985,
+    "none": 467985,
+    "number": 467985,
+    "paraphrase": 467985,
+    "perplexity_misspelling": 467985,
+    "synonym": 467985,
+    "upper_lower": 467985,
+    "whitespace": 467985,
+    "zero_width_space": 467985
+  },
+  "selected_by_attack": {
+    "alternative_spelling": 26880,
+    "article_deletion": 26880,
+    "homoglyph": 26880,
+    "insert_paragraphs": 26880,
+    "none": 26880,
+    "number": 26880,
+    "paraphrase": 26880,
+    "perplexity_misspelling": 26880,
+    "synonym": 26880,
+    "upper_lower": 26880,
+    "whitespace": 26880,
+    "zero_width_space": 26880
+  },
+  "available_by_model": {
+    "gpt2": 641808,
+    "llama-chat": 641808,
+    "mistral-chat": 641808,
+    "mistral": 641808,
+    "mpt-chat": 641808,
+    "mpt": 641808,
+    "chatgpt": 320904,
+    "cohere-chat": 320904,
+    "cohere": 320904,
+    "gpt3": 320904,
+    "gpt4": 320904,
+    "human": 160452
+  },
+  "selected_by_model": {
+    "gpt2": 36864,
+    "llama-chat": 36864,
+    "mistral-chat": 36864,
+    "mistral": 36864,
+    "mpt-chat": 36864,
+    "mpt": 36864,
+    "chatgpt": 18432,
+    "cohere-chat": 18432,
+    "cohere": 18432,
+    "gpt3": 18432,
+    "gpt4": 18432,
+    "human": 9216
+  },
+  "available_by_domain": {
+    "books": 748020,
+    "news": 747600,
+    "reddit": 747180,
+    "wiki": 747180,
+    "recipes": 744240,
+    "poetry": 743820,
+    "abstracts": 741720,
+    "reviews": 396060
+  },
+  "selected_by_domain": {
+    "abstracts": 40320,
+    "books": 40320,
+    "news": 40320,
+    "poetry": 40320,
+    "recipes": 40320,
+    "reddit": 40320,
+    "reviews": 40320,
+    "wiki": 40320
+  }
+}
