@@ -1,6 +1,6 @@
 # Turniting
 
-Turniting es una aplicación local para ingesta y extracción de texto de documentos académicos. F001 implementa carga de PDF, DOCX y TXT; F002 interpreta los datos visibles en reportes PDF exportados de Turnitin y los registra como ground truth. F003 añade OCR selectivo. F004 formaliza el catálogo de datasets (`TURNITING_DATASET_V1`), sus fuentes, licencias, splits, artefactos y la metadata de los modelos ya entrenados (`BEST_BASELINE`, `CANDIDATE_MODEL_V2`) sin integrarlos todavía al análisis. La inferencia del detector de IA y el motor de similitud siguen fuera de alcance.
+Turniting es una aplicación local para ingesta y extracción de texto de documentos académicos. F001 implementa carga de PDF, DOCX y TXT; F002 interpreta los datos visibles en reportes PDF exportados de Turnitin y los registra como ground truth. F003 añade OCR selectivo. F004 formaliza el catálogo de datasets (`TURNITING_DATASET_V1`), sus fuentes, licencias, splits, artefactos y la metadata de los modelos ya entrenados (`BEST_BASELINE`, `CANDIDATE_MODEL_V2`) sin integrarlos todavía al análisis. F005 añade el analizador local: registro de `CANDIDATE_MODEL_V2` y `CANDIDATE_MODEL_V3`, inferencia en CPU con pesos importados localmente, perfiles de umbral elegidos en validation, ensemble experimental V2 + V3, señal de IA por párrafo y comparación de versiones (ningún modelo activado como producción; no es un puntaje de Turnitin). El motor de similitud sigue fuera de alcance.
 
 > Turniting es una herramienta independiente de análisis probabilístico. No constituye un resultado oficial de Turnitin ni afirma reproducir su algoritmo propietario.
 
@@ -104,9 +104,9 @@ Los comandos de cada paquete y la preparación local están en [docs/LOCAL_SETUP
 
 ## Supabase y Cloud Run
 
-SUPABASE = DEFERRED_TO_F011. F001–F004 no crean proyectos ni conexiones Supabase; sus migraciones se ejecutan solo contra PostgreSQL local. La guía existente [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) queda como referencia para F011.
+SUPABASE = DEFERRED_TO_F011. F001–F005 no crean proyectos ni conexiones Supabase; sus migraciones se ejecutan solo contra PostgreSQL local. La guía existente [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) queda como referencia para F011.
 
-CLOUD_RUN = DEFERRED_TO_F011. F001–F004 no crean proyectos GCP ni despliegan servicios. [docs/CLOUD_RUN_DEPLOYMENT.md](docs/CLOUD_RUN_DEPLOYMENT.md) queda como referencia futura.
+CLOUD_RUN = DEFERRED_TO_F011. F001–F005 no crean proyectos GCP ni despliegan servicios. [docs/CLOUD_RUN_DEPLOYMENT.md](docs/CLOUD_RUN_DEPLOYMENT.md) queda como referencia futura.
 
 ## Documentación
 
@@ -115,6 +115,7 @@ CLOUD_RUN = DEFERRED_TO_F011. F001–F004 no crean proyectos GCP ni despliegan s
 - [Parser de reportes Turnitin F002](docs/F002_TURNITIN_REPORT_PARSER.md)
 - [OCR selectivo y reconstrucción F003](docs/F003_OCR.md)
 - [Datasets y artefactos de entrenamiento F004](docs/F004_DATASET.md)
+- [Analizador local de señal de IA F005](docs/F005_LOCAL_AI_ANALYZER.md)
 - [Instalación local](docs/LOCAL_SETUP.md)
 - [Configuración de Supabase](docs/SUPABASE_SETUP.md)
 - [Despliegue en Cloud Run](docs/CLOUD_RUN_DEPLOYMENT.md)
