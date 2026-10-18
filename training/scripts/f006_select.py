@@ -13,9 +13,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from f006_lib import selection_score, write_json  # noqa: E402
+from f006_lib import selection_score, set_score, write_json  # noqa: E402
 
-DRIVE = Path("/content/drive/MyDrive/turniting/f006")
+import os  # noqa: E402
+
+DRIVE = Path(os.environ.get("F006_DRIVE", "/content/drive/MyDrive/turniting/f006"))
+set_score(os.environ.get("F006_SCORE", "f006"))
 
 
 def load(run: str) -> dict:
@@ -48,13 +51,15 @@ def main() -> int:
                          "sample_audit": {k: r["sampleAudit"].get(k) for k in ("training_windows", "human_share_windows",
                                                                                 "hard_share_of_human_windows", "paragraph_share")}})
         v3 = DRIVE / "runs" / "V3_INIT_validation.json"
+        REPORTS = Path(a.repo_reports)
         v3d = json.loads(v3.read_text()) if v3.exists() else None
         if v3d:
             v3d["selection"] = selection_score(v3d["subsets"])
         out = {"selection_rule": "eligible (FPR all validation humans <= 0.05 at general-human FPR 0.04) first, then max F006_SELECTION_SCORE",
                "v3_init_on_f006_validation": v3d, "runs": rows}
-        write_json(DRIVE / "reports" / "ablation_results.json", out)
-        write_json(Path(a.repo_reports) / "ablation_results.json", out)
+        name = os.environ.get("F006_ABLATION_REPORT", "ablation_results.json")
+        write_json(DRIVE / "reports" / name, out)
+        write_json(REPORTS / name, out)
         for r in sorted(rows, key=lambda x: (x["selection"]["eligible"], x["selection"]["score"]), reverse=True):
             print(f"{r['run']:<28} score={r['selection']['score']:.4f} elig={r['selection']['eligible']} "
                   f"fpr_all={r['selection']['fprs']['fpr_all_humans']:.4f}")
