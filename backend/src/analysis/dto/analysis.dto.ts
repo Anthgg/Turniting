@@ -1,5 +1,5 @@
-import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsNumber, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsUUID, Max, Min } from 'class-validator';
 
 export const ANALYZER_MODES = ['V2_ONLY', 'V3_ONLY', 'ENSEMBLE'] as const;
 export const THRESHOLD_PROFILES = ['BALANCED', 'LOW_FALSE_POSITIVE', 'VERY_LOW_FALSE_POSITIVE', 'CUSTOM'] as const;
@@ -38,6 +38,11 @@ export class CompareAnalysesDto {
 }
 
 export class AnalysisSegmentsQueryDto {
+  @IsOptional()
+  @Transform(({ value }) => value === 'true')
+  @IsBoolean()
+  includeDocumentText?: boolean;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()

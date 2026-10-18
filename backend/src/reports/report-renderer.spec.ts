@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { ReportRenderer } from './report-renderer.js';
@@ -46,6 +47,33 @@ function compactPdfText(pdf: Buffer): string {
     .toLowerCase();
 }
 
+function decompressedPdfStreams(pdf: Buffer): string {
+  const source = pdf.toString('latin1');
+  const streams: string[] = [];
+  const streamStart = 'stream\n';
+  const streamEnd = '\nendstream';
+  let cursor = 0;
+  while (true) {
+    const marker = source.indexOf(streamStart, cursor);
+    if (marker < 0) break;
+    const dataStart = marker + streamStart.length;
+    const dataEnd = source.indexOf(streamEnd, dataStart);
+    if (dataEnd < 0) break;
+    const header = source.slice(Math.max(0, marker - 120), marker);
+    if (header.includes('/FlateDecode')) {
+      streams.push(
+        inflateSync(Buffer.from(source.slice(dataStart, dataEnd), 'latin1')).toString('latin1'),
+      );
+    }
+    cursor = dataEnd + streamEnd.length;
+  }
+  return streams.join('\n');
+}
+
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
+
 function syntheticAIInput(options: {
   paragraphCount?: number;
   paragraphMode?: string;
@@ -54,6 +82,13 @@ function syntheticAIInput(options: {
   const now = new Date('2026-10-18T16:00:00.000Z');
   const longText = `Párrafo sintético de evaluación: áéíóúñ. ${'La evidencia se interpreta dentro del contexto local y no reemplaza la revisión humana. '.repeat(7)}`;
   const paragraphCount = options.paragraphCount ?? 17;
+  const paragraphTexts = Array.from({ length: paragraphCount }, () =>
+    options.longParagraph
+      ? `${longText} ${'Texto sintético extendido para verificar el ajuste de línea y los saltos de página. '.repeat(18)}`
+      : longText,
+  );
+  const extractedText = paragraphTexts.join('\n\n');
+  let sourceOffset = 0;
   return {
     reportId,
     generatedAt: now,
@@ -64,6 +99,7 @@ function syntheticAIInput(options: {
       createdAt: now,
       updatedAt: now,
     },
+    extractedText,
     run: {
       id: '31ec6f6f-4be4-49da-9bf5-ccf9fe77aab4',
       status: 'COMPLETED',
@@ -89,29 +125,47 @@ function syntheticAIInput(options: {
       modelNames: ['SYNTHETIC_MODEL_V3'],
       modelVersions: ['synthetic-v3-fixture'],
     },
-    paragraphs: Array.from({ length: paragraphCount }, (_, paragraphIndex) => ({
-      paragraphIndex,
-      score: paragraphIndex === 0 ? 0.74 : 0.31 + paragraphIndex / 100,
-      signalLevel: paragraphIndex === 0 ? 'HIGH' : 'LOW',
-      classification: 'LOW_SIGNAL',
-      textPreview: options.longParagraph
-        ? `${longText} ${'Texto sintético extendido para verificar el ajuste de línea y los saltos de página. '.repeat(18)}`
-        : longText,
-      pageNumber: Math.floor(paragraphIndex / 30) + 1,
-      words: 74,
-      tokens: 96,
-      contextTokensBefore: paragraphIndex === 0 ? 0 : undefined,
-      contextTokensAfter: paragraphIndex === 0 ? 9 : undefined,
-    })).map((paragraph, index) =>
-      index === 4 || index === 5
-        ? {
-            ...paragraph,
-            score: null,
-            signalLevel: null,
-            classification: 'INSUFFICIENT_TEXT',
-          }
-        : paragraph,
-    ),
+    paragraphs: paragraphTexts.map((textPreview, paragraphIndex) => {
+      const charStart = sourceOffset;
+      const charEnd = charStart + textPreview.length;
+      sourceOffset = charEnd + 2;
+      const insufficient = paragraphIndex === 4 || paragraphIndex === 5;
+      return {
+        paragraphIndex,
+        textHash: sha256(textPreview),
+        charStart,
+        charEnd,
+        segmentEvidence: {
+          type: 'PARAGRAPH',
+          paragraphId: paragraphIndex,
+          start: charStart,
+          end: charEnd,
+          score: insufficient ? null : paragraphIndex === 0 ? 0.74 : 0.31 + paragraphIndex / 100,
+          level: insufficient ? null : paragraphIndex === 0 ? 'HIGH' : 'LOW',
+        },
+        score: insufficient
+          ? null
+          : paragraphIndex === 0
+            ? 0.74
+            : 0.31 + paragraphIndex / 100,
+        signalLevel: insufficient
+          ? null
+          : paragraphIndex === 0
+            ? 'HIGH'
+            : 'LOW',
+        classification: insufficient ? 'INSUFFICIENT_TEXT' : 'LOW_SIGNAL',
+        reviewPresentation: {
+          highlight: paragraphIndex === 0,
+          level: insufficient ? null : paragraphIndex === 0 ? 'HIGH' : 'LOW',
+        },
+        textPreview,
+        pageNumber: Math.floor(paragraphIndex / 30) + 1,
+        words: 74,
+        tokens: 96,
+        contextTokensBefore: paragraphIndex === 0 ? 0 : undefined,
+        contextTokensAfter: paragraphIndex === 0 ? 9 : undefined,
+      };
+    }),
     history: [
       {
         id: 'b47e8a0a-0261-48e7-b0d0-22c3d3cfdb12',
@@ -124,6 +178,132 @@ function syntheticAIInput(options: {
     limitations: [
       'Fixture sintético: los resultados no corresponden a un documento ni a un modelo real.',
     ],
+  };
+}
+
+function documentReviewAIInput(reverseSegments = false): AIReportInput {
+  const base = syntheticAIInput({ paragraphCount: 2 });
+  const sourceParagraphs = [
+    {
+      text: 'UNIVERSIDAD SINTÉTICA',
+      score: 0.94,
+      signalLevel: 'HIGH',
+      classification: 'HIGH_SIGNAL',
+    },
+    {
+      text: 'Autor: Ana Ejemplo',
+      score: 0.92,
+      signalLevel: 'HIGH',
+      classification: 'HIGH_SIGNAL',
+    },
+    {
+      text: 'ana@example.invalid',
+      score: 0.89,
+      signalLevel: 'HIGH',
+      classification: 'HIGH_SIGNAL',
+    },
+    {
+      text: '1.1 Identificación del problema',
+      score: null,
+      signalLevel: null,
+      classification: 'INSUFFICIENT_TEXT',
+    },
+    {
+      text: 'Metadato institucional: Universidad Sintética',
+      score: null,
+      signalLevel: null,
+      classification: 'INSUFFICIENT_TEXT',
+    },
+    {
+      text: 'El párrafo sintético de señal alta conserva el texto original.',
+      score: 0.919,
+      signalLevel: 'HIGH',
+      classification: 'HIGH_SIGNAL',
+    },
+    {
+      text: 'El párrafo sintético de señal moderada conserva el texto original.',
+      score: 0.491,
+      signalLevel: 'MODERATE',
+      classification: 'MODERATE_SIGNAL',
+    },
+    {
+      text: 'El párrafo sintético de señal baja conserva el texto original.',
+      score: 0.241,
+      signalLevel: 'LOW',
+      classification: 'LOW_SIGNAL',
+    },
+    {
+      text: 'Figura 1. Diagrama sintético del proceso.',
+      score: 0.97,
+      signalLevel: 'HIGH',
+      classification: 'HIGH_SIGNAL',
+    },
+    {
+      text: '1.2 Marco metodológico',
+      score: null,
+      signalLevel: null,
+      classification: 'INSUFFICIENT_TEXT',
+    },
+    {
+      text: 'Referencias',
+      score: null,
+      signalLevel: null,
+      classification: 'INSUFFICIENT_TEXT',
+    },
+    {
+      text: 'Smith, A. (2024). Registro sintético. https://doi.org/10.1000/synthetic [1]',
+      score: 0.98,
+      signalLevel: 'HIGH',
+      classification: 'HIGH_SIGNAL',
+    },
+    {
+      text: 'Jones, B. (2023). Referencia para pruebas. https://example.invalid/ref [2]',
+      score: 0.96,
+      signalLevel: 'HIGH',
+      classification: 'HIGH_SIGNAL',
+    },
+    {
+      text: 'Pérez, C. (2022). Cita sintética de verificación [3]',
+      score: 0.95,
+      signalLevel: 'HIGH',
+      classification: 'HIGH_SIGNAL',
+    },
+  ];
+  const extractedText = sourceParagraphs
+    .map((paragraph) => paragraph.text)
+    .join('\n\n');
+  let sourceOffset = 0;
+  const paragraphs = sourceParagraphs.map((source, paragraphIndex) => {
+    const charStart = sourceOffset;
+    const charEnd = charStart + source.text.length;
+    sourceOffset = charEnd + 2;
+    return {
+      paragraphIndex,
+      textHash: sha256(source.text),
+      charStart,
+      charEnd,
+      segmentEvidence: {
+        type: 'PARAGRAPH',
+        paragraphId: paragraphIndex,
+        start: charStart,
+        end: charEnd,
+        score: source.score,
+        level: source.signalLevel,
+      },
+      score: source.score,
+      signalLevel: source.signalLevel,
+      classification: source.classification,
+      textPreview: source.text,
+      reviewPresentation: { highlight: false, level: null },
+      pageNumber: 1,
+      words: source.text.split(/\s+/u).length,
+      tokens: 12,
+    };
+  });
+  return {
+    ...base,
+    extractedText,
+    paragraphs: reverseSegments ? paragraphs.reverse() : paragraphs,
   };
 }
 
@@ -178,6 +358,65 @@ describe('ReportRenderer', () => {
     expect(content).toContain('pagina1de');
     expect(content).toContain('reporteindependiente');
     expect(content).toContain('parrafo1');
+  });
+
+  it('renders the document review in source order with paragraph-level signal highlights and reference exclusion', async () => {
+    const pdf = await renderer.renderAI(documentReviewAIInput(true));
+    const text = compactPdfText(pdf);
+    const drawing = decompressedPdfStreams(pdf);
+    const reviewStart = text.indexOf('documentopararevision');
+    const detailStart = text.indexOf('detalleporparrafo');
+    const reviewText = text.slice(reviewStart, detailStart);
+    const orderedText = [
+      'universidadsintetica',
+      'autor:anaejemplo',
+      'ana@example.invalid',
+      '1.1identificaciondelproblema',
+      'metadatoinstitucional:universidadsintetica',
+      'elparrafosinteticodesenalaltaconservaeltextooriginal',
+      'elparrafosinteticodesenalmoderadaconservaeltextooriginal',
+      'elparrafosinteticodesenalbajaconservaeltextooriginal',
+      'figura1.diagramasinteticodelproceso.',
+      '1.2marcometodologico',
+      'referencias',
+      'smith,a.(2024).registrosintetico.https://doi.org/10.1000/synthetic[1]',
+      'jones,b.(2023).referenciaparapruebas.https://example.invalid/ref[2]',
+      'perez,c.(2022).citasinteticadeverificacion[3]',
+    ];
+
+    expect(reviewStart).toBeGreaterThanOrEqual(0);
+    expect(detailStart).toBeGreaterThan(reviewStart);
+    let previous = reviewStart;
+    for (const phrase of orderedText) {
+      const position = text.indexOf(phrase, reviewStart);
+      expect(position, phrase).toBeGreaterThan(previous);
+      expect(position, phrase).toBeLessThan(detailStart);
+      previous = position;
+    }
+    expect(text).toContain('resaltadofuerte:senalalta');
+    expect(text).toContain('resaltadotenue:senalmoderada');
+    expect(reviewText).toContain('p6');
+    expect(reviewText).toContain('91.9%');
+    expect(reviewText).toContain('49.1%');
+    expect(reviewText).not.toContain('24.1%');
+    expect(text).toContain(
+      'referencias:fueradelavistaprincipalderevisionderedaccion',
+    );
+    expect(text).toContain('unidaddeanalisisdelmodelo');
+    expect(text).toContain('parrafocompleto');
+    expect(reviewText).toContain('leyenda');
+    expect(drawing.match(/0\.862745\d* 0\.929411\d* 0\.917647\d* scn/gu) ?? []).toHaveLength(2);
+    expect(drawing.match(/0\.952941\d* 0\.945098\d* 0\.909803\d* scn/gu) ?? []).toHaveLength(2);
+  });
+
+  it('rejects document review segments whose offsets no longer match their persisted hashes', async () => {
+    const input = documentReviewAIInput();
+    input.paragraphs[2]!.charEnd -= 1;
+
+    await expect(renderer.renderAI(input)).rejects.toMatchObject({
+      name: 'ReportReviewIntegrityError',
+      code: 'ANALYSIS_SEGMENT_TEXT_MISMATCH',
+    });
   });
 
   it('renders a synthetic similarity fixture using the supplied matched coverage', async () => {

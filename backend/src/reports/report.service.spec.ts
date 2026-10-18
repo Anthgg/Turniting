@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { ReportRenderer } from './report-renderer.js';
+import type { AIReportInput } from './report.contracts.js';
 import { ReportService } from './report.service.js';
 import type { ReportStorageAdapter } from './report-storage.js';
 
@@ -260,6 +261,22 @@ describe('ReportService', () => {
       h.rows[0].expiresAt.getTime() - h.rows[0].generatedAt.getTime(),
     ).toBe(24 * 60 * 60 * 1000);
     expect(h.renderer.renderAI).toHaveBeenCalledOnce();
+    const input = h.renderer.renderAI.mock.calls[0]![0] as AIReportInput;
+    expect(input.extractedText).toBe(TEXT);
+    expect(input.paragraphs.map(({ charStart, charEnd }) => [charStart, charEnd])).toEqual([
+      [0, TEXT.indexOf('\n')],
+      [TEXT.lastIndexOf('Segundo'), TEXT.length],
+    ]);
+    expect(input.paragraphs[0]).toMatchObject({
+      score: 0.42,
+      signalLevel: 'MODERATE',
+      reviewPresentation: { highlight: true, level: 'MODERATE' },
+    });
+    expect(input.paragraphs[1]).toMatchObject({
+      classification: 'INSUFFICIENT_TEXT',
+      reviewPresentation: { highlight: false, excludedReason: 'INSUFFICIENT_TEXT' },
+    });
+    expect(input.run.documentScore).toBe(0.42);
     expect(h.storage.save).toHaveBeenCalledWith(`${metadata.id}.pdf`, PDF);
     expect(h.rows[0].contentHash).toBe(sha256(PDF.toString()));
     expect(h.rows[0].sizeBytes).toBe(PDF.length);
@@ -279,6 +296,24 @@ describe('ReportService', () => {
       h.service.generateAI(DOCUMENT_ID, RUN_ID),
     ).rejects.toMatchObject({ status: 404 });
     expect(h.prisma.reportArtifact.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid persisted review offsets before creating a PDF artifact', async () => {
+    const invalid = syntheticRun();
+    invalid.segments[0]!.textHash = '0'.repeat(64);
+    h.prisma.analysisRun.findUnique.mockResolvedValueOnce(invalid as never);
+
+    await expect(h.service.generateAI(DOCUMENT_ID, RUN_ID)).rejects.toMatchObject({
+      status: 409,
+      response: {
+        code: 'ANALYSIS_SEGMENT_TEXT_MISMATCH',
+        message: 'El texto del análisis no coincide con los rangos guardados.',
+      },
+    });
+
+    expect(h.prisma.reportArtifact.create).not.toHaveBeenCalled();
+    expect(h.renderer.renderAI).not.toHaveBeenCalled();
+    expect(h.storage.save).not.toHaveBeenCalled();
   });
 
   it('reuses a live artifact with the same active fingerprint', async () => {

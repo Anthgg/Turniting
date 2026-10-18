@@ -1,5 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
+import {
+  createReviewDocumentContext,
+  getReviewPresentation,
+  isReferenceHeading,
+  ReportReviewIntegrityError,
+  validateReportReviewEvidenceSpans,
+  type ReviewPresentation,
+  type ReviewSegment as ReviewSourceSegment,
+  type VerifiedReviewRange,
+} from '../analysis/review-presentation.js';
 import type {
   AIReportInput,
   AIReportParagraph,
@@ -7,7 +17,7 @@ import type {
   SimilarityReportInput,
 } from './report.contracts.js';
 
-export const REPORT_RENDERER_VERSION = 'f0091-report-renderer-v2';
+export const REPORT_RENDERER_VERSION = 'f0092-report-renderer-v3.1';
 
 const PAGE = { width: 595.28, height: 841.89 };
 const COLOR = {
@@ -22,6 +32,20 @@ const COLOR = {
   insufficient: '#a7b0ba',
   white: '#ffffff',
 };
+const REVIEW_COLOR = {
+  ink: '#0f172a',
+  high: '#DCEDEA',
+  highEdge: '#83b6b2',
+  moderate: '#F3F1E8',
+  moderateEdge: '#c5bda6',
+};
+const REVIEW_LAYOUT = {
+  left: 48,
+  width: 499,
+  textLeft: 62,
+  textWidth: 473,
+  lineHeight: 13.5,
+};
 
 const AI_DISCLAIMER =
   'Turniting proporciona una estimación probabilística independiente. No es un reporte oficial de Turnitin y no constituye por sí solo prueba de autoría o uso de inteligencia artificial.';
@@ -30,6 +54,18 @@ const SIMILARITY_DISCLAIMER =
 
 type PDFDoc = InstanceType<typeof PDFDocument>;
 type DistributionLevel = 'HIGH' | 'MODERATE' | 'LOW' | 'INSUFFICIENT';
+type RenderReviewSegment = VerifiedReviewRange & {
+  paragraph: AIReportParagraph;
+  presentation: ReviewPresentation;
+};
+type ReviewLine = { text: string; start: number; end: number };
+
+function isReviewHeading(segment: RenderReviewSegment): boolean {
+  return (
+    segment.presentation.excludedReason === 'HEADING' ||
+    isReferenceHeading(segment.text)
+  );
+}
 
 function cleanText(value: unknown, max = 800): string {
   if (typeof value !== 'string') return '';
@@ -75,6 +111,76 @@ function levelColor(level: DistributionLevel): string {
     LOW: COLOR.low,
     INSUFFICIENT: COLOR.insufficient,
   }[level];
+}
+
+function reviewDisplayText(value: string): string {
+  // Replace controls one-for-one so persisted UTF-16 offsets remain aligned.
+  return value.replace(/\p{Cc}/gu, (character) =>
+    character === '\n' ? '\n' : ' ',
+  );
+}
+
+function wrapReviewLines(
+  value: string,
+  width: number,
+  measure: (value: string) => number,
+): ReviewLine[] {
+  const lines: ReviewLine[] = [];
+  let physicalStart = 0;
+
+  while (physicalStart <= value.length) {
+    const newline = value.indexOf('\n', physicalStart);
+    const physicalEnd = newline < 0 ? value.length : newline;
+    const physicalLine = value.slice(physicalStart, physicalEnd);
+    if (!physicalLine) {
+      lines.push({ text: '', start: physicalStart, end: physicalEnd });
+    } else {
+      let lineText = '';
+      let lineStart = physicalStart;
+      let lineEnd = physicalStart;
+      const tokens = [...physicalLine.matchAll(/\s+|\S+/gu)];
+      for (const tokenMatch of tokens) {
+        const token = tokenMatch[0];
+        const tokenStart = physicalStart + (tokenMatch.index ?? 0);
+        const tokenEnd = tokenStart + token.length;
+        if (lineText && measure(`${lineText}${token}`) > width) {
+          lines.push({ text: lineText, start: lineStart, end: lineEnd });
+          lineText = '';
+          lineStart = tokenStart;
+        }
+
+        if (!lineText && measure(token) > width) {
+          let part = '';
+          let partStart = tokenStart;
+          let cursor = tokenStart;
+          for (const character of token) {
+            if (part && measure(`${part}${character}`) > width) {
+              lines.push({ text: part, start: partStart, end: cursor });
+              part = '';
+              partStart = cursor;
+            }
+            part += character;
+            cursor += character.length;
+          }
+          if (part) {
+            lineText = part;
+            lineStart = partStart;
+            lineEnd = tokenEnd;
+          }
+        } else {
+          if (!lineText) lineStart = tokenStart;
+          lineText += token;
+          lineEnd = tokenEnd;
+        }
+      }
+      if (lineText) lines.push({ text: lineText, start: lineStart, end: lineEnd });
+    }
+
+    if (newline < 0) break;
+    physicalStart = newline + 1;
+  }
+
+  return lines;
 }
 
 function dateLabel(value: Date | null | undefined): string {
@@ -135,7 +241,55 @@ function addFooter(doc: PDFDoc, reportId: string): void {
 
 @Injectable()
 export class ReportRenderer {
-  renderAI(input: AIReportInput): Promise<Buffer> {
+  async renderAI(input: AIReportInput): Promise<Buffer> {
+    const paragraphsByIndex = new Map(
+      input.paragraphs.map((paragraph) => [paragraph.paragraphIndex, paragraph]),
+    );
+    const reviewContext = createReviewDocumentContext(
+      input.extractedText,
+      input.paragraphs.map((paragraph): ReviewSourceSegment => ({
+        paragraphIndex: paragraph.paragraphIndex,
+        textHash: paragraph.textHash,
+        charStart: paragraph.charStart,
+        charEnd: paragraph.charEnd,
+        signalLevel: paragraph.signalLevel,
+        classification: paragraph.classification,
+      })),
+    );
+    const reviewSegments: RenderReviewSegment[] = reviewContext.segments.map((segment) => {
+      const paragraph = paragraphsByIndex.get(segment.paragraphIndex);
+      if (!paragraph) {
+        throw new Error('AI report review paragraph is missing');
+      }
+      if (
+        paragraph.segmentEvidence.paragraphId !== paragraph.paragraphIndex ||
+        paragraph.segmentEvidence.start !== paragraph.charStart ||
+        paragraph.segmentEvidence.end !== paragraph.charEnd ||
+        paragraph.segmentEvidence.score !== paragraph.score ||
+        paragraph.segmentEvidence.level !== paragraph.signalLevel
+      ) {
+        throw new ReportReviewIntegrityError('ANALYSIS_SEGMENT_OFFSETS_INVALID');
+      }
+      if (
+        paragraph.segmentEvidence.type === 'SPAN' &&
+        !paragraph.segmentEvidence.spans?.length
+      ) {
+        throw new ReportReviewIntegrityError('ANALYSIS_SEGMENT_SPANS_INVALID');
+      }
+      validateReportReviewEvidenceSpans(
+        segment,
+        paragraph.segmentEvidence.spans?.map(({ start, end }) => ({
+          charStart: start,
+          charEnd: end,
+        })),
+      );
+      return {
+        ...segment,
+        paragraph,
+        presentation: getReviewPresentation(paragraph, reviewContext),
+      };
+    });
+
     return this.renderPdf(
       'Reporte de señal de IA',
       input.reportId,
@@ -143,6 +297,7 @@ export class ReportRenderer {
       (doc) => {
         this.aiCoverAndSummary(doc, input);
         this.aiDistribution(doc, input.paragraphs);
+        this.aiDocumentReview(doc, input, reviewSegments);
         this.aiParagraphs(
           doc,
           input.paragraphs,
@@ -451,6 +606,351 @@ export class ReportRenderer {
       doc.y += 17;
     }
     doc.moveDown(0.2);
+  }
+
+  private aiDocumentReview(
+    doc: PDFDoc,
+    input: AIReportInput,
+    reviewSegments: RenderReviewSegment[],
+  ): void {
+    this.section(doc, 'Documento para revisión');
+    this.aiReviewLegend(doc);
+
+    const actionable = reviewSegments.filter(({ presentation }) => presentation.highlight);
+    const high = actionable
+      .filter(({ presentation }) => presentation.level === 'HIGH')
+      .map(({ paragraph }) => paragraph.paragraphIndex + 1);
+    const moderate = actionable
+      .filter(({ presentation }) => presentation.level === 'MODERATE')
+      .map(({ paragraph }) => paragraph.paragraphIndex + 1);
+    const signalIndexLine = (label: string, indexes: number[]) => {
+      const visible = indexes.slice(0, 20).map((index) => `P${index}`).join(', ');
+      return `${label}: ${indexes.length} ${indexes.length === 1 ? 'párrafo' : 'párrafos'}${visible ? ` · ${visible}${indexes.length > 20 ? ', …' : ''}` : ''}`;
+    };
+    if (high.length || moderate.length) {
+      this.ensureSpace(doc, 16);
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(8.5)
+        .fillColor(COLOR.ink)
+        .text('Índice de señal', 48, doc.y, { width: 499 });
+      doc.moveDown(0.3);
+    }
+    if (high.length) {
+      this.ensureSpace(doc, 14);
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(8.5)
+        .fillColor(COLOR.ink)
+        .text(signalIndexLine('Alta', high), 48, doc.y, {
+          width: 499,
+        });
+      doc.moveDown(0.35);
+    }
+    if (moderate.length) {
+      this.ensureSpace(doc, 14);
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(8.5)
+        .fillColor(COLOR.ink)
+        .text(signalIndexLine('Moderada', moderate), 48, doc.y, {
+          width: 499,
+        });
+      doc.moveDown(0.45);
+    }
+
+    const nextContentByIndex: Array<RenderReviewSegment | null> = Array.from(
+      { length: reviewSegments.length },
+      () => null,
+    );
+    let nextContent: RenderReviewSegment | null = null;
+    for (let index = reviewSegments.length - 1; index >= 0; index -= 1) {
+      const candidate = reviewSegments[index]!;
+      nextContentByIndex[index] = nextContent;
+      if (!isReviewHeading(candidate) && reviewDisplayText(candidate.text)) {
+        nextContent = candidate;
+      }
+    }
+
+    let cursor = 0;
+    let referenceNoteShown = false;
+    for (let index = 0; index < reviewSegments.length; index += 1) {
+      const segment = reviewSegments[index]!;
+      if (segment.charStart > cursor) {
+        this.renderReviewGap(
+          doc,
+          input.extractedText.slice(cursor, segment.charStart),
+        );
+      }
+      if (
+        segment.presentation.excludedReason === 'REFERENCE_SECTION' &&
+        !referenceNoteShown
+      ) {
+        this.ensureSpace(doc, 22);
+        doc
+          .font('Helvetica-Oblique')
+          .fontSize(8.5)
+          .fillColor(COLOR.muted)
+          .text(
+            'Referencias: fuera de la vista principal de revisión de redacción.',
+            48,
+            doc.y,
+            { width: 499 },
+          );
+        doc.moveDown(0.35);
+        referenceNoteShown = true;
+      }
+      if (isReviewHeading(segment)) {
+        const following = nextContentByIndex[index];
+        const maxBodyHeight =
+          PAGE.height - doc.page.margins.top - doc.page.margins.bottom;
+        const followingHeight = following
+          ? this.reviewParagraphHeight(doc, following)
+          : REVIEW_LAYOUT.lineHeight;
+        const keepFollowingHeight =
+          followingHeight <= maxBodyHeight
+            ? followingHeight
+            : REVIEW_LAYOUT.lineHeight * 2;
+        const headingHeight = this.reviewParagraphHeight(doc, segment, true);
+        this.ensureSpace(
+          doc,
+          Math.max(48, headingHeight + keepFollowingHeight + 10),
+        );
+      }
+      this.renderReviewParagraph(doc, segment);
+      cursor = segment.charEnd;
+    }
+    if (cursor < input.extractedText.length) {
+      this.renderReviewGap(doc, input.extractedText.slice(cursor));
+    }
+  }
+
+  private aiReviewLegend(doc: PDFDoc): void {
+    this.ensureSpace(doc, 18);
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(9)
+      .fillColor(COLOR.ink)
+      .text('Leyenda', 48, doc.y, { width: 499 });
+    doc.moveDown(0.25);
+    const rows = [
+      { color: REVIEW_COLOR.high, label: 'Resaltado fuerte: señal alta' },
+      { color: REVIEW_COLOR.moderate, label: 'Resaltado tenue: señal moderada' },
+      { color: null, label: 'Sin resaltado: señal baja o texto no evaluado' },
+    ];
+    for (const row of rows) {
+      this.ensureSpace(doc, 14);
+      if (row.color) {
+        doc.rect(49, doc.y + 1, 11, 9).fill(row.color);
+      } else {
+        doc
+          .strokeColor(COLOR.muted)
+          .lineWidth(0.7)
+          .moveTo(49, doc.y + 5)
+          .lineTo(60, doc.y + 5)
+          .stroke();
+      }
+      doc
+        .font('Helvetica')
+        .fontSize(8.5)
+        .fillColor(COLOR.ink)
+        .text(row.label, 67, doc.y, { width: 480, lineBreak: false });
+      doc.y += 13;
+    }
+    this.ensureSpace(doc, 28);
+    doc
+      .font('Helvetica-Oblique')
+      .fontSize(8.5)
+      .fillColor(COLOR.muted)
+      .text(
+        'El resaltado corresponde a la unidad de análisis del modelo. En este run la unidad es el párrafo completo.',
+        48,
+        doc.y,
+        { width: 499, lineGap: 1 },
+      );
+    doc.moveDown(0.55);
+  }
+
+  private renderReviewGap(doc: PDFDoc, sourceText: string): void {
+    const text = reviewDisplayText(sourceText);
+    if (!text) return;
+    if (!text.trim()) {
+      const breaks = (text.match(/\n/gu) ?? []).length;
+      doc.y += Math.min(9, breaks * 3.5);
+      return;
+    }
+    doc.font('Helvetica').fontSize(9.5);
+    const lines = wrapReviewLines(text, REVIEW_LAYOUT.textWidth, (value) =>
+      doc.widthOfString(value),
+    );
+    for (const line of lines) {
+      if (!line.text.trim()) {
+        doc.y += 4;
+        continue;
+      }
+      this.ensureSpace(doc, REVIEW_LAYOUT.lineHeight + 2);
+      const y = doc.y;
+      doc
+        .font('Helvetica')
+        .fontSize(9.5)
+        .fillColor(REVIEW_COLOR.ink)
+        .text(line.text, REVIEW_LAYOUT.textLeft, y, {
+          width: REVIEW_LAYOUT.textWidth,
+          lineBreak: false,
+        });
+      doc.y = y + REVIEW_LAYOUT.lineHeight;
+    }
+  }
+
+  private renderReviewParagraph(
+    doc: PDFDoc,
+    segment: RenderReviewSegment,
+  ): void {
+    const { paragraph } = segment;
+    const { level } = segment.presentation;
+    const heading = isReviewHeading(segment);
+    const displayText = reviewDisplayText(segment.text);
+    if (!displayText) return;
+
+    if (heading) {
+      this.ensureSpace(doc, 48);
+      doc.moveDown(0.3);
+    }
+    doc
+      .font(heading ? 'Helvetica-Bold' : 'Helvetica')
+      .fontSize(heading ? 11 : 9.5);
+    const lines = wrapReviewLines(displayText, REVIEW_LAYOUT.textWidth, (value) =>
+      doc.widthOfString(value),
+    );
+    const spans = paragraph.segmentEvidence.spans ?? [];
+    const paragraphEvidence = paragraph.segmentEvidence.type === 'PARAGRAPH';
+    const ranges = spans.length
+      ? spans.map(({ start, end }) => ({ charStart: start, charEnd: end }))
+      : paragraphEvidence
+        ? [{ charStart: segment.charStart, charEnd: segment.charEnd }]
+        : [];
+    const highlightColor =
+      segment.presentation.highlight && level === 'HIGH'
+        ? REVIEW_COLOR.high
+        : segment.presentation.highlight && level === 'MODERATE'
+          ? REVIEW_COLOR.moderate
+          : null;
+
+    const visibleLines = lines.filter((line) => line.text.trim()).length;
+    const scoreLabelHeight =
+      segment.presentation.highlight &&
+      (level === 'HIGH' || level === 'MODERATE') &&
+      paragraph.score !== null
+        ? 11
+        : 0;
+    const wholeParagraphHeight =
+      visibleLines * REVIEW_LAYOUT.lineHeight + scoreLabelHeight + (heading ? 4 : 2);
+    const maxBodyHeight =
+      PAGE.height - doc.page.margins.bottom - doc.page.margins.top;
+    if (wholeParagraphHeight <= maxBodyHeight) {
+      this.ensureSpace(doc, wholeParagraphHeight);
+    }
+
+    for (const line of lines) {
+      if (!line.text.trim()) {
+        doc.y += 4;
+        continue;
+      }
+      this.ensureSpace(doc, REVIEW_LAYOUT.lineHeight + 2);
+      const y = doc.y;
+      if (highlightColor) {
+        if (paragraphEvidence) {
+          doc
+            .rect(
+              REVIEW_LAYOUT.left,
+              y - 1,
+              REVIEW_LAYOUT.width,
+              REVIEW_LAYOUT.lineHeight + 1,
+            )
+            .fill(highlightColor);
+          doc
+            .rect(REVIEW_LAYOUT.left, y - 1, 2.5, REVIEW_LAYOUT.lineHeight + 1)
+            .fill(level === 'HIGH' ? REVIEW_COLOR.highEdge : REVIEW_COLOR.moderateEdge);
+        } else {
+          const lineStart = segment.charStart + line.start;
+          const lineEnd = segment.charStart + line.end;
+          for (const range of ranges) {
+            const start = Math.max(lineStart, range.charStart);
+            const end = Math.min(lineEnd, range.charEnd);
+            if (end <= start) continue;
+            const prefix = displayText.slice(line.start, start - segment.charStart);
+            const highlighted = displayText.slice(
+              start - segment.charStart,
+              end - segment.charStart,
+            );
+            const x = REVIEW_LAYOUT.textLeft + doc.widthOfString(prefix);
+            const width = doc.widthOfString(highlighted);
+            doc
+              .rect(x - 1, y - 1, width + 2, REVIEW_LAYOUT.lineHeight + 1)
+              .fill(highlightColor);
+          }
+        }
+      }
+      doc
+        .font(heading ? 'Helvetica-Bold' : 'Helvetica')
+        .fontSize(heading ? 11 : 9.5)
+        .fillColor(REVIEW_COLOR.ink)
+        .text(line.text, REVIEW_LAYOUT.textLeft, y, {
+          width: REVIEW_LAYOUT.textWidth,
+          lineBreak: false,
+        });
+      doc.y = y + REVIEW_LAYOUT.lineHeight;
+    }
+
+    if (
+      segment.presentation.highlight &&
+      (level === 'HIGH' || level === 'MODERATE') &&
+      paragraph.score !== null
+    ) {
+      this.ensureSpace(doc, 12);
+      doc
+        .font('Helvetica')
+        .fontSize(7.5)
+        .fillColor(COLOR.muted)
+        .text(
+          `${percentage(paragraph.score)} · ${levelLabel(level)}`,
+          REVIEW_LAYOUT.left,
+          doc.y,
+          { width: REVIEW_LAYOUT.width, align: 'right', lineBreak: false },
+        );
+      doc.y += 11;
+    }
+    doc.y += heading ? 4 : 2;
+  }
+
+  private reviewParagraphHeight(
+    doc: PDFDoc,
+    segment: RenderReviewSegment,
+    heading = false,
+  ): number {
+    const displayText = reviewDisplayText(segment.text);
+    if (!displayText) return 0;
+    doc
+      .font(heading ? 'Helvetica-Bold' : 'Helvetica')
+      .fontSize(heading ? 11 : 9.5);
+    const visibleLines = wrapReviewLines(
+      displayText,
+      REVIEW_LAYOUT.textWidth,
+      (value) => doc.widthOfString(value),
+    ).filter((line) => line.text.trim()).length;
+    const { level } = segment.presentation;
+    const scoreLabelHeight =
+      !heading &&
+      segment.presentation.highlight &&
+      (level === 'HIGH' || level === 'MODERATE') &&
+      segment.paragraph.score !== null
+        ? 11
+        : 0;
+    return (
+      visibleLines * REVIEW_LAYOUT.lineHeight +
+      scoreLabelHeight +
+      (heading ? 4 : 2)
+    );
   }
 
   private aiParagraphs(

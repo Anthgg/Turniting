@@ -8,6 +8,12 @@ import {
 } from '@nestjs/common';
 import { AnalysisClassification, AnalysisRunStatus, AnalyzerMode, Prisma } from '@prisma/client';
 import { AiService, type AiAnalyzerModelStatus, type AiAnalyzerSegment, type AnalyzerModeName } from '../ai/ai.service.js';
+import {
+  createReviewDocumentContext,
+  getReviewPresentation,
+  ReportReviewIntegrityError,
+  type ReviewSegment,
+} from './review-presentation.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { AnalysisSegmentsQueryDto, AnalyzeDocumentDto, CompareAnalysesDto } from './dto/analysis.dto.js';
 
@@ -394,7 +400,22 @@ export class AnalysisService {
     });
     if (!run) throw new NotFoundException('Analysis not found');
     const text = run.documentVersion.extractedText ?? '';
-    const stale = run.textHash !== null && run.textHash !== sha256(text);
+    const textHashStale = run.textHash !== null && run.textHash !== sha256(text);
+    let reviewContext: ReturnType<typeof createReviewDocumentContext> | null = null;
+    let integrityCode: string | null = null;
+    try {
+      reviewContext = createReviewDocumentContext(text, run.segments as ReviewSegment[]);
+    } catch (error) {
+      if (!(error instanceof ReportReviewIntegrityError)) throw error;
+      integrityCode = error.code;
+    }
+    const stale = textHashStale || reviewContext === null;
+    if (query?.includeDocumentText && stale) {
+      throw new ConflictException({
+        code: integrityCode ?? 'ANALYSIS_TEXT_STALE',
+        message: 'El texto de esta versión no coincide con el análisis; no se puede mostrar la revisión.',
+      });
+    }
     let segments = run.segments;
     if (query?.filter && query.filter !== 'ALL') {
       segments = segments.filter((segment) => query.filter === 'INSUFFICIENT'
@@ -413,7 +434,20 @@ export class AnalysisService {
     return {
       analysisId: run.id,
       stale,
-      items: segments.map((s) => ({ ...s, text: stale ? null : text.slice(s.charStart, s.charEnd) })),
+      ...(query?.includeDocumentText ? { documentText: text } : {}),
+      items: segments.map((s) => ({
+        ...s,
+        text: stale ? null : reviewContext?.byParagraphIndex.get(s.paragraphIndex)?.text ?? null,
+        reviewPresentation: stale || !reviewContext
+          ? { highlight: false, level: null, excludedReason: 'UNSCORED' as const }
+          : getReviewPresentation(s as ReviewSegment, reviewContext),
+        ...(run.paragraphMode === 'CONTEXTUAL_PARAGRAPH'
+          ? {
+              contextTokensBefore: paragraphContextTokenCounts(run.metadata, s.paragraphIndex, 'before'),
+              contextTokensAfter: paragraphContextTokenCounts(run.metadata, s.paragraphIndex, 'after'),
+            }
+          : {}),
+      })),
       ...(paginated ? { page, pageSize, total, pages: Math.ceil(total / pageSize) } : {}),
     };
   }

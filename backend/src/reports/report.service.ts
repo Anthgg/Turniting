@@ -14,6 +14,12 @@ import {
   ReportType,
 } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
+import {
+  createReviewDocumentContext,
+  getReviewPresentation,
+  ReportReviewIntegrityError,
+  type ReviewSegment,
+} from '../analysis/review-presentation.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { REPORT_RENDERER_VERSION, ReportRenderer } from './report-renderer.js';
 import type {
@@ -560,19 +566,55 @@ export class ReportService {
     generatedAt: Date,
   ): Promise<Omit<AIReportInput, 'reportId'>> {
     const extractedText = fullRun.documentVersion.extractedText ?? '';
-    const paragraphs: AIReportParagraph[] = fullRun.segments.map((segment) => ({
-      paragraphIndex: segment.paragraphIndex,
-      score: segment.calibratedScore,
-      signalLevel: segment.signalLevel,
-      classification: segment.classification,
-      textPreview: extractedText.slice(
-        Math.max(0, segment.charStart),
-        Math.min(extractedText.length, segment.charEnd),
-      ),
-      pageNumber: segment.pageNumber,
-      words: segment.words,
-      tokens: segment.tokens,
-    }));
+    let reviewContext: ReturnType<typeof createReviewDocumentContext>;
+    try {
+      reviewContext = createReviewDocumentContext(
+        extractedText,
+        fullRun.segments as ReviewSegment[],
+      );
+    } catch (error) {
+      if (error instanceof ReportReviewIntegrityError) {
+        throw new ConflictException({
+          code: error.code,
+          message: error.message,
+        });
+      }
+      throw error;
+    }
+    const paragraphs: AIReportParagraph[] = fullRun.segments.map((segment) => {
+      const verified = reviewContext.byParagraphIndex.get(segment.paragraphIndex);
+      if (!verified) {
+        throw new ConflictException({
+          code: 'ANALYSIS_SEGMENT_OFFSETS_INVALID',
+          message: 'El texto de esta versión no coincide con el análisis.',
+        });
+      }
+      return {
+        paragraphIndex: segment.paragraphIndex,
+        textHash: segment.textHash,
+        charStart: segment.charStart,
+        charEnd: segment.charEnd,
+        segmentEvidence: {
+          type: 'PARAGRAPH',
+          paragraphId: segment.paragraphIndex,
+          start: segment.charStart,
+          end: segment.charEnd,
+          score: segment.calibratedScore,
+          level: segment.signalLevel,
+        },
+        reviewPresentation: getReviewPresentation(
+          segment as ReviewSegment,
+          reviewContext,
+        ),
+        score: segment.calibratedScore,
+        signalLevel: segment.signalLevel,
+        classification: segment.classification,
+        textPreview: verified.text,
+        pageNumber: segment.pageNumber,
+        words: segment.words,
+        tokens: segment.tokens,
+      };
+    });
     const modelNames = [
       ...new Set(fullRun.modelResults.map((model) => model.modelName)),
     ];
@@ -626,6 +668,7 @@ export class ReportService {
         createdAt: fullRun.documentVersion.document.createdAt,
         updatedAt: fullRun.documentVersion.document.updatedAt,
       },
+      extractedText,
       run: {
         id: fullRun.id,
         status: fullRun.status,

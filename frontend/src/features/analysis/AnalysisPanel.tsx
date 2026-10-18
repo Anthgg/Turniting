@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   ANALYZERS,
@@ -8,6 +8,7 @@ import {
   THRESHOLD_PROFILES,
   analysisQueryKeys,
   analyzeDocument,
+  getAnalysisReviewDocument,
   getAnalysisSegments,
   listAnalyzerModels,
   listDocumentAnalyses,
@@ -53,6 +54,8 @@ const STATUS_LABEL: Record<string, string> = {
   FAILED: "Error",
 };
 
+type AnalysisView = "SUMMARY" | "REVIEW" | "DETAIL";
+
 function runDate(value: string) {
   return new Intl.DateTimeFormat("es-PE", {
     dateStyle: "short",
@@ -77,12 +80,14 @@ export function AnalysisPanel({
   hasText,
   researchMode = false,
   documentWorkflowStatus,
+  initialView = "SUMMARY",
 }: {
   documentId: string;
   fileName?: string;
   hasText: boolean;
   researchMode?: boolean;
   documentWorkflowStatus?: string;
+  initialView?: AnalysisView;
 }) {
   const queryClient = useQueryClient();
   const [analyzer, setAnalyzer] = useState<AnalyzerName>(
@@ -103,6 +108,12 @@ export function AnalysisPanel({
     Record<string, boolean>
   >({});
   const [contextSegmentId, setContextSegmentId] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<AnalysisView>(initialView);
+  const [reviewSelectedParagraphIndex, setReviewSelectedParagraphIndex] = useState<number | null>(null);
+  const [reviewJump, setReviewJump] = useState<{ paragraphIndex: number | null; sequence: number }>({
+    paragraphIndex: null,
+    sequence: 0,
+  });
 
   const models = useQuery({
     queryKey: analysisQueryKeys.models(),
@@ -126,6 +137,12 @@ export function AnalysisPanel({
     enabled: Boolean(runId && run?.status === "COMPLETED"),
     retry: 1,
   });
+  const reviewDocument = useQuery({
+    queryKey: analysisQueryKeys.reviewDocument(runId ?? "none"),
+    queryFn: () => getAnalysisReviewDocument(runId as string),
+    enabled: Boolean(runId && run?.status === "COMPLETED" && activeView === "REVIEW"),
+    retry: 1,
+  });
 
   const analyze = useMutation({
     mutationFn: () =>
@@ -141,6 +158,9 @@ export function AnalysisPanel({
       setExpandedParagraphs({});
       setExpandedInsufficientGroups({});
       setContextSegmentId(null);
+      setActiveView("SUMMARY");
+      setReviewSelectedParagraphIndex(null);
+      setReviewJump({ paragraphIndex: null, sequence: 0 });
       await queryClient.invalidateQueries({
         queryKey: analysisQueryKeys.documentAnalyses(documentId),
       });
@@ -216,8 +236,117 @@ export function AnalysisPanel({
 
   const runLevel = run ? signalLevel(run.documentScore) : null;
 
+  useEffect(() => {
+    if (
+      activeView !== "REVIEW" ||
+      reviewJump.paragraphIndex === null ||
+      !reviewDocument.data
+    ) return;
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(`analysis-review-paragraph-${reviewJump.paragraphIndex}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [activeView, reviewJump.paragraphIndex, reviewJump.sequence, reviewDocument.data]);
+
   const enableCompaction = filter === "ALL" && sort === "PARAGRAPH";
   const displayItems = groupParagraphSegments(paragraphItems, enableCompaction);
+  const reviewSegments = [...(reviewDocument.data?.items ?? [])].sort(
+    (left, right) => left.charStart - right.charStart || left.charEnd - right.charEnd,
+  );
+  const selectedReviewSegment = reviewSegments.find(
+    (segment) => segment.paragraphIndex === reviewSelectedParagraphIndex,
+  );
+  const reviewText = reviewDocument.data?.documentText ?? "";
+  const reviewBlocks: ReactNode[] = [];
+  if (reviewDocument.data && !reviewDocument.data.stale) {
+    let reviewCursor = 0;
+    for (const segment of reviewSegments) {
+      if (segment.charStart > reviewCursor) {
+        const gap = reviewText.slice(reviewCursor, segment.charStart);
+        reviewBlocks.push(
+          <div
+            className="analysis-review-gap"
+            key={`review-gap-${segment.paragraphIndex}`}
+            aria-hidden={!gap.trim()}
+          >
+            {gap}
+          </div>,
+        );
+      }
+      const exactText = reviewText.slice(segment.charStart, segment.charEnd);
+      const presentation = segment.reviewPresentation;
+      const selected = reviewSelectedParagraphIndex === segment.paragraphIndex;
+      const levelClass = presentation?.level?.toLowerCase() ?? "none";
+      reviewBlocks.push(
+        <article
+          className={`analysis-review-paragraph${presentation?.highlight ? ` is-highlight-${levelClass}` : ""}`}
+          id={`analysis-review-paragraph-${segment.paragraphIndex}`}
+          key={`review-paragraph-${segment.paragraphIndex}`}
+        >
+          {presentation?.highlight ? (
+            <button
+              className="analysis-review-paragraph-action"
+              type="button"
+              aria-expanded={selected}
+              aria-label={`Párrafo ${segment.paragraphIndex + 1}, ${formatSignal(segment.calibratedScore)}, señal ${presentation.level ? SIGNAL_LABEL[presentation.level] : "sin nivel"}`}
+              onClick={() => setReviewSelectedParagraphIndex(selected ? null : segment.paragraphIndex)}
+            >
+              <span className="analysis-review-paragraph-text">{exactText}</span>
+              <small>
+                {formatSignal(segment.calibratedScore)} · {presentation.level ? SIGNAL_LABEL[presentation.level] : "Sin nivel"}
+              </small>
+            </button>
+          ) : (
+            <p className="analysis-review-paragraph-text">{exactText}</p>
+          )}
+          {presentation?.excludedReason === "REFERENCE_SECTION" && (
+            <small className="analysis-review-reference-label">Referencia bibliográfica</small>
+          )}
+          {selected && selectedReviewSegment && (
+            <aside
+              className="analysis-review-drawer"
+              role="region"
+              aria-label={`Detalles del párrafo ${segment.paragraphIndex + 1}`}
+            >
+              <div className="analysis-review-drawer-head">
+                <h4>Párrafo {segment.paragraphIndex + 1}</h4>
+                <button
+                  className="analysis-text-toggle"
+                  type="button"
+                  onClick={() => setReviewSelectedParagraphIndex(null)}
+                >
+                  Cerrar detalles
+                </button>
+              </div>
+              <dl className="analysis-review-drawer-grid">
+                <div><dt>Score</dt><dd>{formatSignal(segment.calibratedScore)}</dd></div>
+                <div><dt>Nivel</dt><dd>{presentation?.level ? SIGNAL_LABEL[presentation.level] : "Sin nivel"}</dd></div>
+                <div><dt>Tokens</dt><dd>{segment.tokens ?? "—"}</dd></div>
+                <div><dt>Words</dt><dd>{segment.words ?? "—"}</dd></div>
+                <div><dt>Modelo</dt><dd>{segment.modelName}</dd></div>
+                <div><dt>Modo</dt><dd>{run?.paragraphMode ?? "—"}</dd></div>
+                {run?.paragraphMode === "CONTEXTUAL_PARAGRAPH" && (
+                  <>
+                    <div><dt>Contexto previo</dt><dd>{contextTokenLabel(segment.contextTokensBefore ?? null)}</dd></div>
+                    <div><dt>Contexto posterior</dt><dd>{contextTokenLabel(segment.contextTokensAfter ?? null)}</dd></div>
+                  </>
+                )}
+              </dl>
+            </aside>
+          )}
+        </article>,
+      );
+      reviewCursor = Math.max(reviewCursor, segment.charEnd);
+    }
+    if (reviewCursor < reviewText.length) {
+      reviewBlocks.push(
+        <div className="analysis-review-gap" key="review-tail" aria-hidden={!reviewText.slice(reviewCursor).trim()}>
+          {reviewText.slice(reviewCursor)}
+        </div>,
+      );
+    }
+  }
 
   const highCount = paragraphItems.filter(
     (s) => s.classification !== "INSUFFICIENT_TEXT" && signalLevel(s.calibratedScore) === "HIGH",
@@ -235,24 +364,11 @@ export function AnalysisPanel({
   const distTotal = Math.max(1, highCount + moderateCount + lowCount + insufficientCount);
 
   function jumpToParagraph(paragraphIndex: number) {
-    const containingGroup = displayItems.find(
-      (item) =>
-        item.type === "insufficient-group" &&
-        paragraphIndex >= item.startIndex &&
-        paragraphIndex <= item.endIndex,
-    );
-    if (containingGroup && containingGroup.type === "insufficient-group") {
-      setExpandedInsufficientGroups((current) => ({
-        ...current,
-        [containingGroup.groupKey]: true,
-      }));
-    }
-    if (typeof document !== "undefined") {
-      window.requestAnimationFrame(() => {
-        const element = document.getElementById(`analysis-paragraph-${paragraphIndex}`);
-        element?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-    }
+    setActiveView("REVIEW");
+    setReviewJump((current) => ({
+      paragraphIndex,
+      sequence: current.sequence + 1,
+    }));
   }
 
   function renderParagraphRow(segment: AnalysisSegment) {
@@ -334,6 +450,14 @@ export function AnalysisPanel({
               {isContextOpen ? "Ocultar contexto utilizado" : "Ver contexto utilizado"}
             </button>
           )}
+
+          <button
+            className="analysis-text-toggle"
+            type="button"
+            onClick={() => jumpToParagraph(segment.paragraphIndex)}
+          >
+            Ver en Revisión
+          </button>
 
           <details className="analysis-paragraph-tech">
             <summary>Detalles técnicos</summary>
@@ -537,6 +661,9 @@ export function AnalysisPanel({
                 setExpandedParagraphs({});
                 setExpandedInsufficientGroups({});
                 setContextSegmentId(null);
+                setActiveView("SUMMARY");
+                setReviewSelectedParagraphIndex(null);
+                setReviewJump({ paragraphIndex: null, sequence: 0 });
               }}
             >
               {history.map((item) => (
@@ -632,8 +759,54 @@ export function AnalysisPanel({
         )}
       </div>
 
-      {run && (
-        <div className="analysis-summary-band" aria-label="Resultado del análisis">
+      {run?.status === "COMPLETED" && (
+        <div className="analysis-view-tabs" role="tablist" aria-label="Vistas del análisis">
+          <button
+            id="analysis-tab-summary"
+            className={activeView === "SUMMARY" ? "is-active" : ""}
+            type="button"
+            role="tab"
+            aria-selected={activeView === "SUMMARY"}
+            aria-controls="analysis-summary-view"
+            onClick={() => setActiveView("SUMMARY")}
+          >
+            Resumen
+          </button>
+          <button
+            id="analysis-tab-review"
+            className={activeView === "REVIEW" ? "is-active" : ""}
+            type="button"
+            role="tab"
+            aria-selected={activeView === "REVIEW"}
+            aria-controls="analysis-review-view"
+            onClick={() => {
+              setActiveView("REVIEW");
+              setReviewSelectedParagraphIndex(null);
+            }}
+          >
+            Revisión
+          </button>
+          <button
+            id="analysis-tab-detail"
+            className={activeView === "DETAIL" ? "is-active" : ""}
+            type="button"
+            role="tab"
+            aria-selected={activeView === "DETAIL"}
+            aria-controls="analysis-detail-view"
+            onClick={() => setActiveView("DETAIL")}
+          >
+            Detalle
+          </button>
+        </div>
+      )}
+
+      {run && (run.status !== "COMPLETED" || activeView === "SUMMARY") && (
+        <div
+          className="analysis-summary-band"
+          id="analysis-summary-view"
+          role={run.status === "COMPLETED" ? "tabpanel" : undefined}
+          aria-labelledby={run.status === "COMPLETED" ? "analysis-tab-summary" : undefined}
+        >
           <div className="analysis-hero-metric">
             <span className="analysis-hero-label">Señal global</span>
             <strong className="analysis-hero-score">
@@ -763,12 +936,69 @@ export function AnalysisPanel({
         </div>
       )}
 
+      {run?.status === "COMPLETED" && activeView === "REVIEW" && (
+        <section
+          className="analysis-review-view"
+          id="analysis-review-view"
+          role="tabpanel"
+          aria-labelledby="analysis-tab-review"
+          aria-label="Documento para revisión"
+        >
+          <header className="analysis-review-heading">
+            <div>
+              <h3>Documento para revisión</h3>
+              <p>El texto conserva el orden del documento y muestra la unidad revisada por el análisis.</p>
+            </div>
+            {fileName && <span className="analysis-review-filename">{fileName}</span>}
+          </header>
+          {reviewDocument.isPending && !reviewDocument.data && (
+            <p className="analysis-notice" role="status">Cargando documento para revisión…</p>
+          )}
+          {reviewDocument.isError && (
+            <p className="analysis-notice analysis-error" role="alert">
+              {reviewDocument.error instanceof ApiRequestError && reviewDocument.error.code
+                ? `No se pudo validar la vista de revisión (${reviewDocument.error.code}). El texto y los rangos del análisis deben coincidir.`
+                : "No se pudo cargar el documento para revisión."}
+              <button className="button button-quiet" type="button" onClick={() => void reviewDocument.refetch()}>
+                Reintentar
+              </button>
+            </p>
+          )}
+          {reviewDocument.data?.stale && (
+            <p className="analysis-notice analysis-error" role="alert">
+              El texto de esta versión no coincide con los rangos guardados. No se mostrarán resaltados.
+            </p>
+          )}
+          {reviewDocument.data && !reviewDocument.data.stale && (
+            <>
+              <div className="analysis-review-legend" aria-label="Leyenda de resaltados">
+                <strong>Leyenda</strong>
+                <span><i className="review-legend-high" /> Señal alta</span>
+                <span><i className="review-legend-moderate" /> Señal moderada</span>
+                <span><i className="review-legend-none" /> Señal baja o texto no evaluado</span>
+                <small>El resaltado corresponde a la unidad analizada por el modelo. En esta corrida, la unidad de análisis es el párrafo.</small>
+              </div>
+              <div className="analysis-review-document" aria-label="Texto completo en orden documental">
+                {reviewBlocks}
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
       {run?.status === "FAILED" && (
         <p className="analysis-notice analysis-error" role="alert">
           El análisis seleccionado no se completó ({run.errorCode ?? "error"}).
         </p>
       )}
 
+      {run?.status === "COMPLETED" && activeView === "DETAIL" && (
+        <div
+          className="analysis-detail-view"
+          id="analysis-detail-view"
+          role="tabpanel"
+          aria-labelledby="analysis-tab-detail"
+        >
       {run?.status === "COMPLETED" && researchMode && (
         <div className="analysis-list-bar">
           <div className="analysis-list-heading">
@@ -989,6 +1219,8 @@ export function AnalysisPanel({
             Volver a cargar párrafos
           </button>
         </p>
+      )}
+        </div>
       )}
     </section>
   );

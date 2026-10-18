@@ -94,6 +94,54 @@ function segmentsQuery(analysisId = RUN_ID, isError = false) {
   }
 }
 
+function reviewDocumentQuery() {
+  const paragraphs = [
+    { text: 'UNIVERSIDAD SINTÉTICA', level: 'HIGH', highlight: false, excludedReason: 'METADATA' },
+    { text: 'Autor: Ana Ejemplo', level: 'HIGH', highlight: false, excludedReason: 'METADATA' },
+    { text: '1.1 Identificación del problema', level: null, highlight: false, excludedReason: 'HEADING' },
+    { text: 'Párrafo sintético con señal alta.', level: 'HIGH', highlight: true },
+    { text: 'Párrafo sintético con señal moderada.', level: 'MODERATE', highlight: true },
+    { text: 'Párrafo sintético con señal baja.', level: 'LOW', highlight: false, excludedReason: 'LOW_SIGNAL' },
+    { text: 'Figura 1. Diagrama sintético.', level: 'HIGH', highlight: false, excludedReason: 'CAPTION' },
+    { text: 'Referencias', level: null, highlight: false, excludedReason: 'REFERENCE_SECTION' },
+    { text: 'Smith, A. (2024). Referencia sintética.', level: 'HIGH', highlight: false, excludedReason: 'REFERENCE_SECTION' },
+  ];
+  const documentText = paragraphs.map(({ text }) => text).join('\n\n');
+  let offset = 0;
+  const items = paragraphs.map((paragraph, paragraphIndex) => {
+    const charStart = offset;
+    const charEnd = charStart + paragraph.text.length;
+    offset = charEnd + 2;
+    return {
+      id: `00000000-0000-4000-8000-${String(paragraphIndex + 1).padStart(12, '0')}`,
+      paragraphIndex,
+      charStart,
+      charEnd,
+      pageNumber: 1,
+      words: paragraph.text.split(/\s+/u).length,
+      tokens: 8,
+      modelName: 'SYNTHETIC_MODEL_V3',
+      rawScore: null,
+      calibratedScore: paragraph.level === 'HIGH' ? 0.91 : paragraph.level === 'MODERATE' ? 0.49 : paragraph.level === 'LOW' ? 0.2 : null,
+      classification: paragraph.level === null ? 'INSUFFICIENT_TEXT' : 'MACHINE_SIGNAL',
+      signalLevel: paragraph.level,
+      confidence: 'HIGH',
+      text: paragraph.text,
+      reviewPresentation: {
+        highlight: paragraph.highlight,
+        level: paragraph.level,
+        ...(paragraph.excludedReason ? { excludedReason: paragraph.excludedReason } : {}),
+      },
+    };
+  });
+  return {
+    data: { analysisId: RUN_ID, stale: false, documentText, items },
+    isError: false,
+    isPending: false,
+    refetch: vi.fn(),
+  };
+}
+
 function contextQuery() {
   return { data: undefined, error: null, isError: false, isPending: false, refetch: vi.fn() }
 }
@@ -105,6 +153,7 @@ function renderPanel({
   analysisError = false,
   runStatus = 'COMPLETED',
   paragraphMode = 'CONTEXTUAL_PARAGRAPH',
+  initialView = 'SUMMARY',
 }: {
   historyError?: boolean
   segmentsRunId?: string
@@ -112,11 +161,13 @@ function renderPanel({
   analysisError?: boolean
   runStatus?: string
   paragraphMode?: string
+  initialView?: 'SUMMARY' | 'REVIEW' | 'DETAIL'
 } = {}) {
   queryMocks.useQuery
     .mockReturnValueOnce(modelList())
     .mockReturnValueOnce(historyQuery(historyError, runStatus, paragraphMode))
     .mockReturnValueOnce(segmentsQuery(segmentsRunId, segmentsError))
+    .mockReturnValueOnce(reviewDocumentQuery())
     .mockReturnValueOnce(contextQuery())
   queryMocks.useMutation.mockReturnValue({
     error: analysisError ? new Error('synthetic analysis failure') : null,
@@ -132,6 +183,7 @@ function renderPanel({
       fileName: 'synthetic.docx',
       hasText: true,
       researchMode: true,
+      initialView,
     }),
   ))
 }
@@ -144,10 +196,8 @@ describe('AnalysisPanel run provenance and operation errors', () => {
   })
 
   it('suppresses the fatal analysis error for a completed run and scopes secondary errors locally', () => {
-    const html = renderPanel({ historyError: true, segmentsError: true, analysisError: true })
+    const html = renderPanel({ historyError: true, segmentsError: true, analysisError: true, initialView: 'DETAIL' })
 
-    expect(html).toContain('66 %')
-    expect(html).toContain('token_weighted_mean')
     expect(html).toContain('Con contexto breve')
     expect(html).toContain('Solo el párrafo')
     expect(html).not.toContain('No se pudo completar el análisis solicitado.')
@@ -157,7 +207,7 @@ describe('AnalysisPanel run provenance and operation errors', () => {
   })
 
   it('keeps a contextual run label from history while the new analysis form defaults to strict', () => {
-    const html = renderPanel()
+    const html = renderPanel({ initialView: 'DETAIL' })
 
     expect(html).toContain('Con contexto breve')
     expect(html).toContain('Solo el párrafo')
@@ -166,7 +216,7 @@ describe('AnalysisPanel run provenance and operation errors', () => {
   })
 
   it('does not show a context badge or drawer action for a strict historical run', () => {
-    const html = renderPanel({ paragraphMode: 'STRICT_PARAGRAPH' })
+    const html = renderPanel({ paragraphMode: 'STRICT_PARAGRAPH', initialView: 'DETAIL' })
 
     expect(html).toContain('Modo de párrafo')
     expect(html).toContain('Solo el párrafo')
@@ -175,7 +225,7 @@ describe('AnalysisPanel run provenance and operation errors', () => {
   })
 
   it('renders a collapsed context drawer trigger for contextual paragraphs', () => {
-    const html = renderPanel()
+    const html = renderPanel({ initialView: 'DETAIL' })
 
     expect(html).toContain('Ver contexto utilizado')
     expect(html).toContain('aria-expanded="false"')
@@ -190,25 +240,54 @@ describe('AnalysisPanel run provenance and operation errors', () => {
   })
 
   it('does not render segments returned for a different analysisRunId', () => {
-    const html = renderPanel({ segmentsRunId: '9a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d' })
+    const html = renderPanel({ segmentsRunId: '9a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', initialView: 'DETAIL' })
 
-    expect(html).toContain('66 %')
     expect(html).toContain('La respuesta de párrafos no corresponde al análisis seleccionado')
     expect(html).not.toContain('Synthetic run paragraph')
   })
 
-  it('renders the minimal open layout with hero metric, distribution bar, heatmap strip, and secondary technical details', () => {
-    const html = renderPanel({ paragraphMode: 'STRICT_PARAGRAPH' })
+  it('renders summary and detail as separate tabs while retaining the existing detail controls', () => {
+    const summary = renderPanel({ paragraphMode: 'STRICT_PARAGRAPH', initialView: 'SUMMARY' })
+    const detail = renderPanel({ paragraphMode: 'STRICT_PARAGRAPH', initialView: 'DETAIL' })
 
-    expect(html).toContain('analysis-toolbar')
-    expect(html).toContain('analysis-summary-band')
-    expect(html).toContain('analysis-hero-metric')
-    expect(html).toContain('analysis-distribution')
-    expect(html).toContain('analysis-heatmap-strip')
-    expect(html).toContain('analysis-meta-grid')
-    expect(html).toContain('analysis-paragraph-tech')
-    expect(html).toContain('Detalles técnicos')
-    expect(html).not.toContain('document-panel analysis-panel')
+    expect(summary).toContain('analysis-view-tabs');
+    expect(summary).toContain('analysis-summary-band');
+    expect(summary).toContain('analysis-hero-metric');
+    expect(summary).toContain('analysis-distribution');
+    expect(summary).toContain('analysis-meta-grid');
+    expect(summary).not.toContain('<div class="analysis-detail-view"');
+    expect(detail).toContain('analysis-detail-view');
+    expect(detail).toContain('analysis-heatmap-strip');
+    expect(detail).toContain('analysis-paragraph-tech');
+    expect(detail).toContain('Ver en Revisión');
+    expect(detail).not.toContain('document-panel analysis-panel');
+  })
+
+  it('renders the complete review copy in document order with high and moderate highlights only', () => {
+    const html = renderPanel({ initialView: 'REVIEW' });
+    const positions = [
+      'UNIVERSIDAD SINTÉTICA',
+      'Autor: Ana Ejemplo',
+      '1.1 Identificación del problema',
+      'Párrafo sintético con señal alta.',
+      'Párrafo sintético con señal moderada.',
+      'Párrafo sintético con señal baja.',
+      'Figura 1. Diagrama sintético.',
+      'Referencias',
+      'Smith, A. (2024). Referencia sintética.',
+    ].map((phrase) => html.indexOf(phrase));
+
+    expect(html).toContain('aria-selected="true" aria-controls="analysis-review-view"');
+    expect(html).toContain('analysis-review-document');
+    expect(html).toContain('analysis-review-paragraph is-highlight-high');
+    expect(html).toContain('analysis-review-paragraph is-highlight-moderate');
+    expect(html).not.toContain('analysis-review-paragraph is-highlight-low');
+    expect(html).toContain('Referencia bibliográfica');
+    expect(html).toContain('analysis-review-paragraph-action');
+    expect(html).not.toContain('analysis-review-drawer');
+    for (let index = 1; index < positions.length; index += 1) {
+      expect(positions[index]).toBeGreaterThan(positions[index - 1]!);
+    }
   })
 
   it('compacts consecutive INSUFFICIENT_TEXT paragraphs (>= 2) while leaving single items ungrouped', () => {

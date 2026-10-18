@@ -1,10 +1,32 @@
+import type { ReviewPresentation } from '../analysis/review-presentation.js';
+
 export type ReportKind = 'AI_REPORT' | 'SIMILARITY_REPORT';
 
 export type ReportState =
   'GENERATING' | 'AVAILABLE' | 'ERROR' | 'EXPIRED' | 'DELETED';
 
+export interface AIReportEvidenceSpan {
+  start: number;
+  end: number;
+}
+
+export interface AIReportSegmentEvidence {
+  type: 'PARAGRAPH' | 'SPAN';
+  paragraphId: number;
+  start: number;
+  end: number;
+  score: number | null;
+  level: string | null;
+  spans?: AIReportEvidenceSpan[];
+}
+
 export interface AIReportParagraph {
   paragraphIndex: number;
+  textHash: string;
+  charStart: number;
+  charEnd: number;
+  segmentEvidence: AIReportSegmentEvidence;
+  reviewPresentation: ReviewPresentation;
   score: number | null;
   signalLevel: string | null;
   classification: string;
@@ -35,6 +57,7 @@ export interface AIReportInput {
     createdAt: Date;
     updatedAt: Date;
   };
+  extractedText: string;
   run: {
     id: string;
     status: string;

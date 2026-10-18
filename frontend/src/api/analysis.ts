@@ -55,6 +55,20 @@ export const analysisRunSchema = z.object({
 
 export const analysisListSchema = z.object({ items: z.array(analysisRunSchema) })
 
+export const reviewPresentationSchema = z.object({
+  highlight: z.boolean(),
+  level: z.enum(['HIGH', 'MODERATE', 'LOW']).nullable(),
+  excludedReason: z.enum([
+    'REFERENCE_SECTION',
+    'METADATA',
+    'CAPTION',
+    'HEADING',
+    'INSUFFICIENT_TEXT',
+    'LOW_SIGNAL',
+    'UNSCORED',
+  ]).optional(),
+})
+
 export const segmentSchema = z.object({
   id: z.string().uuid().optional(),
   paragraphIndex: z.number(),
@@ -70,6 +84,9 @@ export const segmentSchema = z.object({
   signalLevel: nullableString,
   confidence: nullableString,
   text: nullableString,
+  reviewPresentation: reviewPresentationSchema.optional(),
+  contextTokensBefore: z.record(z.string(), z.number()).nullable().optional(),
+  contextTokensAfter: z.record(z.string(), z.number()).nullable().optional(),
 }).passthrough()
 
 const contextNeighborSchema = z.object({
@@ -99,6 +116,7 @@ export const analysisSegmentContextSchema = z.object({
 export const segmentListSchema = z.object({
   analysisId: z.string().uuid(),
   stale: z.boolean(),
+  documentText: z.string().optional(),
   items: z.array(segmentSchema),
   page: z.number().optional(),
   pageSize: z.number().optional(),
@@ -295,6 +313,7 @@ export const analysisQueryKeys = {
   documentAnalyses: (documentId: string) => ['analysis', 'document', documentId] as const,
   run: (id: string) => ['analysis', 'run', id] as const,
   segments: (id: string, query?: AnalysisSegmentsQuery) => ['analysis', 'segments', id, query ?? null] as const,
+  reviewDocument: (id: string) => ['analysis', 'review-document', id] as const,
   segmentContext: (analysisId: string, segmentId: string) => ['analysis', 'segment-context', analysisId, segmentId] as const,
 }
 
@@ -323,6 +342,13 @@ export function getAnalysisSegments(analysisId: string, query?: AnalysisSegments
   }) : null
   const suffix = params ? `?${params.toString()}` : ''
   return getJson(`/analyses/${analysisId}/segments${suffix}`, segmentListSchema)
+}
+
+export function getAnalysisReviewDocument(analysisId: string) {
+  return getJson(
+    `/analyses/${analysisId}/segments?includeDocumentText=true`,
+    segmentListSchema,
+  )
 }
 
 export function getAnalysisSegmentContext(analysisId: string, segmentId: string) {

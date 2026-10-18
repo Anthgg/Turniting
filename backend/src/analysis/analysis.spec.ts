@@ -151,7 +151,15 @@ describe('AnalysisService', () => {
   });
 
   it('materializes segment text from the extracted text and flags stale analyses', async () => {
-    const seg = { paragraphIndex: 0, charStart: 0, charEnd: 9, calibratedScore: 0.2 };
+    const seg = {
+      paragraphIndex: 0,
+      charStart: 0,
+      charEnd: 9,
+      textHash: sha256(SECRET_TEXT.slice(0, 9)),
+      calibratedScore: 0.2,
+      signalLevel: 'LOW',
+      classification: 'LOW_SIGNAL',
+    };
     prisma.analysisRun.findUnique.mockResolvedValueOnce({ id: RUN, textHash: sha256(SECRET_TEXT), segments: [seg],
       documentVersion: { extractedText: SECRET_TEXT } });
     expect((await service.getSegments(RUN)).items[0].text).toBe('Párrafo s');
@@ -160,6 +168,90 @@ describe('AnalysisService', () => {
     const stale = await service.getSegments(RUN);
     expect(stale.stale).toBe(true);
     expect(stale.items[0].text).toBeNull();
+  });
+
+  it('returns a verified full review document and presentation without changing stored scores', async () => {
+    const fixture = [
+      { text: 'UNIVERSIDAD SINTÉTICA', score: 0.91, signalLevel: 'HIGH', classification: 'MACHINE_SIGNAL' },
+      { text: 'Autor: Ana Ejemplo', score: 0.9, signalLevel: 'HIGH', classification: 'MACHINE_SIGNAL' },
+      { text: 'La estructura sintética del problema requiere revisión.', score: 0.92, signalLevel: 'HIGH', classification: 'MACHINE_SIGNAL' },
+      { text: 'La descripción sintética del método requiere revisión.', score: 0.51, signalLevel: 'MODERATE', classification: 'MACHINE_SIGNAL' },
+      { text: 'Texto breve con señal baja.', score: 0.2, signalLevel: 'LOW', classification: 'LOW_SIGNAL' },
+      { text: '1.2 Marco metodológico', score: null, signalLevel: null, classification: 'INSUFFICIENT_TEXT' },
+      { text: 'Figura 1. Diagrama sintético del proceso.', score: 0.95, signalLevel: 'HIGH', classification: 'MACHINE_SIGNAL' },
+      { text: 'Referencias', score: null, signalLevel: null, classification: 'INSUFFICIENT_TEXT' },
+      { text: 'Smith, A. (2024). Referencia sintética.', score: 0.98, signalLevel: 'HIGH', classification: 'MACHINE_SIGNAL' },
+    ];
+    const extractedText = fixture.map(({ text }) => text).join('\n\n');
+    let offset = 0;
+    const segments = fixture.map((item, paragraphIndex) => {
+      const charStart = offset;
+      const charEnd = charStart + item.text.length;
+      offset = charEnd + 2;
+      return {
+        id: `00000000-0000-4000-8000-${String(paragraphIndex + 1).padStart(12, '0')}`,
+        paragraphIndex,
+        charStart,
+        charEnd,
+        textHash: sha256(item.text),
+        calibratedScore: item.score,
+        signalLevel: item.signalLevel,
+        classification: item.classification,
+        modelName: 'SYNTHETIC_MODEL_V3',
+        words: item.text.split(/\s+/u).length,
+        tokens: 8,
+      };
+    });
+    const savedScores = segments.map(({ calibratedScore }) => calibratedScore);
+    prisma.analysisRun.findUnique.mockResolvedValueOnce({
+      id: RUN,
+      status: 'COMPLETED',
+      paragraphMode: 'STRICT_PARAGRAPH',
+      textHash: sha256(extractedText),
+      metadata: {},
+      segments,
+      documentVersion: { extractedText },
+    });
+
+    const result = await service.getSegments(RUN, { includeDocumentText: true });
+
+    expect(result.documentText).toBe(extractedText);
+    expect(result.items.map(({ charStart }) => charStart)).toEqual(
+      [...segments].map(({ charStart }) => charStart),
+    );
+    expect(result.items.map(({ calibratedScore }) => calibratedScore)).toEqual(savedScores);
+    expect(result.items[0]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'METADATA' });
+    expect(result.items[1]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'METADATA' });
+    expect(result.items[2]?.reviewPresentation).toMatchObject({ highlight: true, level: 'HIGH' });
+    expect(result.items[3]?.reviewPresentation).toMatchObject({ highlight: true, level: 'MODERATE' });
+    expect(result.items[4]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'LOW_SIGNAL' });
+    expect(result.items[5]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'HEADING' });
+    expect(result.items[6]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'CAPTION' });
+    expect(result.items[7]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'REFERENCE_SECTION' });
+    expect(result.items[8]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'REFERENCE_SECTION' });
+  });
+
+  it('rejects a review document when a segment hash does not match its offsets', async () => {
+    const text = 'Párrafo sintético para validación.';
+    prisma.analysisRun.findUnique.mockResolvedValueOnce({
+      id: RUN,
+      textHash: sha256(text),
+      segments: [{
+        paragraphIndex: 0,
+        charStart: 0,
+        charEnd: text.length,
+        textHash: '0'.repeat(64),
+        calibratedScore: 0.9,
+        signalLevel: 'HIGH',
+        classification: 'MACHINE_SIGNAL',
+      }],
+      documentVersion: { extractedText: text },
+    });
+
+    await expect(service.getSegments(RUN, { includeDocumentText: true })).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'ANALYSIS_SEGMENT_TEXT_MISMATCH' },
+    });
   });
 
   it('keeps contextual segment offsets and hashes anchored to the target paragraph', async () => {
@@ -173,6 +265,8 @@ describe('AnalysisService', () => {
       textHash: sha256(target),
       pageNumber: null,
       calibratedScore: 0.65,
+      signalLevel: 'HIGH',
+      classification: 'MACHINE_SIGNAL',
     };
     prisma.analysisRun.findUnique.mockResolvedValueOnce({
       id: RUN,
@@ -293,9 +387,9 @@ describe('AnalysisService', () => {
   it('paginates, sorts and filters the segment list for the research UI', async () => {
     const extractedText = 'Low high insufficient';
     const rows = [
-      { paragraphIndex: 0, charStart: 0, charEnd: 3, calibratedScore: 0.2, signalLevel: 'LOW', classification: 'LOW_SIGNAL' },
-      { paragraphIndex: 1, charStart: 4, charEnd: 8, calibratedScore: 0.9, signalLevel: 'HIGH', classification: 'MACHINE_SIGNAL' },
-      { paragraphIndex: 2, charStart: 9, charEnd: 21, calibratedScore: null, signalLevel: null, classification: 'INSUFFICIENT_TEXT' },
+      { paragraphIndex: 0, charStart: 0, charEnd: 3, textHash: sha256('Low'), calibratedScore: 0.2, signalLevel: 'LOW', classification: 'LOW_SIGNAL' },
+      { paragraphIndex: 1, charStart: 4, charEnd: 8, textHash: sha256('high'), calibratedScore: 0.9, signalLevel: 'HIGH', classification: 'MACHINE_SIGNAL' },
+      { paragraphIndex: 2, charStart: 9, charEnd: 21, textHash: sha256('insufficient'), calibratedScore: null, signalLevel: null, classification: 'INSUFFICIENT_TEXT' },
     ];
     prisma.analysisRun.findUnique.mockResolvedValueOnce({ id: RUN, textHash: sha256(extractedText), segments: rows,
       documentVersion: { extractedText } });
