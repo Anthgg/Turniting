@@ -71,7 +71,8 @@ def cowsl2h() -> list[dict]:
     for p in d.rglob("*.txt"):
         rel = p.relative_to(d).as_posix()
         low = rel.lower()
-        if "correct" in low or "annot" in low or "anotat" in low or p.name == "id.txt":
+        parts = low.split("/")
+        if "corrected" in parts or ".corrected." in low or "annot" in low or "anotat" in low or p.name == "id.txt":
             continue
         m = re.match(r"(\d+)\.([A-Z]\d+)_([a-z_]+)", p.name)
         if not m:
@@ -194,7 +195,8 @@ def gradtex() -> list[dict]:
             t = str(r["text"]).strip()
             if len(t.split()) < 30:
                 continue
-            key = r.get("original_name_in_MAGE") or h(str(r.get("human_source_text"))[:500])
+            mage = r.get("original_name_in_MAGE")
+            key = str(mage) if pd.notna(mage) and str(mage) else h(str(r.get("human_source_text"))[:500])
             out.append(rec(id=f"gradtex:{split}:{i}", text=t, dataset="gradtex_f0611", fine_label=GRADTEX_LABEL.get(str(r["scenario_family"]), "AI_GENERATED"),
                            language=str(r.get("language") or "en")[:2], domain=str(r.get("domain") or "unknown"), group_id=f"gradtex:{key}",
                            generator_family=fam(r.get("model_family")), split_hint=split,
