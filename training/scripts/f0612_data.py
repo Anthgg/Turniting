@@ -307,6 +307,15 @@ def main() -> int:
     allu = pd.concat([g.sample(min(len(g), CAPS[s].get(k, len(g))), random_state=SEED) for (s, k), g in allu.groupby(["side", "kind"])], ignore_index=True)
     allu["text_hash"] = allu["text"].map(normalized_text_hash)
     allu["lineage"] = allu["parent_id"].fillna(allu["id"]).astype(str)
+    # one side per group / document / lineage: TRAIN wins over evaluation, HOLDOUT wins over VALIDATION
+    rank = {"TRAIN": 0, "HOLDOUT": 1, "VALIDATION": 2}
+    for key in ("group_id", "id", "lineage"):
+        k = allu[key].astype(str)
+        best = allu.assign(_k=k, _r=allu["side"].map(rank)).groupby("_k")["_r"].min()
+        keep = allu["side"].map(rank).values == k.map(best).values
+        if (~keep).any():
+            log(f"dropping {int((~keep).sum()):,} units whose {key} also sits on a stronger side")
+        allu = allu[keep].reset_index(drop=True)
 
     # ---------------- leakage gates
     tr, va, ho = (allu[allu["side"] == s].reset_index(drop=True) for s in ("TRAIN", "VALIDATION", "HOLDOUT"))
