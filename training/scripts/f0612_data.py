@@ -310,7 +310,7 @@ def main() -> int:
     # one side per group / document / lineage: TRAIN wins over evaluation, HOLDOUT wins over VALIDATION
     rank = {"TRAIN": 0, "HOLDOUT": 1, "VALIDATION": 2}
     for key in ("group_id", "id", "lineage"):
-        k = allu[key].astype(str)
+        k = allu[key].where(allu[key].notna(), allu["unit_id"]).astype(str)
         best = allu.assign(_k=k, _r=allu["side"].map(rank)).groupby("_k")["_r"].min()
         keep = allu["side"].map(rank).values == k.map(best).values
         if (~keep).any():
