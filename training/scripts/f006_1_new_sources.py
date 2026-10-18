@@ -78,11 +78,11 @@ def _read_member(zf, name):
     low = name.lower()
     if low.endswith(".parquet"):
         return pd.read_parquet(io.BytesIO(raw))
-    if low.endswith((".jsonl", ".json")):
-        try:
-            return pd.read_json(io.BytesIO(raw), lines=True)
-        except ValueError:
-            return pd.read_json(io.BytesIO(raw))
+    if low.endswith(".json"):
+        data = json.loads(raw.decode("utf-8"))
+        return pd.DataFrame(data if isinstance(data, list) else data.get("data", []))
+    if low.endswith(".jsonl"):
+        return pd.read_json(io.BytesIO(raw), lines=True)
     if low.endswith((".csv", ".tsv")):
         return pd.read_csv(io.BytesIO(raw), sep="	" if low.endswith(".tsv") else ",")
     return None
@@ -113,7 +113,7 @@ def ccnews(max_rows: int, max_files: int) -> pd.DataFrame:
             raise ValueError(f"{cc}.zip columns {list(df.columns)[:12]}")
         ucol = next((c for c in ("url", "link") if c in df.columns), None)
         df = df.rename(columns={tcol: "text"})
-        df["text"] = df["text"].astype(str).map(clean)
+        df["text"] = df["text"].astype(str).str.replace("\\t", "\n\n", regex=False).map(clean)  # literal "\t" marks paragraphs
         df = df[df["text"].str.split().str.len() >= 40]
         df = df.sample(min(per_country, len(df)), random_state=62)
         df["url"] = df[ucol] if ucol else None
