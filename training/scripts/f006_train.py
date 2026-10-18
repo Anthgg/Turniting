@@ -287,7 +287,11 @@ def build_cache(a, cfg, tok_path, cache: Path) -> dict:
     if a.train_extra:
         extra = pd.read_parquet(a.train_extra)
         meta = pd.concat([meta, extra[META]], ignore_index=True)
-    meta = meta[meta["fine_label"].isin(list(FINE_TO_B))].reset_index(drop=True)
+    meta = meta[meta["fine_label"].isin(list(FINE_TO_B))]
+    n_dup = int(meta["id"].duplicated().sum())
+    if n_dup:  # a duplicated id would duplicate rows in the window-meta merge and shift every label after it
+        log(f"dropping {n_dup:,} duplicated train ids")
+    meta = meta.drop_duplicates("id").reset_index(drop=True)
     if a.es_hard_pool:
         meta["es_hard"] = meta["id"].isin(set(pd.read_parquet(a.es_hard_pool, columns=["id"])["id"])).values
     if a.mixture == "f006_1_1":
@@ -336,7 +340,9 @@ def build_cache(a, cfg, tok_path, cache: Path) -> dict:
     wm = pd.DataFrame({"doc_id": [r[0] for r in rows], "a": [r[2] for r in rows], "b": [r[3] for r in rows],
                        "view": [r[5] for r in rows], "len": lens})
     wm["unit"] = wm["view"].str.split("|").str[-1]
-    wm = wm.merge(docs[META + ["hard_human"]].rename(columns={"id": "doc_id"}), on="doc_id", how="left")
+    wm = wm.merge(docs[META + ["hard_human"]].drop_duplicates("id").rename(columns={"id": "doc_id"}), on="doc_id", how="left")
+    if len(wm) != len(rows):
+        raise SystemExit(f"ABORT: window meta {len(wm)} != windows {len(rows)} (labels would be misaligned)")
     wm.to_parquet(cache / "meta.parquet", index=False)
     audit = {
         "cache_key": cache.name, "stage": a.stage, "training_windows": int(len(wm)), "training_docs": int(wm["doc_id"].nunique()),
