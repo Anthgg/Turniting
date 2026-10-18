@@ -1,0 +1,19 @@
+{
+  "name": "SPAN_SERVING_CONTRACT",
+  "phase": "F006_1_2_SPAN_LOCALIZATION_HARDENING",
+  "status": "RESEARCH_ONLY",
+  "input": {"targetText": "string (original paragraph)", "leftContext": "optional string", "rightContext": "optional string", "mode": ["STRICT", "CONTEXTUAL"]},
+  "normalization": {"unicode": "NFC with char map back to original", "whitespace": "preserved", "line_breaks": "preserved", "zero_width": "preserved", "homoglyphs": "preserved",
+                    "tokenizer": "mDeBERTa-v3 offset_mapping", "max_tokens": 512, "span_trim": "visible characters (leading SentencePiece space removed)"},
+  "output": {"paragraphScore": "float 0-1 (head A, calibrated by the detector lock)", "paragraphThreshold": "float", "paragraphFlagged": "bool",
+             "spanEvidenceAvailable": "bool", "spans": [{"startChar": "int, inclusive, original targetText", "endChar": "int, exclusive", "startToken": "int",
+                                                         "endToken": "int, exclusive", "confidence": "mean token AI probability", "label": "AI_SIGNAL"}]},
+  "offset_semantics": "half-open [startChar, endChar) on the ORIGINAL target paragraph; never on context; identical in STRICT and CONTEXTUAL",
+  "postprocessing": ["tau", "gap", "min_tokens", "abstain (SPAN_ABSTAIN_THRESHOLD)"],
+  "postprocessing_selected_on": "F006_1_2_SPAN_VALIDATION only",
+  "no_span_case": "spans=[] and spanEvidenceAvailable=false; paragraphScore unchanged",
+  "multiple_spans": true,
+  "abstention": true,
+  "consistency": "no forced agreement between paragraphScore and spans; disagreement measured",
+  "active": false
+}
