@@ -72,18 +72,21 @@ def cowsl2h() -> list[dict]:
         rel = p.relative_to(d).as_posix()
         low = rel.lower()
         parts = low.split("/")
-        if "corrected" in parts or ".corrected." in low or "annot" in low or "anotat" in low or p.name == "id.txt":
+        if "essays" not in parts or ".metadata." in low:
             continue
-        m = re.match(r"(\d+)\.([A-Z]\d+)_([a-z_]+)", p.name)
+        m = re.match(r"(\d+)\.([A-Z]+\d+)_([A-Za-z_]+)", p.name)
         if not m:
             continue
         text = p.read_text(errors="ignore").lstrip("﻿").strip()
         if len(text.split()) < 40:
             continue
-        sid, quarter, prompt = m.group(1), m.group(2), m.group(3)
+        sid, quarter, prompt = m.group(1), m.group(2), m.group(3).lower()
+        mp = p.parent.parent / "metadata" / p.name.replace(".txt", ".metadata.txt")
+        mfields = mp.read_text(errors="ignore").split("|||") if mp.exists() else []
         out.append(rec(id=f"cowsl2h:{sid}:{quarter}:{prompt}:{h(rel, 6)}", text=text, dataset="cowsl2h", fine_label="HUMAN", language="es", domain="essay",
                        group_id=f"cowsl2h:student:{sid}", provenance="HUMAN_SPANISH_HARD (L2 / heritage learners)",
-                       meta=json.dumps({"student": sid, "quarter": quarter, "prompt": prompt, "path": rel})))
+                       meta=json.dumps({"student": sid, "quarter": quarter, "prompt": prompt, "path": rel,
+                                        "course": mfields[0].strip() if mfields else None, "l1": mfields[3].strip() if len(mfields) > 3 else None})))
     return out
 
 
