@@ -74,7 +74,7 @@ def encode_units(tok, frame: pd.DataFrame, scheme: str) -> list[dict]:
         offs = [tuple(o) for o in enc["offset_mapping"][i]]
         spans = json.loads(r.spans)
         out.append({"ids": np.asarray(enc["input_ids"][i], np.int32), "offs": offs, "tl": token_labels(offs, spans, len(r.text), scheme),
-                    "a": float(r.n_spans > 0), "spans": spans, "text_len": len(r.text)})
+                    "a": float(r.n_spans > 0), "spans": spans, "text_len": len(r.text), "text": r.text})
     return out
 
 
@@ -144,7 +144,7 @@ def evaluate(items, frame, probs, para, cfg, light: bool = False) -> dict:
         k = frame["kind"].values
         mets = {g: SpanMetrics() for g in groups}
         for i, it in enumerate(items):
-            pred = predict_spans(probs[i], it["offs"], cfg)
+            pred = predict_spans(probs[i], it["offs"], cfg, it.get("text"))
             kind = {"HUMAN": "human", "HARD_NEG": "boilerplate", "REFERENCE": "reference", "METADATA": "metadata"}.get(k[i], "span")
             for g, m in groups.items():
                 if m[i]:
@@ -170,7 +170,7 @@ def evaluate(items, frame, probs, para, cfg, light: bool = False) -> dict:
     len_b = {b: [0, 0] for b in ("1-5", "6-15", "16-40", "41-100", ">100")}  # gold spans by token length: detected(IoU>=.5) / total
     preds_all = []
     for i, it in enumerate(items):
-        pred = predict_spans(probs[i], it["offs"], cfg)
+        pred = predict_spans(probs[i], it["offs"], cfg, it.get("text"))
         preds_all.append(pred)
         tg = it["tl"]
         tp_ = probs[i] >= cfg["tau"]
@@ -492,9 +492,9 @@ def final(a) -> int:
     write_json(D / "reports" / "final_holdout.json", out)
     write_json(REPO / "reports" / "f006_1_2" / "final_holdout.json", out)
     # aggregated error analysis (counts + short synthetic-free excerpts are NOT stored: only categories / rates)
-    ea = {"false_positive_human_units": int(sum(1 for i, it in enumerate(items) if not it["spans"] and predict_spans(probs[i], it["offs"], cfg))),
+    ea = {"false_positive_human_units": int(sum(1 for i, it in enumerate(items) if not it["spans"] and predict_spans(probs[i], it["offs"], cfg, it.get("text")))),
           "missed_ai_spans": int(sum(1 for i, it in enumerate(items) for a_, b_ in it["spans"]
-                                     if not any(min(p["endChar"], b_) > max(p["startChar"], a_) for p in predict_spans(probs[i], it["offs"], cfg)))),
+                                     if not any(min(p["endChar"], b_) > max(p["startChar"], a_) for p in predict_spans(probs[i], it["offs"], cfg, it.get("text"))))),
           "boundary": {"start_mae": s["boundary_start_mae"], "end_mae": s["boundary_end_mae"], "span_length_error": s["span_length_error"]},
           "reference_false_highlight": fh.get("reference"), "metadata_false_highlight": fh.get("metadata"), "boilerplate_false_highlight": fh.get("boilerplate"),
           "mixed_by_ai_fraction": {k: {m: v.get(m) for m in ("span_overlap_precision", "span_overlap_recall", "iou_mean")} for k, v in rep.items() if k.startswith("ai_frac_")},

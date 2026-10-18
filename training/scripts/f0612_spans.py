@@ -151,7 +151,7 @@ def ai_prob_from_logits(logits: np.ndarray, scheme: str) -> np.ndarray:
 
 
 # ------------------------------------------------------------------ post-processing
-def predict_spans(prob: np.ndarray, offsets, cfg: dict) -> list[dict]:
+def predict_spans(prob: np.ndarray, offsets, cfg: dict, text: str | None = None) -> list[dict]:
     """token probs -> spans: threshold, merge gaps <= cfg['gap'] tokens, drop spans shorter than cfg['min_tokens'],
     abstain on spans whose mean probability < cfg['abstain']. Char offsets = first token start .. last token end."""
     tau, gap, min_tok, abst = cfg["tau"], cfg.get("gap", 0), cfg.get("min_tokens", 1), cfg.get("abstain", 0.0)
@@ -177,7 +177,13 @@ def predict_spans(prob: np.ndarray, offsets, cfg: dict) -> list[dict]:
         conf = float(prob[toks].mean())
         if conf < abst:
             continue
-        out.append({"startChar": int(offsets[a][0]), "endChar": int(offsets[b][1]), "startToken": int(a), "endToken": int(b) + 1,
+        sc, ec = int(offsets[a][0]), int(offsets[b][1])
+        if text is not None:  # SentencePiece offsets carry the leading space of a word: trim to visible characters
+            while sc < ec and text[sc].isspace():
+                sc += 1
+            while ec > sc and text[ec - 1].isspace():
+                ec -= 1
+        out.append({"startChar": sc, "endChar": ec, "startToken": int(a), "endToken": int(b) + 1,
                     "confidence": round(conf, 4), "label": "AI_SIGNAL"})
     return out
 

@@ -50,9 +50,9 @@ def main() -> int:
         offs = [tuple(o) for o in enc["offset_mapping"]]
         lab = token_labels(offs, g, len(nfc))
         prob = np.where(lab >= 1, 1.0, 0.0)
-        pred = predict_spans(prob, offs, {"tau": 0.5, "gap": 0, "min_tokens": 1, "abstain": 0.0})
+        pred = predict_spans(prob, offs, {"tau": 0.5, "gap": 0, "min_tokens": 1, "abstain": 0.0}, nfc)
         rebuilt = [[int(src[p["startChar"]]), int(src[p["endChar"]])] for p in pred]
-        ok = len(rebuilt) == len(gold) and all(abs(r[0] - q[0]) <= 1 and abs(r[1] - q[1]) <= 1 for r, q in zip(rebuilt, gold))
+        ok = len(rebuilt) == len(gold) and all(r == q for r, q in zip(rebuilt, gold))  # exact after whitespace trimming
         # contextual mode: score target inside context, offsets must be relative to target
         left, right = "Contexto previo del documento. ", " Contexto posterior."
         ctx = left + nfc + right
