@@ -1,0 +1,17 @@
+{
+  "gates": {
+    "A_holdout_human_fpr_le_0.05": true,
+    "B_unseen_generator_fpr_le_0.10_or_clear_gain": true,
+    "C_academic_strong": true,
+    "D_spanish_strong": false,
+    "E_mixed_recall_drop_le_5pts": true,
+    "F_ai_edited_f1_drop_le_5pts": true,
+    "G_ood_no_severe_drop": true,
+    "H_zero_width_homoglyph_robust": true,
+    "I_no_leakage": true,
+    "J_holdout_never_used_for_tuning": true
+  },
+  "passed": false,
+  "status": "EXPERIMENTAL",
+  "span_gate": true
+}

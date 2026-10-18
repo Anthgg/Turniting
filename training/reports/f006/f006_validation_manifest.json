@@ -1,0 +1,105 @@
+{
+  "name": "F006_VALIDATION",
+  "created_at": "2026-10-17T20:02:39Z",
+  "seed": 6006,
+  "dataset_version": "TURNITING_DATASET_V2",
+  "unseen_generator_families": {
+    "validation_proxy": [
+      "deepseek"
+    ],
+    "holdout": [
+      "cohere",
+      "mistral"
+    ]
+  },
+  "unseen_domains": {
+    "validation_proxy": [
+      "reports"
+    ],
+    "holdout": [
+      "recipes",
+      "reviews"
+    ]
+  },
+  "hard_human_rule": "top 15% of the set's humans by CANDIDATE_MODEL_V3 doc logit (fixed reference, computed before F006 training)",
+  "leakage": {
+    "group": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "exact": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "parent_child": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "near_duplicate": {
+      "validation_holdout": 0,
+      "train_eval": 0,
+      "train_eval_source": "TURNITING_DATASET_V2 build (MinHash LSH over all kept rows)"
+    },
+    "observed_ids_in_holdout": 0,
+    "result": "PASS"
+  },
+  "docs": 30490,
+  "humans": 13490,
+  "machine": 17000,
+  "groups": 20507,
+  "by_primary": {
+    "academic": {
+      "docs": 3000,
+      "humans": 1500
+    },
+    "adversarial": {
+      "docs": 1500,
+      "humans": 0
+    },
+    "ai_edited": {
+      "docs": 2250,
+      "humans": 750
+    },
+    "general": {
+      "docs": 12000,
+      "humans": 6000
+    },
+    "mixed": {
+      "docs": 2199,
+      "humans": 699
+    },
+    "ood": {
+      "docs": 2000,
+      "humans": 1000
+    },
+    "spanish": {
+      "docs": 3000,
+      "humans": 1500
+    },
+    "unseen_domain": {
+      "docs": 1541,
+      "humans": 541
+    },
+    "unseen_generator": {
+      "docs": 3000,
+      "humans": 1500
+    }
+  },
+  "spanish_humans": 2225,
+  "academic_humans": 5197,
+  "hard_humans": 2024,
+  "datasets": 24,
+  "fine_labels": {
+    "HUMAN": 13490,
+    "AI_GENERATED": 7750,
+    "PARAPHRASED_AI": 3138,
+    "AI_EDITED": 3067,
+    "MIXED": 2878,
+    "HUMAN_EDITED_AI": 167
+  },
+  "ids_sha256": "a63d8ed58eb0906822f7dd8d9e809f891d066091a81a6545677d47340cfbc416",
+  "file_sha256": "9c6bf424d7c36ab9250768f715d67cd9f70ea97ad3ced3a6743ced8985cd5dbf"
+}

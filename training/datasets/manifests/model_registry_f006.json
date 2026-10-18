@@ -1,0 +1,160 @@
+{
+ "name": "EXPERIMENTAL_F006_MODEL",
+ "architecture": "microsoft/mdeberta-v3-base + V3 multi-task heads (binary / fine / token)",
+ "baseModel": "microsoft/mdeberta-v3-base",
+ "parentModel": "CANDIDATE_MODEL_V3 (TURNITING_RESEARCH_V3_SPANISH_ACADEMIC)",
+ "datasetVersion": "TURNITING_DATASET_V2",
+ "trainingStrategy": "F006 targeted fine-tune from V3 best: human/machine rebalanced sampling, TRAIN-only hard-human negatives, paragraph-local samples, loss/weights chosen by ablation on F006 VALIDATION",
+ "status": "EXPERIMENTAL",
+ "artifactProvider": "GOOGLE_DRIVE_LOCAL_IMPORT",
+ "artifactPath": "MyDrive/turniting/f006/models/experimental_v4",
+ "checkpointPath": "MyDrive/turniting/f006/runs/F006_FULL/best",
+ "preprocessingVersion": "V3_CANONICALIZED_V1",
+ "calibrationVersion": "F006_ISOTONIC_V1",
+ "thresholds": {
+  "BALANCED": 0.8433,
+  "LOW_FALSE_POSITIVE": 0.7694,
+  "VERY_LOW_FALSE_POSITIVE": 0.8433
+ },
+ "selectedAnalyzer": "V4_ONLY",
+ "metrics": {
+  "validation_balanced": {
+   "score": 0.8597,
+   "positive": 0.8597,
+   "penalty": 0.0,
+   "eligible": true,
+   "terms": {
+    "general_macro_f1": 0.863,
+    "spanish_macro_f1": 0.8866,
+    "academic_macro_f1": 0.9114,
+    "mixed_recall": 0.7107,
+    "ai_edited_macro_f1": 0.8848,
+    "ood_macro_f1": 0.895,
+    "unseen_generator_recall": 0.8853
+   },
+   "fprs": {
+    "fpr_all_humans": 0.0133,
+    "spanish_fpr": 0.0141,
+    "academic_fpr": 0.0071,
+    "unseen_generator_fpr": 0.0053,
+    "ood_fpr": 0.007,
+    "unseen_domain_fpr": 0.085
+   }
+  },
+  "final_holdout_balanced": {
+   "all": {
+    "macro_f1": 0.8314,
+    "fpr": 0.0447,
+    "fpr_ci95": [
+     0.0415,
+     0.048
+    ],
+    "recall": 0.7431
+   },
+   "general": {
+    "macro_f1": 0.8347,
+    "fpr": 0.04,
+    "fpr_ci95": [
+     0.0353,
+     0.0453
+    ],
+    "recall": 0.7143
+   },
+   "spanish": {
+    "macro_f1": 0.8102,
+    "fpr": 0.1423,
+    "fpr_ci95": [
+     0.1287,
+     0.1571
+    ],
+    "recall": 0.7632
+   },
+   "academic": {
+    "macro_f1": 0.8891,
+    "fpr": 0.0025,
+    "fpr_ci95": [
+     0.0013,
+     0.0049
+    ],
+    "recall": 0.788
+   },
+   "mixed": {
+    "macro_f1": 0.4185,
+    "fpr": 0.0,
+    "fpr_ci95": [
+     0.0,
+     0.2425
+    ],
+    "recall": 0.6695
+   },
+   "ai_edited": {
+    "macro_f1": 0.8616,
+    "fpr": 0.004,
+    "fpr_ci95": [
+     0.0016,
+     0.0102
+    ],
+    "recall": 0.803
+   },
+   "ood": {
+    "macro_f1": 0.9308,
+    "fpr": 0.0133,
+    "fpr_ci95": [
+     0.0086,
+     0.0205
+    ],
+    "recall": 0.8753
+   },
+   "unseen_generator": {
+    "macro_f1": 0.8308,
+    "fpr": 0.0692,
+    "fpr_ci95": [
+     0.0599,
+     0.0798
+    ],
+    "recall": 0.734
+   },
+   "unseen_domain": {
+    "macro_f1": 0.813,
+    "fpr": 0.018,
+    "fpr_ci95": [
+     0.0124,
+     0.0261
+    ],
+    "recall": 0.654
+   },
+   "adversarial": {
+    "macro_f1": 0.4317,
+    "fpr": 0.0,
+    "fpr_ci95": [
+     0.0,
+     0.6576
+    ],
+    "recall": 0.7475
+   },
+   "span": {
+    "macro_f1": null,
+    "fpr": null,
+    "fpr_ci95": null,
+    "recall": 0.7358
+   },
+   "hard_human": {
+    "macro_f1": null,
+    "fpr": 0.2971,
+    "fpr_ci95": [
+     0.2789,
+     0.316
+    ],
+    "recall": null
+   }
+  }
+ },
+ "warnings": [
+  "F006_GATES_FAILED: D_spanish_strong"
+ ],
+ "createdAt": "2026-10-18T01:37:46Z",
+ "trainingCommit": "38834cb64a921e1fb1ee6d93037f6021ea5e06e8",
+ "modelSha256": "640247c1f5829de903628a5219923de1d9a07baf263b1195749ee2d2b3f82f26",
+ "active": false,
+ "notTurnitin": "Independent research detector; never a Turnitin score."
+}

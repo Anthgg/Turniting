@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-10-17T19:56:51Z",
+  "hf_token_available": false,
+  "MGTPD": {
+    "status": "NO_TOKEN",
+    "repo": "1024m/MGTPD-Public"
+  },
+  "EDITLENS": {
+    "status": "NO_TOKEN",
+    "repo": "pangram/editlens_iclr"
+  },
+  "MULTISOCIAL": {
+    "status": "RESTRICTED",
+    "record": "13846152",
+    "access": "restricted"
+  }
+}

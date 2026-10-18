@@ -1,0 +1,1790 @@
+{
+ "selection_rule": "eligible (FPR all validation humans <= 0.05 at general-human FPR 0.04) first, then max F006_SELECTION_SCORE",
+ "v3_init_on_f006_validation": {
+  "threshold_general_fpr_0.04": 0.9566,
+  "subsets": {
+   "all": {
+    "n": 30490,
+    "n_human": 13490,
+    "n_machine": 17000,
+    "threshold": 0.9566,
+    "fpr": 0.0491,
+    "fnr": 0.1236,
+    "recall": 0.8764,
+    "precision": 0.9574,
+    "macro_f1": 0.9089,
+    "f1": 0.9151,
+    "accuracy": 0.9093,
+    "roc_auc": 0.9781,
+    "pr_auc": 0.9834,
+    "mcc": 0.8219,
+    "brier": 0.0769,
+    "ece": 0.0748
+   },
+   "general": {
+    "n": 12000,
+    "n_human": 6000,
+    "n_machine": 6000,
+    "threshold": 0.9566,
+    "fpr": 0.04,
+    "fnr": 0.156,
+    "recall": 0.844,
+    "precision": 0.9548,
+    "macro_f1": 0.9017,
+    "f1": 0.896,
+    "accuracy": 0.902,
+    "roc_auc": 0.9739,
+    "pr_auc": 0.9756,
+    "mcc": 0.8095,
+    "brier": 0.0861,
+    "ece": 0.086
+   },
+   "spanish": {
+    "n": 4190,
+    "n_human": 2199,
+    "n_machine": 1991,
+    "threshold": 0.9566,
+    "fpr": 0.0314,
+    "fnr": 0.107,
+    "recall": 0.893,
+    "precision": 0.9626,
+    "macro_f1": 0.9322,
+    "f1": 0.9265,
+    "accuracy": 0.9327,
+    "roc_auc": 0.9858,
+    "pr_auc": 0.9852,
+    "mcc": 0.8667,
+    "brier": 0.0639,
+    "ece": 0.0736
+   },
+   "academic": {
+    "n": 6972,
+    "n_human": 3382,
+    "n_machine": 3590,
+    "threshold": 0.9566,
+    "fpr": 0.0266,
+    "fnr": 0.0939,
+    "recall": 0.9061,
+    "precision": 0.9731,
+    "macro_f1": 0.9388,
+    "f1": 0.9384,
+    "accuracy": 0.9388,
+    "roc_auc": 0.9876,
+    "pr_auc": 0.9896,
+    "mcc": 0.8799,
+    "brier": 0.0615,
+    "ece": 0.0661
+   },
+   "mixed": {
+    "n": 2199,
+    "n_human": 699,
+    "n_machine": 1500,
+    "threshold": 0.9566,
+    "fpr": 0.0501,
+    "fnr": 0.1807,
+    "recall": 0.8193,
+    "precision": 0.9723,
+    "macro_f1": 0.851,
+    "f1": 0.8893,
+    "accuracy": 0.8608,
+    "roc_auc": 0.9598,
+    "pr_auc": 0.9818,
+    "mcc": 0.7246,
+    "brier": 0.0822,
+    "ece": 0.0631
+   },
+   "ai_edited": {
+    "n": 2250,
+    "n_human": 750,
+    "n_machine": 1500,
+    "threshold": 0.9566,
+    "fpr": 0.0173,
+    "fnr": 0.0893,
+    "recall": 0.9107,
+    "precision": 0.9906,
+    "macro_f1": 0.9291,
+    "f1": 0.9489,
+    "accuracy": 0.9347,
+    "roc_auc": 0.9939,
+    "pr_auc": 0.9966,
+    "mcc": 0.8646,
+    "brier": 0.0286,
+    "ece": 0.0209
+   },
+   "ood": {
+    "n": 2000,
+    "n_human": 1000,
+    "n_machine": 1000,
+    "threshold": 0.9566,
+    "fpr": 0.029,
+    "fnr": 0.125,
+    "recall": 0.875,
+    "precision": 0.9679,
+    "macro_f1": 0.9228,
+    "f1": 0.9191,
+    "accuracy": 0.923,
+    "roc_auc": 0.9679,
+    "pr_auc": 0.976,
+    "mcc": 0.8499,
+    "brier": 0.0975,
+    "ece": 0.1021
+   },
+   "unseen_generator": {
+    "n": 3000,
+    "n_human": 1500,
+    "n_machine": 1500,
+    "threshold": 0.9566,
+    "fpr": 0.0213,
+    "fnr": 0.024,
+    "recall": 0.976,
+    "precision": 0.9786,
+    "macro_f1": 0.9773,
+    "f1": 0.9773,
+    "accuracy": 0.9773,
+    "roc_auc": 0.9975,
+    "pr_auc": 0.9974,
+    "mcc": 0.9547,
+    "brier": 0.0244,
+    "ece": 0.0364
+   },
+   "unseen_domain": {
+    "n": 1541,
+    "n_human": 541,
+    "n_machine": 1000,
+    "threshold": 0.9566,
+    "fpr": 0.4251,
+    "fnr": 0.273,
+    "recall": 0.727,
+    "precision": 0.7597,
+    "macro_f1": 0.6479,
+    "f1": 0.743,
+    "accuracy": 0.6736,
+    "roc_auc": 0.7345,
+    "pr_auc": 0.8515,
+    "mcc": 0.297,
+    "brier": 0.2741,
+    "ece": 0.2542
+   },
+   "adversarial": {
+    "n": 1500,
+    "n_human": 0,
+    "n_machine": 1500,
+    "threshold": 0.9566,
+    "fpr": null,
+    "fnr": 0.028,
+    "recall": 0.972,
+    "precision": 1.0,
+    "macro_f1": null
+   },
+   "hard_human": {
+    "n": 2024,
+    "n_human": 2024,
+    "n_machine": 0,
+    "threshold": 0.9566,
+    "fpr": 0.3276,
+    "fnr": null,
+    "recall": null,
+    "precision": 0.0,
+    "macro_f1": null
+   }
+  },
+  "selection": {
+   "score": 0.5903,
+   "positive": 0.9155,
+   "penalty": 0.3251,
+   "eligible": true,
+   "terms": {
+    "general_macro_f1": 0.9017,
+    "spanish_macro_f1": 0.9322,
+    "academic_macro_f1": 0.9388,
+    "mixed_recall": 0.8193,
+    "ai_edited_macro_f1": 0.9291,
+    "ood_macro_f1": 0.9228,
+    "unseen_generator_recall": 0.976
+   },
+   "fprs": {
+    "fpr_all_humans": 0.0491,
+    "spanish_fpr": 0.0314,
+    "academic_fpr": 0.0266,
+    "unseen_generator_fpr": 0.0213,
+    "ood_fpr": 0.029,
+    "unseen_domain_fpr": 0.4251
+   }
+  }
+ },
+ "runs": [
+  {
+   "run": "A1_h0.4_r0.3_ce",
+   "stage": "ablation",
+   "config": {
+    "windows": 150000,
+    "human_share": 0.4,
+    "hard_ratio": 0.3,
+    "es_w": 3.0,
+    "aca_w": 1.25,
+    "para_frac": 0.25,
+    "emphasis": false,
+    "loss": "ce",
+    "human_weight": 1.0,
+    "focal_gamma": 1.0,
+    "lr": 0.0,
+    "epochs": 1,
+    "seed": 6006,
+    "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+   },
+   "best_step": 1547,
+   "selection": {
+    "score": 0.5784,
+    "positive": 0.9183,
+    "penalty": 0.3399,
+    "eligible": true,
+    "terms": {
+     "general_macro_f1": 0.9046,
+     "spanish_macro_f1": 0.9291,
+     "academic_macro_f1": 0.937,
+     "mixed_recall": 0.8313,
+     "ai_edited_macro_f1": 0.9392,
+     "ood_macro_f1": 0.9248,
+     "unseen_generator_recall": 0.976
+    },
+    "fprs": {
+     "fpr_all_humans": 0.0493,
+     "spanish_fpr": 0.0341,
+     "academic_fpr": 0.0281,
+     "unseen_generator_fpr": 0.016,
+     "ood_fpr": 0.026,
+     "unseen_domain_fpr": 0.4399
+    }
+   },
+   "threshold_general_fpr_0.04": 0.9579,
+   "subsets": {
+    "all": {
+     "n": 30490,
+     "n_human": 13490,
+     "fpr": 0.0493,
+     "recall": 0.8829,
+     "macro_f1": 0.9125,
+     "roc_auc": 0.9791
+    },
+    "general": {
+     "n": 12000,
+     "n_human": 6000,
+     "fpr": 0.0397,
+     "recall": 0.8495,
+     "macro_f1": 0.9046,
+     "roc_auc": 0.9755
+    },
+    "spanish": {
+     "n": 4190,
+     "n_human": 2199,
+     "fpr": 0.0341,
+     "recall": 0.8895,
+     "macro_f1": 0.9291,
+     "roc_auc": 0.9852
+    },
+    "academic": {
+     "n": 6972,
+     "n_human": 3382,
+     "fpr": 0.0281,
+     "recall": 0.9042,
+     "macro_f1": 0.937,
+     "roc_auc": 0.9875
+    },
+    "mixed": {
+     "n": 2199,
+     "n_human": 699,
+     "fpr": 0.0486,
+     "recall": 0.8313,
+     "macro_f1": 0.8597,
+     "roc_auc": 0.9642
+    },
+    "ai_edited": {
+     "n": 2250,
+     "n_human": 750,
+     "fpr": 0.024,
+     "recall": 0.9287,
+     "macro_f1": 0.9392,
+     "roc_auc": 0.994
+    },
+    "ood": {
+     "n": 2000,
+     "n_human": 1000,
+     "fpr": 0.026,
+     "recall": 0.876,
+     "macro_f1": 0.9248,
+     "roc_auc": 0.9678
+    },
+    "unseen_generator": {
+     "n": 3000,
+     "n_human": 1500,
+     "fpr": 0.016,
+     "recall": 0.976,
+     "macro_f1": 0.98,
+     "roc_auc": 0.9979
+    },
+    "unseen_domain": {
+     "n": 1541,
+     "n_human": 541,
+     "fpr": 0.4399,
+     "recall": 0.744,
+     "macro_f1": 0.6508,
+     "roc_auc": 0.7463
+    },
+    "adversarial": {
+     "n": 1500,
+     "n_human": 0,
+     "fpr": null,
+     "recall": 0.9813,
+     "macro_f1": null,
+     "roc_auc": null
+    },
+    "hard_human": {
+     "n": 2024,
+     "n_human": 2024,
+     "fpr": 0.3261,
+     "recall": null,
+     "macro_f1": null,
+     "roc_auc": null
+    }
+   },
+   "train_minutes": 20.7,
+   "windows_per_sec": 119.6,
+   "sample_audit": {
+    "training_windows": 148419,
+    "human_share_windows": 0.3623,
+    "hard_share_of_human_windows": 0.189,
+    "paragraph_share": 0.2222
+   }
+  },
+  {
+   "run": "A1_h0.5_r0.3_ce",
+   "stage": "ablation",
+   "config": {
+    "windows": 150000,
+    "human_share": 0.5,
+    "hard_ratio": 0.3,
+    "es_w": 3.0,
+    "aca_w": 1.25,
+    "para_frac": 0.25,
+    "emphasis": false,
+    "loss": "ce",
+    "human_weight": 1.0,
+    "focal_gamma": 1.0,
+    "lr": 0.0,
+    "epochs": 1,
+    "seed": 6006,
+    "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+   },
+   "best_step": 1551,
+   "selection": {
+    "score": 0.5145,
+    "positive": 0.9168,
+    "penalty": 0.4023,
+    "eligible": false,
+    "terms": {
+     "general_macro_f1": 0.903,
+     "spanish_macro_f1": 0.9262,
+     "academic_macro_f1": 0.9344,
+     "mixed_recall": 0.8293,
+     "ai_edited_macro_f1": 0.9401,
+     "ood_macro_f1": 0.9274,
+     "unseen_generator_recall": 0.9733
+    },
+    "fprs": {
+     "fpr_all_humans": 0.0526,
+     "spanish_fpr": 0.0341,
+     "academic_fpr": 0.0299,
+     "unseen_generator_fpr": 0.0153,
+     "ood_fpr": 0.032,
+     "unseen_domain_fpr": 0.4972
+    }
+   },
+   "threshold_general_fpr_0.04": 0.9433,
+   "subsets": {
+    "all": {
+     "n": 30490,
+     "n_human": 13490,
+     "fpr": 0.0526,
+     "recall": 0.8826,
+     "macro_f1": 0.9108,
+     "roc_auc": 0.9786
+    },
+    "general": {
+     "n": 12000,
+     "n_human": 6000,
+     "fpr": 0.04,
+     "recall": 0.8467,
+     "macro_f1": 0.903,
+     "roc_auc": 0.9758
+    },
+    "spanish": {
+     "n": 4190,
+     "n_human": 2199,
+     "fpr": 0.0341,
+     "recall": 0.8835,
+     "macro_f1": 0.9262,
+     "roc_auc": 0.9851
+    },
+    "academic": {
+     "n": 6972,
+     "n_human": 3382,
+     "fpr": 0.0299,
+     "recall": 0.9008,
+     "macro_f1": 0.9344,
+     "roc_auc": 0.9872
+    },
+    "mixed": {
+     "n": 2199,
+     "n_human": 699,
+     "fpr": 0.0472,
+     "recall": 0.8293,
+     "macro_f1": 0.8588,
+     "roc_auc": 0.9637
+    },
+    "ai_edited": {
+     "n": 2250,
+     "n_human": 750,
+     "fpr": 0.0253,
+     "recall": 0.9307,
+     "macro_f1": 0.9401,
+     "roc_auc": 0.9938
+    },
+    "ood": {
+     "n": 2000,
+     "n_human": 1000,
+     "fpr": 0.032,
+     "recall": 0.887,
+     "macro_f1": 0.9274,
+     "roc_auc": 0.9673
+    },
+    "unseen_generator": {
+     "n": 3000,
+     "n_human": 1500,
+     "fpr": 0.0153,
+     "recall": 0.9733,
+     "macro_f1": 0.979,
+     "roc_auc": 0.9978
+    },
+    "unseen_domain": {
+     "n": 1541,
+     "n_human": 541,
+     "fpr": 0.4972,
+     "recall": 0.759,
+     "macro_f1": 0.6323,
+     "roc_auc": 0.7235
+    },
+    "adversarial": {
+     "n": 1500,
+     "n_human": 0,
+     "fpr": null,
+     "recall": 0.9807,
+     "macro_f1": null,
+     "roc_auc": null
+    },
+    "hard_human": {
+     "n": 2024,
+     "n_human": 2024,
+     "fpr": 0.3478,
+     "recall": null,
+     "macro_f1": null,
+     "roc_auc": null
+    }
+   },
+   "train_minutes": 20.8,
+   "windows_per_sec": 119.2,
+   "sample_audit": {
+    "training_windows": 148891,
+    "human_share_windows": 0.4446,
+    "hard_share_of_human_windows": 0.1843,
+    "paragraph_share": 0.2207
+   }
+  },
+  {
+   "run": "A1_h0.6_r0.3_ce",
+   "stage": "ablation",
+   "config": {
+    "windows": 150000,
+    "human_share": 0.6,
+    "hard_ratio": 0.3,
+    "es_w": 3.0,
+    "aca_w": 1.25,
+    "para_frac": 0.25,
+    "emphasis": false,
+    "loss": "ce",
+    "human_weight": 1.0,
+    "focal_gamma": 1.0,
+    "lr": 0.0,
+    "epochs": 1,
+    "seed": 6006,
+    "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+   },
+   "best_step": 1555,
+   "selection": {
+    "score": 0.5076,
+    "positive": 0.9151,
+    "penalty": 0.4075,
+    "eligible": false,
+    "terms": {
+     "general_macro_f1": 0.9015,
+     "spanish_macro_f1": 0.9238,
+     "academic_macro_f1": 0.9329,
+     "mixed_recall": 0.83,
+     "ai_edited_macro_f1": 0.9393,
+     "ood_macro_f1": 0.9248,
+     "unseen_generator_recall": 0.9693
+    },
+    "fprs": {
+     "fpr_all_humans": 0.0533,
+     "spanish_fpr": 0.04,
+     "academic_fpr": 0.031,
+     "unseen_generator_fpr": 0.0147,
+     "ood_fpr": 0.028,
+     "unseen_domain_fpr": 0.5009
+    }
+   },
+   "threshold_general_fpr_0.04": 0.9334,
+   "subsets": {
+    "all": {
+     "n": 30490,
+     "n_human": 13490,
+     "fpr": 0.0533,
+     "recall": 0.8795,
+     "macro_f1": 0.9087,
+     "roc_auc": 0.9783
+    },
+    "general": {
+     "n": 12000,
+     "n_human": 6000,
+     "fpr": 0.0398,
+     "recall": 0.8435,
+     "macro_f1": 0.9015,
+     "roc_auc": 0.9751
+    },
+    "spanish": {
+     "n": 4190,
+     "n_human": 2199,
+     "fpr": 0.04,
+     "recall": 0.885,
+     "macro_f1": 0.9238,
+     "roc_auc": 0.9832
+    },
+    "academic": {
+     "n": 6972,
+     "n_human": 3382,
+     "fpr": 0.031,
+     "recall": 0.8989,
+     "macro_f1": 0.9329,
+     "roc_auc": 0.9868
+    },
+    "mixed": {
+     "n": 2199,
+     "n_human": 699,
+     "fpr": 0.0544,
+     "recall": 0.83,
+     "macro_f1": 0.8566,
+     "roc_auc": 0.964
+    },
+    "ai_edited": {
+     "n": 2250,
+     "n_human": 750,
+     "fpr": 0.02,
+     "recall": 0.9267,
+     "macro_f1": 0.9393,
+     "roc_auc": 0.9939
+    },
+    "ood": {
+     "n": 2000,
+     "n_human": 1000,
+     "fpr": 0.028,
+     "recall": 0.878,
+     "macro_f1": 0.9248,
+     "roc_auc": 0.9699
+    },
+    "unseen_generator": {
+     "n": 3000,
+     "n_human": 1500,
+     "fpr": 0.0147,
+     "recall": 0.9693,
+     "macro_f1": 0.9773,
+     "roc_auc": 0.9978
+    },
+    "unseen_domain": {
+     "n": 1541,
+     "n_human": 541,
+     "fpr": 0.5009,
+     "recall": 0.755,
+     "macro_f1": 0.6283,
+     "roc_auc": 0.7237
+    },
+    "adversarial": {
+     "n": 1500,
+     "n_human": 0,
+     "fpr": null,
+     "recall": 0.978,
+     "macro_f1": null,
+     "roc_auc": null
+    },
+    "hard_human": {
+     "n": 2024,
+     "n_human": 2024,
+     "fpr": 0.3513,
+     "recall": null,
+     "macro_f1": null,
+     "roc_auc": null
+    }
+   },
+   "train_minutes": 20.9,
+   "windows_per_sec": 118.8,
+   "sample_audit": {
+    "training_windows": 149261,
+    "human_share_windows": 0.5316,
+    "hard_share_of_human_windows": 0.1798,
+    "paragraph_share": 0.22
+   }
+  },
+  {
+   "run": "A2_h0.4_r0.2_ce",
+   "stage": "ablation",
+   "config": {
+    "windows": 150000,
+    "human_share": 0.4,
+    "hard_ratio": 0.2,
+    "es_w": 3.0,
+    "aca_w": 1.25,
+    "para_frac": 0.25,
+    "emphasis": false,
+    "loss": "ce",
+    "human_weight": 1.0,
+    "focal_gamma": 1.0,
+    "lr": 0.0,
+    "epochs": 1,
+    "seed": 6006,
+    "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+   },
+   "best_step": 1550,
+   "selection": {
+    "score": 0.5596,
+    "positive": 0.9126,
+    "penalty": 0.353,
+    "eligible": false,
+    "terms": {
+     "general_macro_f1": 0.898,
+     "spanish_macro_f1": 0.925,
+     "academic_macro_f1": 0.9301,
+     "mixed_recall": 0.8213,
+     "ai_edited_macro_f1": 0.9397,
+     "ood_macro_f1": 0.9188,
+     "unseen_generator_recall": 0.9713
+    },
+    "fprs": {
+     "fpr_all_humans": 0.051,
+     "spanish_fpr": 0.0377,
+     "academic_fpr": 0.0263,
+     "unseen_generator_fpr": 0.014,
+     "ood_fpr": 0.033,
+     "unseen_domain_fpr": 0.451
+    }
+   },
+   "threshold_general_fpr_0.04": 0.9696,
+   "subsets": {
+    "all": {
+     "n": 30490,
+     "n_human": 13490,
+     "fpr": 0.051,
+     "recall": 0.8741,
+     "macro_f1": 0.9068,
+     "roc_auc": 0.9775
+    },
+    "general": {
+     "n": 12000,
+     "n_human": 6000,
+     "fpr": 0.04,
+     "recall": 0.8368,
+     "macro_f1": 0.898,
+     "roc_auc": 0.9735
+    },
+    "spanish": {
+     "n": 4190,
+     "n_human": 2199,
+     "fpr": 0.0377,
+     "recall": 0.885,
+     "macro_f1": 0.925,
+     "roc_auc": 0.9841
+    },
+    "academic": {
+     "n": 6972,
+     "n_human": 3382,
+     "fpr": 0.0263,
+     "recall": 0.8891,
+     "macro_f1": 0.9301,
+     "roc_auc": 0.987
+    },
+    "mixed": {
+     "n": 2199,
+     "n_human": 699,
+     "fpr": 0.0544,
+     "recall": 0.8213,
+     "macro_f1": 0.8508,
+     "roc_auc": 0.9616
+    },
+    "ai_edited": {
+     "n": 2250,
+     "n_human": 750,
+     "fpr": 0.0213,
+     "recall": 0.928,
+     "macro_f1": 0.9397,
+     "roc_auc": 0.9933
+    },
+    "ood": {
+     "n": 2000,
+     "n_human": 1000,
+     "fpr": 0.033,
+     "recall": 0.871,
+     "macro_f1": 0.9188,
+     "roc_auc": 0.9659
+    },
+    "unseen_generator": {
+     "n": 3000,
+     "n_human": 1500,
+     "fpr": 0.014,
+     "recall": 0.9713,
+     "macro_f1": 0.9787,
+     "roc_auc": 0.9978
+    },
+    "unseen_domain": {
+     "n": 1541,
+     "n_human": 541,
+     "fpr": 0.451,
+     "recall": 0.73,
+     "macro_f1": 0.6379,
+     "roc_auc": 0.7271
+    },
+    "adversarial": {
+     "n": 1500,
+     "n_human": 0,
+     "fpr": null,
+     "recall": 0.9793,
+     "macro_f1": null,
+     "roc_auc": null
+    },
+    "hard_human": {
+     "n": 2024,
+     "n_human": 2024,
+     "fpr": 0.3375,
+     "recall": null,
+     "macro_f1": null,
+     "roc_auc": null
+    }
+   },
+   "train_minutes": 20.8,
+   "windows_per_sec": 119.1,
+   "sample_audit": {
+    "training_windows": 148774,
+    "human_share_windows": 0.3728,
+    "hard_share_of_human_windows": 0.1325,
+    "paragraph_share": 0.222
+   }
+  },
+  {
+   "run": "A2_h0.4_r0.4_ce",
+   "stage": "ablation",
+   "config": {
+    "windows": 150000,
+    "human_share": 0.4,
+    "hard_ratio": 0.4,
+    "es_w": 3.0,
+    "aca_w": 1.25,
+    "para_frac": 0.25,
+    "emphasis": false,
+    "loss": "ce",
+    "human_weight": 1.0,
+    "focal_gamma": 1.0,
+    "lr": 0.0,
+    "epochs": 1,
+    "seed": 6006,
+    "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+   },
+   "best_step": 1542,
+   "selection": {
+    "score": 0.5217,
+    "positive": 0.9144,
+    "penalty": 0.3927,
+    "eligible": false,
+    "terms": {
+     "general_macro_f1": 0.9027,
+     "spanish_macro_f1": 0.9233,
+     "academic_macro_f1": 0.9339,
+     "mixed_recall": 0.8267,
+     "ai_edited_macro_f1": 0.9368,
+     "ood_macro_f1": 0.9264,
+     "unseen_generator_recall": 0.9667
+    },
+    "fprs": {
+     "fpr_all_humans": 0.0514,
+     "spanish_fpr": 0.0377,
+     "academic_fpr": 0.0266,
+     "unseen_generator_fpr": 0.0133,
+     "ood_fpr": 0.032,
+     "unseen_domain_fpr": 0.4898
+    }
+   },
+   "threshold_general_fpr_0.04": 0.954,
+   "subsets": {
+    "all": {
+     "n": 30490,
+     "n_human": 13490,
+     "fpr": 0.0514,
+     "recall": 0.8799,
+     "macro_f1": 0.9098,
+     "roc_auc": 0.9785
+    },
+    "general": {
+     "n": 12000,
+     "n_human": 6000,
+     "fpr": 0.04,
+     "recall": 0.846,
+     "macro_f1": 0.9027,
+     "roc_auc": 0.9757
+    },
+    "spanish": {
+     "n": 4190,
+     "n_human": 2199,
+     "fpr": 0.0377,
+     "recall": 0.8815,
+     "macro_f1": 0.9233,
+     "roc_auc": 0.9838
+    },
+    "academic": {
+     "n": 6972,
+     "n_human": 3382,
+     "fpr": 0.0266,
+     "recall": 0.8967,
+     "macro_f1": 0.9339,
+     "roc_auc": 0.9876
+    },
+    "mixed": {
+     "n": 2199,
+     "n_human": 699,
+     "fpr": 0.0415,
+     "recall": 0.8267,
+     "macro_f1": 0.8591,
+     "roc_auc": 0.9644
+    },
+    "ai_edited": {
+     "n": 2250,
+     "n_human": 750,
+     "fpr": 0.0267,
+     "recall": 0.9267,
+     "macro_f1": 0.9368,
+     "roc_auc": 0.9935
+    },
+    "ood": {
+     "n": 2000,
+     "n_human": 1000,
+     "fpr": 0.032,
+     "recall": 0.885,
+     "macro_f1": 0.9264,
+     "roc_auc": 0.9692
+    },
+    "unseen_generator": {
+     "n": 3000,
+     "n_human": 1500,
+     "fpr": 0.0133,
+     "recall": 0.9667,
+     "macro_f1": 0.9767,
+     "roc_auc": 0.9976
+    },
+    "unseen_domain": {
+     "n": 1541,
+     "n_human": 541,
+     "fpr": 0.4898,
+     "recall": 0.744,
+     "macro_f1": 0.6276,
+     "roc_auc": 0.7141
+    },
+    "adversarial": {
+     "n": 1500,
+     "n_human": 0,
+     "fpr": null,
+     "recall": 0.9807,
+     "macro_f1": null,
+     "roc_auc": null
+    },
+    "hard_human": {
+     "n": 2024,
+     "n_human": 2024,
+     "fpr": 0.3409,
+     "recall": null,
+     "macro_f1": null,
+     "roc_auc": null
+    }
+   },
+   "train_minutes": 20.5,
+   "windows_per_sec": 120.2,
+   "sample_audit": {
+    "training_windows": 147990,
+    "human_share_windows": 0.3487,
+    "hard_share_of_human_windows": 0.2449,
+    "paragraph_share": 0.2225
+   }
+  },
+  {
+   "run": "A3_h0.4_r0.3_focal1",
+   "stage": "ablation",
+   "config": {
+    "windows": 150000,
+    "human_share": 0.4,
+    "hard_ratio": 0.3,
+    "es_w": 3.0,
+    "aca_w": 1.25,
+    "para_frac": 0.25,
+    "emphasis": false,
+    "loss": "focal",
+    "human_weight": 1.0,
+    "focal_gamma": 1.0,
+    "lr": 0.0,
+    "epochs": 1,
+    "seed": 6006,
+    "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+   },
+   "best_step": 1547,
+   "selection": {
+    "score": 0.5511,
+    "positive": 0.9212,
+    "penalty": 0.3701,
+    "eligible": false,
+    "terms": {
+     "general_macro_f1": 0.904,
+     "spanish_macro_f1": 0.9279,
+     "academic_macro_f1": 0.9342,
+     "mixed_recall": 0.8507,
+     "ai_edited_macro_f1": 0.9435,
+     "ood_macro_f1": 0.9264,
+     "unseen_generator_recall": 0.9767
+    },
+    "fprs": {
+     "fpr_all_humans": 0.0512,
+     "spanish_fpr": 0.0341,
+     "academic_fpr": 0.029,
+     "unseen_generator_fpr": 0.0153,
+     "ood_fpr": 0.03,
+     "unseen_domain_fpr": 0.4677
+    }
+   },
+   "threshold_general_fpr_0.04": 0.8516,
+   "subsets": {
+    "all": {
+     "n": 30490,
+     "n_human": 13490,
+     "fpr": 0.0512,
+     "recall": 0.8849,
+     "macro_f1": 0.9127,
+     "roc_auc": 0.9791
+    },
+    "general": {
+     "n": 12000,
+     "n_human": 6000,
+     "fpr": 0.04,
+     "recall": 0.8485,
+     "macro_f1": 0.904,
+     "roc_auc": 0.9754
+    },
+    "spanish": {
+     "n": 4190,
+     "n_human": 2199,
+     "fpr": 0.0341,
+     "recall": 0.887,
+     "macro_f1": 0.9279,
+     "roc_auc": 0.9848
+    },
+    "academic": {
+     "n": 6972,
+     "n_human": 3382,
+     "fpr": 0.029,
+     "recall": 0.8994,
+     "macro_f1": 0.9342,
+     "roc_auc": 0.9873
+    },
+    "mixed": {
+     "n": 2199,
+     "n_human": 699,
+     "fpr": 0.0529,
+     "recall": 0.8507,
+     "macro_f1": 0.8713,
+     "roc_auc": 0.966
+    },
+    "ai_edited": {
+     "n": 2250,
+     "n_human": 750,
+     "fpr": 0.02,
+     "recall": 0.9327,
+     "macro_f1": 0.9435,
+     "roc_auc": 0.9941
+    },
+    "ood": {
+     "n": 2000,
+     "n_human": 1000,
+     "fpr": 0.03,
+     "recall": 0.883,
+     "macro_f1": 0.9264,
+     "roc_auc": 0.9684
+    },
+    "unseen_generator": {
+     "n": 3000,
+     "n_human": 1500,
+     "fpr": 0.0153,
+     "recall": 0.9767,
+     "macro_f1": 0.9807,
+     "roc_auc": 0.9977
+    },
+    "unseen_domain": {
+     "n": 1541,
+     "n_human": 541,
+     "fpr": 0.4677,
+     "recall": 0.749,
+     "macro_f1": 0.6408,
+     "roc_auc": 0.7374
+    },
+    "adversarial": {
+     "n": 1500,
+     "n_human": 0,
+     "fpr": null,
+     "recall": 0.98,
+     "macro_f1": null,
+     "roc_auc": null
+    },
+    "hard_human": {
+     "n": 2024,
+     "n_human": 2024,
+     "fpr": 0.3379,
+     "recall": null,
+     "macro_f1": null,
+     "roc_auc": null
+    }
+   },
+   "train_minutes": 20.7,
+   "windows_per_sec": 119.6,
+   "sample_audit": {
+    "training_windows": 148419,
+    "human_share_windows": 0.3623,
+    "hard_share_of_human_windows": 0.189,
+    "paragraph_share": 0.2222
+   }
+  },
+  {
+   "run": "A3_h0.4_r0.3_w1.5",
+   "stage": "ablation",
+   "config": {
+    "windows": 150000,
+    "human_share": 0.4,
+    "hard_ratio": 0.3,
+    "es_w": 3.0,
+    "aca_w": 1.25,
+    "para_frac": 0.25,
+    "emphasis": false,
+    "loss": "weighted",
+    "human_weight": 1.5,
+    "focal_gamma": 1.0,
+    "lr": 0.0,
+    "epochs": 1,
+    "seed": 6006,
+    "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+   },
+   "best_step": 1547,
+   "selection": {
+    "score": 0.5984,
+    "positive": 0.9179,
+    "penalty": 0.3196,
+    "eligible": true,
+    "terms": {
+     "general_macro_f1": 0.9037,
+     "spanish_macro_f1": 0.9279,
+     "academic_macro_f1": 0.9342,
+     "mixed_recall": 0.8327,
+     "ai_edited_macro_f1": 0.9397,
+     "ood_macro_f1": 0.9274,
+     "unseen_generator_recall": 0.9753
+    },
+    "fprs": {
+     "fpr_all_humans": 0.0489,
+     "spanish_fpr": 0.0346,
+     "academic_fpr": 0.0296,
+     "unseen_generator_fpr": 0.014,
+     "ood_fpr": 0.028,
+     "unseen_domain_fpr": 0.4196
+    }
+   },
+   "threshold_general_fpr_0.04": 0.9372,
+   "subsets": {
+    "all": {
+     "n": 30490,
+     "n_human": 13490,
+     "fpr": 0.0489,
+     "recall": 0.8821,
+     "macro_f1": 0.9122,
+     "roc_auc": 0.9794
+    },
+    "general": {
+     "n": 12000,
+     "n_human": 6000,
+     "fpr": 0.04,
+     "recall": 0.848,
+     "macro_f1": 0.9037,
+     "roc_auc": 0.9759
+    },
+    "spanish": {
+     "n": 4190,
+     "n_human": 2199,
+     "fpr": 0.0346,
+     "recall": 0.8875,
+     "macro_f1": 0.9279,
+     "roc_auc": 0.985
+    },
+    "academic": {
+     "n": 6972,
+     "n_human": 3382,
+     "fpr": 0.0296,
+     "recall": 0.9,
+     "macro_f1": 0.9342,
+     "roc_auc": 0.9876
+    },
+    "mixed": {
+     "n": 2199,
+     "n_human": 699,
+     "fpr": 0.0515,
+     "recall": 0.8327,
+     "macro_f1": 0.8595,
+     "roc_auc": 0.9648
+    },
+    "ai_edited": {
+     "n": 2250,
+     "n_human": 750,
+     "fpr": 0.024,
+     "recall": 0.9293,
+     "macro_f1": 0.9397,
+     "roc_auc": 0.9942
+    },
+    "ood": {
+     "n": 2000,
+     "n_human": 1000,
+     "fpr": 0.028,
+     "recall": 0.883,
+     "macro_f1": 0.9274,
+     "roc_auc": 0.9688
+    },
+    "unseen_generator": {
+     "n": 3000,
+     "n_human": 1500,
+     "fpr": 0.014,
+     "recall": 0.9753,
+     "macro_f1": 0.9807,
+     "roc_auc": 0.9979
+    },
+    "unseen_domain": {
+     "n": 1541,
+     "n_human": 541,
+     "fpr": 0.4196,
+     "recall": 0.734,
+     "macro_f1": 0.6544,
+     "roc_auc": 0.7482
+    },
+    "adversarial": {
+     "n": 1500,
+     "n_human": 0,
+     "fpr": null,
+     "recall": 0.9813,
+     "macro_f1": null,
+     "roc_auc": null
+    },
+    "hard_human": {
+     "n": 2024,
+     "n_human": 2024,
+     "fpr": 0.3236,
+     "recall": null,
+     "macro_f1": null,
+     "roc_auc": null
+    }
+   },
+   "train_minutes": 20.7,
+   "windows_per_sec": 119.6,
+   "sample_audit": {
+    "training_windows": 148419,
+    "human_share_windows": 0.3623,
+    "hard_share_of_human_windows": 0.189,
+    "paragraph_share": 0.2222
+   }
+  },
+  {
+   "run": "A3_h0.4_r0.3_w2.0",
+   "stage": "ablation",
+   "config": {
+    "windows": 150000,
+    "human_share": 0.4,
+    "hard_ratio": 0.3,
+    "es_w": 3.0,
+    "aca_w": 1.25,
+    "para_frac": 0.25,
+    "emphasis": false,
+    "loss": "weighted",
+    "human_weight": 2.0,
+    "focal_gamma": 1.0,
+    "lr": 0.0,
+    "epochs": 1,
+    "seed": 6006,
+    "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+   },
+   "best_step": 1547,
+   "selection": {
+    "score": 0.588,
+    "positive": 0.9206,
+    "penalty": 0.3326,
+    "eligible": false,
+    "terms": {
+     "general_macro_f1": 0.906,
+     "spanish_macro_f1": 0.9308,
+     "academic_macro_f1": 0.9373,
+     "mixed_recall": 0.8367,
+     "ai_edited_macro_f1": 0.9383,
+     "ood_macro_f1": 0.9274,
+     "unseen_generator_recall": 0.9807
+    },
+    "fprs": {
+     "fpr_all_humans": 0.05,
+     "spanish_fpr": 0.0359,
+     "academic_fpr": 0.0278,
+     "unseen_generator_fpr": 0.0153,
+     "ood_fpr": 0.03,
+     "unseen_domain_fpr": 0.4325
+    }
+   },
+   "threshold_general_fpr_0.04": 0.9112,
+   "subsets": {
+    "all": {
+     "n": 30490,
+     "n_human": 13490,
+     "fpr": 0.05,
+     "recall": 0.8858,
+     "macro_f1": 0.9137,
+     "roc_auc": 0.9793
+    },
+    "general": {
+     "n": 12000,
+     "n_human": 6000,
+     "fpr": 0.04,
+     "recall": 0.8525,
+     "macro_f1": 0.906,
+     "roc_auc": 0.9757
+    },
+    "spanish": {
+     "n": 4190,
+     "n_human": 2199,
+     "fpr": 0.0359,
+     "recall": 0.895,
+     "macro_f1": 0.9308,
+     "roc_auc": 0.9852
+    },
+    "academic": {
+     "n": 6972,
+     "n_human": 3382,
+     "fpr": 0.0278,
+     "recall": 0.9045,
+     "macro_f1": 0.9373,
+     "roc_auc": 0.9874
+    },
+    "mixed": {
+     "n": 2199,
+     "n_human": 699,
+     "fpr": 0.0501,
+     "recall": 0.8367,
+     "macro_f1": 0.8628,
+     "roc_auc": 0.965
+    },
+    "ai_edited": {
+     "n": 2250,
+     "n_human": 750,
+     "fpr": 0.024,
+     "recall": 0.9273,
+     "macro_f1": 0.9383,
+     "roc_auc": 0.994
+    },
+    "ood": {
+     "n": 2000,
+     "n_human": 1000,
+     "fpr": 0.03,
+     "recall": 0.885,
+     "macro_f1": 0.9274,
+     "roc_auc": 0.9692
+    },
+    "unseen_generator": {
+     "n": 3000,
+     "n_human": 1500,
+     "fpr": 0.0153,
+     "recall": 0.9807,
+     "macro_f1": 0.9827,
+     "roc_auc": 0.9979
+    },
+    "unseen_domain": {
+     "n": 1541,
+     "n_human": 541,
+     "fpr": 0.4325,
+     "recall": 0.74,
+     "macro_f1": 0.6519,
+     "roc_auc": 0.7444
+    },
+    "adversarial": {
+     "n": 1500,
+     "n_human": 0,
+     "fpr": null,
+     "recall": 0.9813,
+     "macro_f1": null,
+     "roc_auc": null
+    },
+    "hard_human": {
+     "n": 2024,
+     "n_human": 2024,
+     "fpr": 0.3315,
+     "recall": null,
+     "macro_f1": null,
+     "roc_auc": null
+    }
+   },
+   "train_minutes": 20.7,
+   "windows_per_sec": 119.4,
+   "sample_audit": {
+    "training_windows": 148419,
+    "human_share_windows": 0.3623,
+    "hard_share_of_human_windows": 0.189,
+    "paragraph_share": 0.2222
+   }
+  },
+  {
+   "run": "A4_aca1.5",
+   "stage": "ablation",
+   "config": {
+    "windows": 150000,
+    "human_share": 0.4,
+    "hard_ratio": 0.3,
+    "es_w": 3.0,
+    "aca_w": 1.5,
+    "para_frac": 0.25,
+    "emphasis": false,
+    "loss": "weighted",
+    "human_weight": 1.5,
+    "focal_gamma": 1.0,
+    "lr": 0.0,
+    "epochs": 1,
+    "seed": 6006,
+    "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+   },
+   "best_step": 1553,
+   "selection": {
+    "score": 0.6239,
+    "positive": 0.9157,
+    "penalty": 0.2919,
+    "eligible": true,
+    "terms": {
+     "general_macro_f1": 0.9023,
+     "spanish_macro_f1": 0.925,
+     "academic_macro_f1": 0.9357,
+     "mixed_recall": 0.828,
+     "ai_edited_macro_f1": 0.9407,
+     "ood_macro_f1": 0.9259,
+     "unseen_generator_recall": 0.9687
+    },
+    "fprs": {
+     "fpr_all_humans": 0.0477,
+     "spanish_fpr": 0.0355,
+     "academic_fpr": 0.0266,
+     "unseen_generator_fpr": 0.0127,
+     "ood_fpr": 0.036,
+     "unseen_domain_fpr": 0.3919
+    }
+   },
+   "threshold_general_fpr_0.04": 0.9425,
+   "subsets": {
+    "all": {
+     "n": 30490,
+     "n_human": 13490,
+     "fpr": 0.0477,
+     "recall": 0.8782,
+     "macro_f1": 0.9106,
+     "roc_auc": 0.9787
+    },
+    "general": {
+     "n": 12000,
+     "n_human": 6000,
+     "fpr": 0.0398,
+     "recall": 0.845,
+     "macro_f1": 0.9023,
+     "roc_auc": 0.9751
+    },
+    "spanish": {
+     "n": 4190,
+     "n_human": 2199,
+     "fpr": 0.0355,
+     "recall": 0.8825,
+     "macro_f1": 0.925,
+     "roc_auc": 0.9843
+    },
+    "academic": {
+     "n": 6972,
+     "n_human": 3382,
+     "fpr": 0.0266,
+     "recall": 0.9003,
+     "macro_f1": 0.9357,
+     "roc_auc": 0.9873
+    },
+    "mixed": {
+     "n": 2199,
+     "n_human": 699,
+     "fpr": 0.0429,
+     "recall": 0.828,
+     "macro_f1": 0.8595,
+     "roc_auc": 0.963
+    },
+    "ai_edited": {
+     "n": 2250,
+     "n_human": 750,
+     "fpr": 0.02,
+     "recall": 0.9287,
+     "macro_f1": 0.9407,
+     "roc_auc": 0.9938
+    },
+    "ood": {
+     "n": 2000,
+     "n_human": 1000,
+     "fpr": 0.036,
+     "recall": 0.888,
+     "macro_f1": 0.9259,
+     "roc_auc": 0.9696
+    },
+    "unseen_generator": {
+     "n": 3000,
+     "n_human": 1500,
+     "fpr": 0.0127,
+     "recall": 0.9687,
+     "macro_f1": 0.978,
+     "roc_auc": 0.998
+    },
+    "unseen_domain": {
+     "n": 1541,
+     "n_human": 541,
+     "fpr": 0.3919,
+     "recall": 0.705,
+     "macro_f1": 0.6502,
+     "roc_auc": 0.7309
+    },
+    "adversarial": {
+     "n": 1500,
+     "n_human": 0,
+     "fpr": null,
+     "recall": 0.9813,
+     "macro_f1": null,
+     "roc_auc": null
+    },
+    "hard_human": {
+     "n": 2024,
+     "n_human": 2024,
+     "fpr": 0.3152,
+     "recall": null,
+     "macro_f1": null,
+     "roc_auc": null
+    }
+   },
+   "train_minutes": 20.9,
+   "windows_per_sec": 118.9,
+   "sample_audit": {
+    "training_windows": 149043,
+    "human_share_windows": 0.3598,
+    "hard_share_of_human_windows": 0.1839,
+    "paragraph_share": 0.2216
+   }
+  },
+  {
+   "run": "A4_es2.0",
+   "stage": "ablation",
+   "config": {
+    "windows": 150000,
+    "human_share": 0.4,
+    "hard_ratio": 0.3,
+    "es_w": 2.0,
+    "aca_w": 1.25,
+    "para_frac": 0.25,
+    "emphasis": false,
+    "loss": "weighted",
+    "human_weight": 1.5,
+    "focal_gamma": 1.0,
+    "lr": 0.0,
+    "epochs": 1,
+    "seed": 6006,
+    "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+   },
+   "best_step": 1550,
+   "selection": {
+    "score": 0.5482,
+    "positive": 0.918,
+    "penalty": 0.3697,
+    "eligible": false,
+    "terms": {
+     "general_macro_f1": 0.9027,
+     "spanish_macro_f1": 0.9233,
+     "academic_macro_f1": 0.9346,
+     "mixed_recall": 0.8413,
+     "ai_edited_macro_f1": 0.9416,
+     "ood_macro_f1": 0.9249,
+     "unseen_generator_recall": 0.9727
+    },
+    "fprs": {
+     "fpr_all_humans": 0.052,
+     "spanish_fpr": 0.035,
+     "academic_fpr": 0.0296,
+     "unseen_generator_fpr": 0.0147,
+     "ood_fpr": 0.035,
+     "unseen_domain_fpr": 0.4658
+    }
+   },
+   "threshold_general_fpr_0.04": 0.9417,
+   "subsets": {
+    "all": {
+     "n": 30490,
+     "n_human": 13490,
+     "fpr": 0.052,
+     "recall": 0.8822,
+     "macro_f1": 0.9108,
+     "roc_auc": 0.9784
+    },
+    "general": {
+     "n": 12000,
+     "n_human": 6000,
+     "fpr": 0.04,
+     "recall": 0.846,
+     "macro_f1": 0.9027,
+     "roc_auc": 0.9747
+    },
+    "spanish": {
+     "n": 4190,
+     "n_human": 2199,
+     "fpr": 0.035,
+     "recall": 0.8785,
+     "macro_f1": 0.9233,
+     "roc_auc": 0.984
+    },
+    "academic": {
+     "n": 6972,
+     "n_human": 3382,
+     "fpr": 0.0296,
+     "recall": 0.9008,
+     "macro_f1": 0.9346,
+     "roc_auc": 0.9873
+    },
+    "mixed": {
+     "n": 2199,
+     "n_human": 699,
+     "fpr": 0.0544,
+     "recall": 0.8413,
+     "macro_f1": 0.8644,
+     "roc_auc": 0.9633
+    },
+    "ai_edited": {
+     "n": 2250,
+     "n_human": 750,
+     "fpr": 0.0227,
+     "recall": 0.9313,
+     "macro_f1": 0.9416,
+     "roc_auc": 0.9935
+    },
+    "ood": {
+     "n": 2000,
+     "n_human": 1000,
+     "fpr": 0.035,
+     "recall": 0.885,
+     "macro_f1": 0.9249,
+     "roc_auc": 0.9684
+    },
+    "unseen_generator": {
+     "n": 3000,
+     "n_human": 1500,
+     "fpr": 0.0147,
+     "recall": 0.9727,
+     "macro_f1": 0.979,
+     "roc_auc": 0.998
+    },
+    "unseen_domain": {
+     "n": 1541,
+     "n_human": 541,
+     "fpr": 0.4658,
+     "recall": 0.745,
+     "macro_f1": 0.6394,
+     "roc_auc": 0.7264
+    },
+    "adversarial": {
+     "n": 1500,
+     "n_human": 0,
+     "fpr": null,
+     "recall": 0.9807,
+     "macro_f1": null,
+     "roc_auc": null
+    },
+    "hard_human": {
+     "n": 2024,
+     "n_human": 2024,
+     "fpr": 0.3429,
+     "recall": null,
+     "macro_f1": null,
+     "roc_auc": null
+    }
+   },
+   "train_minutes": 20.9,
+   "windows_per_sec": 118.8,
+   "sample_audit": {
+    "training_windows": 148754,
+    "human_share_windows": 0.3605,
+    "hard_share_of_human_windows": 0.1885,
+    "paragraph_share": 0.2227
+   }
+  },
+  {
+   "run": "F006_FULL",
+   "stage": "full",
+   "config": {
+    "windows": 450000,
+    "human_share": 0.4,
+    "hard_ratio": 0.3,
+    "es_w": 3.0,
+    "aca_w": 1.5,
+    "para_frac": 0.25,
+    "emphasis": true,
+    "loss": "weighted",
+    "human_weight": 1.5,
+    "focal_gamma": 1.0,
+    "lr": 0.0,
+    "epochs": 1,
+    "seed": 6006,
+    "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+   },
+   "best_step": 4587,
+   "selection": {
+    "score": 0.6033,
+    "positive": 0.9118,
+    "penalty": 0.3085,
+    "eligible": true,
+    "terms": {
+     "general_macro_f1": 0.8999,
+     "spanish_macro_f1": 0.9234,
+     "academic_macro_f1": 0.9333,
+     "mixed_recall": 0.824,
+     "ai_edited_macro_f1": 0.9345,
+     "ood_macro_f1": 0.9229,
+     "unseen_generator_recall": 0.96
+    },
+    "fprs": {
+     "fpr_all_humans": 0.05,
+     "spanish_fpr": 0.0309,
+     "academic_fpr": 0.031,
+     "unseen_generator_fpr": 0.0127,
+     "ood_fpr": 0.039,
+     "unseen_domain_fpr": 0.4085
+    }
+   },
+   "threshold_general_fpr_0.04": 0.9711,
+   "subsets": {
+    "all": {
+     "n": 30490,
+     "n_human": 13490,
+     "fpr": 0.05,
+     "recall": 0.874,
+     "macro_f1": 0.9072,
+     "roc_auc": 0.9783
+    },
+    "general": {
+     "n": 12000,
+     "n_human": 6000,
+     "fpr": 0.04,
+     "recall": 0.8405,
+     "macro_f1": 0.8999,
+     "roc_auc": 0.9745
+    },
+    "spanish": {
+     "n": 4190,
+     "n_human": 2199,
+     "fpr": 0.0309,
+     "recall": 0.8744,
+     "macro_f1": 0.9234,
+     "roc_auc": 0.9847
+    },
+    "academic": {
+     "n": 6972,
+     "n_human": 3382,
+     "fpr": 0.031,
+     "recall": 0.8997,
+     "macro_f1": 0.9333,
+     "roc_auc": 0.9868
+    },
+    "mixed": {
+     "n": 2199,
+     "n_human": 699,
+     "fpr": 0.0672,
+     "recall": 0.824,
+     "macro_f1": 0.8478,
+     "roc_auc": 0.9584
+    },
+    "ai_edited": {
+     "n": 2250,
+     "n_human": 750,
+     "fpr": 0.0253,
+     "recall": 0.9227,
+     "macro_f1": 0.9345,
+     "roc_auc": 0.9937
+    },
+    "ood": {
+     "n": 2000,
+     "n_human": 1000,
+     "fpr": 0.039,
+     "recall": 0.885,
+     "macro_f1": 0.9229,
+     "roc_auc": 0.9685
+    },
+    "unseen_generator": {
+     "n": 3000,
+     "n_human": 1500,
+     "fpr": 0.0127,
+     "recall": 0.96,
+     "macro_f1": 0.9737,
+     "roc_auc": 0.9979
+    },
+    "unseen_domain": {
+     "n": 1541,
+     "n_human": 541,
+     "fpr": 0.4085,
+     "recall": 0.701,
+     "macro_f1": 0.6406,
+     "roc_auc": 0.7282
+    },
+    "adversarial": {
+     "n": 1500,
+     "n_human": 0,
+     "fpr": null,
+     "recall": 0.9807,
+     "macro_f1": null,
+     "roc_auc": null
+    },
+    "hard_human": {
+     "n": 2024,
+     "n_human": 2024,
+     "fpr": 0.33,
+     "recall": null,
+     "macro_f1": null,
+     "roc_auc": null
+    }
+   },
+   "train_minutes": 64.0,
+   "windows_per_sec": 114.6,
+   "sample_audit": {
+    "training_windows": 440335,
+    "human_share_windows": 0.3622,
+    "hard_share_of_human_windows": 0.126,
+    "paragraph_share": 0.2266
+   }
+  }
+ ]
+}

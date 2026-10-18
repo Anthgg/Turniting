@@ -1,0 +1,111 @@
+{
+  "name": "F006_FINAL_HOLDOUT",
+  "created_at": "2026-10-17T20:02:39Z",
+  "seed": 6006,
+  "dataset_version": "TURNITING_DATASET_V2",
+  "unseen_generator_families": {
+    "validation_proxy": [
+      "deepseek"
+    ],
+    "holdout": [
+      "cohere",
+      "mistral"
+    ]
+  },
+  "unseen_domains": {
+    "validation_proxy": [
+      "reports"
+    ],
+    "holdout": [
+      "recipes",
+      "reviews"
+    ]
+  },
+  "hard_human_rule": "top 15% of the set's humans by CANDIDATE_MODEL_V3 doc logit (fixed reference, computed before F006 training)",
+  "leakage": {
+    "group": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "exact": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "parent_child": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "near_duplicate": {
+      "validation_holdout": 0,
+      "train_eval": 0,
+      "train_eval_source": "TURNITING_DATASET_V2 build (MinHash LSH over all kept rows)"
+    },
+    "observed_ids_in_holdout": 0,
+    "result": "PASS"
+  },
+  "docs": 37214,
+  "humans": 15514,
+  "machine": 21700,
+  "groups": 29528,
+  "by_primary": {
+    "academic": {
+      "docs": 3000,
+      "humans": 1500
+    },
+    "adversarial": {
+      "docs": 2002,
+      "humans": 2
+    },
+    "ai_edited": {
+      "docs": 3000,
+      "humans": 1000
+    },
+    "general": {
+      "docs": 12000,
+      "humans": 6000
+    },
+    "mixed": {
+      "docs": 2012,
+      "humans": 12
+    },
+    "ood": {
+      "docs": 3000,
+      "humans": 1500
+    },
+    "span": {
+      "docs": 1200,
+      "humans": 0
+    },
+    "spanish": {
+      "docs": 3000,
+      "humans": 1500
+    },
+    "unseen_domain": {
+      "docs": 3000,
+      "humans": 1500
+    },
+    "unseen_generator": {
+      "docs": 5000,
+      "humans": 2500
+    }
+  },
+  "spanish_humans": 2628,
+  "academic_humans": 4937,
+  "hard_humans": 2329,
+  "datasets": 21,
+  "fine_labels": {
+    "HUMAN": 15514,
+    "AI_GENERATED": 9135,
+    "MIXED": 4573,
+    "AI_EDITED": 4005,
+    "PARAPHRASED_AI": 3987
+  },
+  "ids_sha256": "9d881ee8af8aba0ba946d3f86874ec9281d839b55a198bfe38ba0026d70131ba",
+  "holdout_file_sha256": "e527acf9351bf8f6984b453e6ec363bb70d83069cf046e1a4741d7323eea8fd4",
+  "attacks_file_sha256": "b583827ffb33da373998643775aa2080d4452e3d4e026525cbb37d2d03c5c191",
+  "rule": "TEST-side groups never observed in any earlier evaluation; used ONCE after F006_MODEL_LOCK",
+  "LOCKED": true
+}

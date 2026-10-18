@@ -1,0 +1,1413 @@
+{
+  "gates": {
+    "gates": {
+      "A_holdout_human_fpr_le_0.05": true,
+      "B_unseen_generator_fpr_le_0.10_or_clear_gain": true,
+      "C_academic_strong": true,
+      "D_spanish_strong": false,
+      "E_mixed_recall_drop_le_5pts": true,
+      "F_ai_edited_f1_drop_le_5pts": true,
+      "G_ood_no_severe_drop": true,
+      "H_zero_width_homoglyph_robust": true,
+      "I_no_leakage": true,
+      "J_holdout_never_used_for_tuning": true
+    },
+    "passed": false,
+    "status": "EXPERIMENTAL",
+    "span_gate": true
+  },
+  "registry": {
+    "name": "EXPERIMENTAL_F006_MODEL",
+    "architecture": "microsoft/mdeberta-v3-base + V3 multi-task heads (binary / fine / token)",
+    "baseModel": "microsoft/mdeberta-v3-base",
+    "parentModel": "CANDIDATE_MODEL_V3 (TURNITING_RESEARCH_V3_SPANISH_ACADEMIC)",
+    "datasetVersion": "TURNITING_DATASET_V2",
+    "trainingStrategy": "F006 targeted fine-tune from V3 best: human/machine rebalanced sampling, TRAIN-only hard-human negatives, paragraph-local samples, loss/weights chosen by ablation on F006 VALIDATION",
+    "status": "EXPERIMENTAL",
+    "artifactProvider": "GOOGLE_DRIVE_LOCAL_IMPORT",
+    "artifactPath": "MyDrive/turniting/f006/models/experimental_v4",
+    "checkpointPath": "MyDrive/turniting/f006/runs/F006_FULL/best",
+    "preprocessingVersion": "V3_CANONICALIZED_V1",
+    "calibrationVersion": "F006_ISOTONIC_V1",
+    "thresholds": {
+      "BALANCED": 0.8433420365535249,
+      "LOW_FALSE_POSITIVE": 0.7694174757281554,
+      "VERY_LOW_FALSE_POSITIVE": 0.8433420365535249
+    },
+    "selectedAnalyzer": "V4_ONLY",
+    "metrics": {
+      "validation_balanced": {
+        "score": 0.8596909995462644,
+        "positive": 0.8596909995462644,
+        "penalty": 0.0,
+        "eligible": true,
+        "terms": {
+          "general_macro_f1": 0.8630364038283229,
+          "spanish_macro_f1": 0.8866103090774782,
+          "academic_macro_f1": 0.9114103900758725,
+          "mixed_recall": 0.7106666666666667,
+          "ai_edited_macro_f1": 0.8847939695731195,
+          "ood_macro_f1": 0.8950121695028523,
+          "unseen_generator_recall": 0.8853333333333333
+        },
+        "fprs": {
+          "fpr_all_humans": 0.013269088213491475,
+          "spanish_fpr": 0.01409731696225557,
+          "academic_fpr": 0.007096392667060911,
+          "unseen_generator_fpr": 0.005333333333333333,
+          "ood_fpr": 0.007,
+          "unseen_domain_fpr": 0.08502772643253234
+        }
+      },
+      "final_holdout_balanced": {
+        "all": {
+          "macro_f1": 0.8313617032641085,
+          "fpr": 0.044669330926904734,
+          "fpr_ci95": [
+            0.04152980949259902,
+            0.048034295865970966
+          ],
+          "recall": 0.7430875576036866
+        },
+        "general": {
+          "macro_f1": 0.8346721961700412,
+          "fpr": 0.04,
+          "fpr_ci95": [
+            0.035328738484437495,
+            0.045259929944123305
+          ],
+          "recall": 0.7143333333333334
+        },
+        "spanish": {
+          "macro_f1": 0.810215459976575,
+          "fpr": 0.14230438521066208,
+          "fpr_ci95": [
+            0.12869564018961596,
+            0.15709271555096313
+          ],
+          "recall": 0.763249348392702
+        },
+        "academic": {
+          "macro_f1": 0.8890933834383443,
+          "fpr": 0.002469898116702686,
+          "fpr_ci95": [
+            0.0012520570679642735,
+            0.004866527324193518
+          ],
+          "recall": 0.7880466472303207
+        },
+        "mixed": {
+          "macro_f1": 0.41853651711797973,
+          "fpr": 0.0,
+          "fpr_ci95": [
+            0.0,
+            0.2425007574992425
+          ],
+          "recall": 0.6695
+        },
+        "ai_edited": {
+          "macro_f1": 0.861611747934028,
+          "fpr": 0.004,
+          "fpr_ci95": [
+            0.0015565629678934295,
+            0.010239720429805971
+          ],
+          "recall": 0.803
+        },
+        "ood": {
+          "macro_f1": 0.9307855197065663,
+          "fpr": 0.013333333333333334,
+          "fpr_ci95": [
+            0.008647645074497912,
+            0.020505425302063028
+          ],
+          "recall": 0.8753333333333333
+        },
+        "unseen_generator": {
+          "macro_f1": 0.8307613364862079,
+          "fpr": 0.0692,
+          "fpr_ci95": [
+            0.05989793249327249,
+            0.07982400518840832
+          ],
+          "recall": 0.734
+        },
+        "unseen_domain": {
+          "macro_f1": 0.8129696312007761,
+          "fpr": 0.018,
+          "fpr_ci95": [
+            0.012399749079775405,
+            0.026062812402763716
+          ],
+          "recall": 0.654
+        },
+        "adversarial": {
+          "macro_f1": 0.4316832072761818,
+          "fpr": 0.0,
+          "fpr_ci95": [
+            0.0,
+            0.6576280471103807
+          ],
+          "recall": 0.7475
+        },
+        "span": {
+          "macro_f1": null,
+          "fpr": null,
+          "fpr_ci95": null,
+          "recall": 0.7358333333333333
+        },
+        "hard_human": {
+          "macro_f1": null,
+          "fpr": 0.2971232288535852,
+          "fpr_ci95": [
+            0.2789095410879951,
+            0.3160050900639871
+          ],
+          "recall": null
+        }
+      }
+    },
+    "warnings": [
+      "F006_GATES_FAILED: D_spanish_strong"
+    ],
+    "createdAt": "2026-10-18T01:37:46Z",
+    "trainingCommit": "38834cb64a921e1fb1ee6d93037f6021ea5e06e8",
+    "modelSha256": "640247c1f5829de903628a5219923de1d9a07baf263b1195749ee2d2b3f82f26",
+    "active": false,
+    "notTurnitin": "Independent research detector; never a Turnitin score."
+  },
+  "lock": {
+    "name": "F006_MODEL_LOCK",
+    "LOCKED": true,
+    "lockedAt": "2026-10-18T01:24:56Z",
+    "modelPath": "/content/drive/MyDrive/turniting/f006/models/f006_v4_locked",
+    "modelSha256": "640247c1f5829de903628a5219923de1d9a07baf263b1195749ee2d2b3f82f26",
+    "checkpoint": "/content/drive/MyDrive/turniting/f006/runs/F006_FULL/best",
+    "checkpointStep": 4587,
+    "initFrom": "/content/drive/MyDrive/turniting/v3/checkpoints/20261017_0604_v3_es_acad/best",
+    "datasetManifests": {
+      "validation_manifest_sha256": "2ec4aa5e68d5489681433d03ee831241f0309e0f4013b0ccb7234bab314e0353",
+      "holdout_manifest_sha256": "d3357f3859148410a0a3383f26601b3a1f2cc4521777eba3e8585a38c1878f99",
+      "holdout_file_sha256": "e527acf9351bf8f6984b453e6ec363bb70d83069cf046e1a4741d7323eea8fd4",
+      "master_v2_manifest_sha256": "59b51795b17a8d6b8ecdfc0b4f940c79c9062ff9a442fcad01b291b3d429417b"
+    },
+    "loss": {
+      "type": "weighted",
+      "human_weight": 1.5,
+      "focal_gamma": 1.0
+    },
+    "sampling": {
+      "human_share": 0.4,
+      "hard_ratio": 0.3,
+      "es_w": 3.0,
+      "aca_w": 1.5,
+      "para_frac": 0.25,
+      "emphasis": true,
+      "windows": 450000,
+      "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+    },
+    "preprocessing": {
+      "profile": "V3_CANONICALIZED_V1",
+      "view": "canonical",
+      "aggregation": "trimmed_mean",
+      "max_length": 512,
+      "stride": 128,
+      "max_windows_per_doc": 8
+    },
+    "calibration": {
+      "method": "isotonic",
+      "params": "see calibration.json"
+    },
+    "thresholds": {
+      "BALANCED": 0.8433420365535249,
+      "LOW_FALSE_POSITIVE": 0.7694174757281554,
+      "VERY_LOW_FALSE_POSITIVE": 0.8433420365535249
+    },
+    "selectedAnalyzer": "V4_ONLY",
+    "ensemble": null,
+    "references": {
+      "CANDIDATE_MODEL_V3": {
+        "calibration": {
+          "method": "isotonic",
+          "params": {
+            "x": [
+              0.0004305570813246149,
+              0.001163441784378131,
+              0.0011695102650555148,
+              0.0026522597057856566,
+              0.002659156821231833,
+              0.005901035119930445,
+              0.005911068856243796,
+              0.007307944240965311,
+              0.007345826574477061,
+              0.014578214408363115,
+              0.014615670100635953,
+              0.03206027776510987,
+              0.03210070671700818,
+              0.035056644058848,
+              0.03514484640079327,
+              0.043042849340032184,
+              0.04315024640652129,
+              0.06086344622489191,
+              0.06097518086496481,
+              0.06656918897050167,
+              0.0666906545157953,
+              0.09534946489910949,
+              0.09568694300568312,
+              0.11596071825396675,
+              0.11649570516282251,
+              0.13432105377342904,
+              0.13447253533033798,
+              0.15597629205365207,
+              0.1561048974454574,
+              0.1570075560868728,
+              0.1571368534705856,
+              0.21967211902506864,
+              0.22000709974589316,
+              0.23563565085963406,
+              0.23598761273422394,
+              0.27532452572571114,
+              0.27590944429596825,
+              0.2995148064537437,
+              0.29992474357634236,
+              0.33604047808130644,
+              0.33633105292626736,
+              0.40074935923940375,
+              0.40080799086253416,
+              0.4045074437594969,
+              0.4049780024117681,
+              0.40544873575821444,
+              0.4059196429977849,
+              0.4622302906468186,
+              0.4624730470903148,
+              0.5215930063904107,
+              0.521714847750858,
+              0.6141626173598018,
+              0.6150878555160665,
+              0.713830756042477,
+              0.71522513316078,
+              0.7159538910629067,
+              0.716020081560813,
+              0.7441918459490288,
+              0.7446563401437933,
+              0.7486280582405688,
+              0.7490872131147275,
+              0.7606506526772884,
+              0.7618339278369597,
+              0.8062431344561782,
+              0.8065480596743698,
+              0.8397339676722393,
+              0.8407825918539462,
+              0.8517062864470369,
+              0.8519528019683106,
+              0.8521989788091112,
+              0.8852352197343663,
+              0.8856314738181876,
+              0.888758793492457,
+              0.8890802099935015,
+              0.927099726575378,
+              0.927363293639213,
+              0.9446553159507326,
+              0.9448931005611606,
+              0.945129922887293,
+              0.9451974048440384,
+              0.9471208083742019,
+              0.9473810466522863,
+              0.9553191297273498,
+              0.9554855697765151,
+              0.958434102652435,
+              0.9585377272885904,
+              0.9702022884074777,
+              0.9702399060540357,
+              0.9708355970916941,
+              0.9709092429574353,
+              0.9710193702585468,
+              0.9711290930537122,
+              0.9798741038439311,
+              0.9799253929555244,
+              0.982889110788156,
+              0.9829109982709437,
+              0.9872772918000768,
+              0.9873099588579175,
+              0.9874720680072551,
+              0.9875683491468141,
+              0.9900635812940538,
+              0.9900891660412033,
+              0.9912886155422945,
+              0.9912970445993773,
+              0.9918962492774269,
+              0.9919380084717284,
+              0.9952200867505299,
+              0.9952448000901669,
+              0.9956346738886059,
+              0.9956459770147313,
+              0.9956684979794361,
+              0.9957020611205928,
+              0.996443503484708,
+              0.9964619139429115,
+              0.996987847052315,
+              0.997003446726501,
+              0.9978510507163746,
+              0.9978621905380617,
+              0.9979170292169542,
+              0.997929173236711,
+              0.9982453855899006,
+              0.9982635361105435,
+              0.9987934102877537,
+              0.9987996709390395,
+              0.9989677689632452,
+              0.9989784544724417,
+              0.999480695135505,
+              0.9994887420950092,
+              0.9999417087343389
+            ],
+            "y": [
+              0.0,
+              0.0,
+              0.0007122507122507123,
+              0.0007122507122507123,
+              0.0038669760247486465,
+              0.0038669760247486465,
+              0.006309148264984227,
+              0.006309148264984227,
+              0.007518796992481203,
+              0.007518796992481203,
+              0.014358108108108109,
+              0.014358108108108109,
+              0.01639344262295082,
+              0.01639344262295082,
+              0.02364864864864865,
+              0.02364864864864865,
+              0.027888446215139442,
+              0.027888446215139442,
+              0.04195804195804196,
+              0.04195804195804196,
+              0.04291044776119403,
+              0.04291044776119403,
+              0.0436241610738255,
+              0.0436241610738255,
+              0.05803571428571429,
+              0.05803571428571429,
+              0.06511627906976744,
+              0.06511627906976744,
+              0.07142857142857142,
+              0.07142857142857142,
+              0.07168458781362007,
+              0.07168458781362007,
+              0.09352517985611511,
+              0.09352517985611511,
+              0.11067193675889328,
+              0.11067193675889328,
+              0.11627906976744186,
+              0.11627906976744186,
+              0.14418604651162792,
+              0.14418604651162792,
+              0.1771117166212534,
+              0.1771117166212534,
+              0.19047619047619047,
+              0.19047619047619047,
+              0.2,
+              0.2,
+              0.2006269592476489,
+              0.2006269592476489,
+              0.26366559485530544,
+              0.26366559485530544,
+              0.31601731601731603,
+              0.31601731601731603,
+              0.32222222222222224,
+              0.32222222222222224,
+              0.3333333333333333,
+              0.3333333333333333,
+              0.35365853658536583,
+              0.35365853658536583,
+              0.36363636363636365,
+              0.36363636363636365,
+              0.36486486486486486,
+              0.36486486486486486,
+              0.3865030674846626,
+              0.3865030674846626,
+              0.43824701195219123,
+              0.43824701195219123,
+              0.49056603773584906,
+              0.49056603773584906,
+              0.5,
+              0.5182724252491694,
+              0.5182724252491694,
+              0.5636363636363636,
+              0.5636363636363636,
+              0.5842696629213483,
+              0.5842696629213483,
+              0.6342182890855457,
+              0.6342182890855457,
+              0.6428571428571429,
+              0.6428571428571429,
+              0.6521739130434784,
+              0.6521739130434784,
+              0.6570048309178744,
+              0.6570048309178744,
+              0.6626506024096386,
+              0.6626506024096386,
+              0.7065727699530516,
+              0.7065727699530516,
+              0.7333333333333333,
+              0.7333333333333333,
+              0.75,
+              0.75,
+              0.7549234135667396,
+              0.7549234135667396,
+              0.7571428571428571,
+              0.7571428571428571,
+              0.7952380952380952,
+              0.7952380952380952,
+              0.8571428571428571,
+              0.8571428571428571,
+              0.8597014925373134,
+              0.8597014925373134,
+              0.8645833333333334,
+              0.8645833333333334,
+              0.8666666666666667,
+              0.8666666666666667,
+              0.9075829383886256,
+              0.9075829383886256,
+              0.9225352112676056,
+              0.9225352112676056,
+              0.9534883720930233,
+              0.9534883720930233,
+              0.95625,
+              0.95625,
+              0.9606299212598425,
+              0.9606299212598425,
+              0.963963963963964,
+              0.963963963963964,
+              0.967741935483871,
+              0.967741935483871,
+              0.9816272965879265,
+              0.9816272965879265,
+              0.9848320693391116,
+              0.9848320693391116,
+              0.9887133182844243,
+              0.9887133182844243,
+              0.9961538461538462,
+              0.9961538461538462,
+              1.0,
+              1.0
+            ]
+          }
+        },
+        "thresholds": {
+          "BALANCED": {
+            "threshold": 0.8645833333333335,
+            "fpr": 0.013936249073387695,
+            "recall": 0.7788235294117647,
+            "macro_f1": 0.8705143875111514,
+            "selection_score": 0.8632581360656923,
+            "constraint": "max F006_SELECTION_SCORE s.t. FPR(all validation humans)<=0.05"
+          },
+          "LOW_FALSE_POSITIVE": {
+            "threshold": 0.7549234135667398,
+            "fpr": 0.029651593773165306,
+            "recall": 0.8352352941176471,
+            "macro_f1": 0.8948756831811651,
+            "selection_score": 0.7511208360583427,
+            "constraint": "FPR(all validation humans)<=0.03"
+          },
+          "VERY_LOW_FALSE_POSITIVE": {
+            "threshold": 0.7952380952380953,
+            "fpr": 0.01949592290585619,
+            "recall": 0.806235294117647,
+            "macro_f1": 0.883309999783422,
+            "selection_score": 0.837115704541975,
+            "constraint": "FPR(all validation humans)<=0.02"
+          }
+        }
+      },
+      "CANDIDATE_MODEL_V2": {
+        "calibration": "model's own (V1 era)",
+        "thresholds": {
+          "BALANCED": {
+            "threshold": 0.9394120889738043,
+            "fpr": 0.037954040029651595,
+            "recall": 0.42811764705882355,
+            "macro_f1": 0.6521934735335815,
+            "selection_score": 0.5296312059721843,
+            "constraint": "max F006_SELECTION_SCORE s.t. FPR(all validation humans)<=0.05"
+          },
+          "LOW_FALSE_POSITIVE": {
+            "threshold": 0.982905982905983,
+            "fpr": 0.015122312824314307,
+            "recall": 0.32894117647058824,
+            "macro_f1": 0.5932529780624305,
+            "selection_score": 0.5093796577391317,
+            "constraint": "FPR(all validation humans)<=0.03"
+          },
+          "VERY_LOW_FALSE_POSITIVE": {
+            "threshold": 0.982905982905983,
+            "fpr": 0.015122312824314307,
+            "recall": 0.32894117647058824,
+            "macro_f1": 0.5932529780624305,
+            "selection_score": 0.5093796577391317,
+            "constraint": "FPR(all validation humans)<=0.02"
+          }
+        }
+      },
+      "ENSEMBLE_V2_V3": {
+        "weights": {
+          "V2": 0.5,
+          "V3": 0.5
+        },
+        "thresholds": {
+          "BALANCED": {
+            "threshold": 0.8890720390720391,
+            "fpr": 0.009785025945144552,
+            "recall": 0.5135882352941177,
+            "macro_f1": 0.7179720817954798,
+            "selection_score": 0.6488027845364757,
+            "constraint": "max F006_SELECTION_SCORE s.t. FPR(all validation humans)<=0.05"
+          },
+          "LOW_FALSE_POSITIVE": {
+            "threshold": 0.7818181818181819,
+            "fpr": 0.02994810971089696,
+            "recall": 0.615,
+            "macro_f1": 0.7703794398647754,
+            "selection_score": 0.487592238021166,
+            "constraint": "FPR(all validation humans)<=0.03"
+          },
+          "VERY_LOW_FALSE_POSITIVE": {
+            "threshold": 0.8253968253968255,
+            "fpr": 0.019866567828020758,
+            "recall": 0.5754705882352941,
+            "macro_f1": 0.7513463464123245,
+            "selection_score": 0.5694690329973904,
+            "constraint": "FPR(all validation humans)<=0.02"
+          }
+        }
+      }
+    },
+    "seed": 6006,
+    "trainingCodeCommit": "38834cb64a921e1fb1ee6d93037f6021ea5e06e8",
+    "lockCodeCommit": "38834cb64a921e1fb1ee6d93037f6021ea5e06e8",
+    "rule": "F006 final holdout, V1 historical sets and external 2026 are read only after this lock, once."
+  },
+  "holdout_manifest": {
+    "name": "F006_FINAL_HOLDOUT",
+    "created_at": "2026-10-17T20:02:39Z",
+    "seed": 6006,
+    "dataset_version": "TURNITING_DATASET_V2",
+    "unseen_generator_families": {
+      "validation_proxy": [
+        "deepseek"
+      ],
+      "holdout": [
+        "cohere",
+        "mistral"
+      ]
+    },
+    "unseen_domains": {
+      "validation_proxy": [
+        "reports"
+      ],
+      "holdout": [
+        "recipes",
+        "reviews"
+      ]
+    },
+    "hard_human_rule": "top 15% of the set's humans by CANDIDATE_MODEL_V3 doc logit (fixed reference, computed before F006 training)",
+    "leakage": {
+      "group": {
+        "validation_train": 0,
+        "holdout_train": 0,
+        "validation_holdout": 0
+      },
+      "exact": {
+        "validation_train": 0,
+        "holdout_train": 0,
+        "validation_holdout": 0
+      },
+      "parent_child": {
+        "validation_train": 0,
+        "holdout_train": 0,
+        "validation_holdout": 0
+      },
+      "near_duplicate": {
+        "validation_holdout": 0,
+        "train_eval": 0,
+        "train_eval_source": "TURNITING_DATASET_V2 build (MinHash LSH over all kept rows)"
+      },
+      "observed_ids_in_holdout": 0,
+      "result": "PASS"
+    },
+    "docs": 37214,
+    "humans": 15514,
+    "machine": 21700,
+    "groups": 29528,
+    "by_primary": {
+      "academic": {
+        "docs": 3000,
+        "humans": 1500
+      },
+      "adversarial": {
+        "docs": 2002,
+        "humans": 2
+      },
+      "ai_edited": {
+        "docs": 3000,
+        "humans": 1000
+      },
+      "general": {
+        "docs": 12000,
+        "humans": 6000
+      },
+      "mixed": {
+        "docs": 2012,
+        "humans": 12
+      },
+      "ood": {
+        "docs": 3000,
+        "humans": 1500
+      },
+      "span": {
+        "docs": 1200,
+        "humans": 0
+      },
+      "spanish": {
+        "docs": 3000,
+        "humans": 1500
+      },
+      "unseen_domain": {
+        "docs": 3000,
+        "humans": 1500
+      },
+      "unseen_generator": {
+        "docs": 5000,
+        "humans": 2500
+      }
+    },
+    "spanish_humans": 2628,
+    "academic_humans": 4937,
+    "hard_humans": 2329,
+    "datasets": 21,
+    "fine_labels": {
+      "HUMAN": 15514,
+      "AI_GENERATED": 9135,
+      "MIXED": 4573,
+      "AI_EDITED": 4005,
+      "PARAPHRASED_AI": 3987
+    },
+    "ids_sha256": "9d881ee8af8aba0ba946d3f86874ec9281d839b55a198bfe38ba0026d70131ba",
+    "holdout_file_sha256": "e527acf9351bf8f6984b453e6ec363bb70d83069cf046e1a4741d7323eea8fd4",
+    "attacks_file_sha256": "b583827ffb33da373998643775aa2080d4452e3d4e026525cbb37d2d03c5c191",
+    "rule": "TEST-side groups never observed in any earlier evaluation; used ONCE after F006_MODEL_LOCK",
+    "LOCKED": true
+  },
+  "validation_manifest": {
+    "name": "F006_VALIDATION",
+    "created_at": "2026-10-17T20:02:39Z",
+    "seed": 6006,
+    "dataset_version": "TURNITING_DATASET_V2",
+    "unseen_generator_families": {
+      "validation_proxy": [
+        "deepseek"
+      ],
+      "holdout": [
+        "cohere",
+        "mistral"
+      ]
+    },
+    "unseen_domains": {
+      "validation_proxy": [
+        "reports"
+      ],
+      "holdout": [
+        "recipes",
+        "reviews"
+      ]
+    },
+    "hard_human_rule": "top 15% of the set's humans by CANDIDATE_MODEL_V3 doc logit (fixed reference, computed before F006 training)",
+    "leakage": {
+      "group": {
+        "validation_train": 0,
+        "holdout_train": 0,
+        "validation_holdout": 0
+      },
+      "exact": {
+        "validation_train": 0,
+        "holdout_train": 0,
+        "validation_holdout": 0
+      },
+      "parent_child": {
+        "validation_train": 0,
+        "holdout_train": 0,
+        "validation_holdout": 0
+      },
+      "near_duplicate": {
+        "validation_holdout": 0,
+        "train_eval": 0,
+        "train_eval_source": "TURNITING_DATASET_V2 build (MinHash LSH over all kept rows)"
+      },
+      "observed_ids_in_holdout": 0,
+      "result": "PASS"
+    },
+    "docs": 30490,
+    "humans": 13490,
+    "machine": 17000,
+    "groups": 20507,
+    "by_primary": {
+      "academic": {
+        "docs": 3000,
+        "humans": 1500
+      },
+      "adversarial": {
+        "docs": 1500,
+        "humans": 0
+      },
+      "ai_edited": {
+        "docs": 2250,
+        "humans": 750
+      },
+      "general": {
+        "docs": 12000,
+        "humans": 6000
+      },
+      "mixed": {
+        "docs": 2199,
+        "humans": 699
+      },
+      "ood": {
+        "docs": 2000,
+        "humans": 1000
+      },
+      "spanish": {
+        "docs": 3000,
+        "humans": 1500
+      },
+      "unseen_domain": {
+        "docs": 1541,
+        "humans": 541
+      },
+      "unseen_generator": {
+        "docs": 3000,
+        "humans": 1500
+      }
+    },
+    "spanish_humans": 2225,
+    "academic_humans": 5197,
+    "hard_humans": 2024,
+    "datasets": 24,
+    "fine_labels": {
+      "HUMAN": 13490,
+      "AI_GENERATED": 7750,
+      "PARAPHRASED_AI": 3138,
+      "AI_EDITED": 3067,
+      "MIXED": 2878,
+      "HUMAN_EDITED_AI": 167
+    },
+    "ids_sha256": "a63d8ed58eb0906822f7dd8d9e809f891d066091a81a6545677d47340cfbc416",
+    "file_sha256": "9c6bf424d7c36ab9250768f715d67cd9f70ea97ad3ced3a6743ced8985cd5dbf"
+  },
+  "gated": {
+    "checked_at": "2026-10-17T19:56:51Z",
+    "hf_token_available": false,
+    "MGTPD": {
+      "status": "NO_TOKEN",
+      "repo": "1024m/MGTPD-Public"
+    },
+    "EDITLENS": {
+      "status": "NO_TOKEN",
+      "repo": "pangram/editlens_iclr"
+    },
+    "MULTISOCIAL": {
+      "status": "RESTRICTED",
+      "record": "13846152",
+      "access": "restricted"
+    }
+  },
+  "hard_human_pool": {
+    "tag": "hard_human_pool_v1",
+    "model": "spanish_academic",
+    "source_split": "train (TRAIN humans only)",
+    "scored_humans": 250000,
+    "train_humans_available": 923022,
+    "raw_prob_quantiles": {
+      "0.5": 0.038106618812484096,
+      "0.75": 0.29502676635499137,
+      "0.85": 0.5563483587925139,
+      "0.9": 0.7287483034031065,
+      "0.95": 0.90192067652954,
+      "0.99": 0.9902915235185259
+    },
+    "share_raw_prob_ge_0.40": 0.203984,
+    "share_raw_prob_ge_0.50": 0.1679,
+    "model_balanced_threshold": 0.805,
+    "share_ge_model_balanced": 0.079168,
+    "cutoff_rule": "top 15% of sampled TRAIN humans by doc logit",
+    "cutoff_logit": 0.22635498046874858,
+    "cutoff_raw_prob": 0.5563483588982361,
+    "dataset_cap": "<= 12% of the candidate set per source dataset (4,500 rows)",
+    "pool_size": 32665,
+    "candidates_before_cap": 37500,
+    "pool_by_dataset": {
+      "mage": 4500,
+      "detectrl_x": 4441,
+      "semeval2024_task8": 3652,
+      "autextification2023": 3491,
+      "iberautextification": 3384,
+      "openllmtext": 1887,
+      "opai_bench": 1485,
+      "hc3": 1384,
+      "coling2025_mgt_en": 1200,
+      "beemo": 1157,
+      "raid": 1111,
+      "m4": 1037,
+      "hc3_chinese": 984,
+      "seqxgpt": 890,
+      "mgtbench2_academic": 824,
+      "turingbench": 391,
+      "academic_arxiv_gpt_gemini": 351,
+      "txd22": 260,
+      "ghostbuster_essay": 93,
+      "het_ai_spans": 61,
+      "nigerian_academic": 41,
+      "outfox": 38,
+      "gradtex": 2,
+      "mdta": 1
+    },
+    "pool_by_language": {
+      "en": 21234,
+      "es": 2304,
+      "zh": 1994,
+      "ru": 1891,
+      "de": 1190,
+      "ca": 725,
+      "pt": 676,
+      "ar": 552,
+      "gl": 550,
+      "id": 499,
+      "eu": 336,
+      "bg": 314,
+      "fr": 233,
+      "ur": 167
+    },
+    "pool_by_domain": {
+      "news": 8275,
+      "wiki": 5044,
+      "academic": 4042,
+      "qa": 3423,
+      "web": 1887,
+      "forum": 1844,
+      "webtext": 1673,
+      "social": 1555,
+      "literary": 1362,
+      "unknown": 890,
+      "novel": 769,
+      "creative": 579,
+      "legal": 507,
+      "seo": 321,
+      "summary": 188,
+      "howto": 175,
+      "poetry": 69,
+      "jmlr_pre2015": 47,
+      "gutenberg_selected": 7,
+      "wikitext2_raw": 6,
+      "speech": 1,
+      "social_media": 1
+    },
+    "pool_by_length": {
+      "150-400": 12655,
+      "50-150": 8522,
+      "<50": 6714,
+      "400+": 4774
+    },
+    "pool_spanish": 2304,
+    "pool_academic": 4042,
+    "fp_rate_by_dataset_at_cutoff": {
+      "academic_arxiv_gpt_gemini": 0.0512,
+      "autextification2023": 0.2189,
+      "beemo": 0.7379,
+      "coling2025_mgt_en": 0.1295,
+      "detectrl_x": 0.0822,
+      "ghostbuster_essay": 0.1295,
+      "gradtex": 0.2857,
+      "hc3": 0.1007,
+      "hc3_chinese": 0.2128,
+      "het_ai_spans": 0.021,
+      "iberautextification": 0.1151,
+      "m4": 0.1464,
+      "mage": 0.2682,
+      "mdta": 0.0588,
+      "mgtbench2_academic": 0.1,
+      "nigerian_academic": 0.0096,
+      "opai_bench": 0.2737,
+      "openllmtext": 0.294,
+      "outfox": 0.1439,
+      "raid": 0.2252,
+      "semeval2024_task8": 0.1249,
+      "seqxgpt": 0.2235,
+      "turingbench": 0.0953,
+      "txd22": 0.1199
+    }
+  },
+  "ablations": [
+    {
+      "run": "A1_h0.4_r0.3_ce",
+      "config": {
+        "windows": 150000,
+        "human_share": 0.4,
+        "hard_ratio": 0.3,
+        "es_w": 3.0,
+        "aca_w": 1.25,
+        "para_frac": 0.25,
+        "emphasis": false,
+        "loss": "ce",
+        "human_weight": 1.0,
+        "focal_gamma": 1.0,
+        "lr": 1e-05,
+        "epochs": 1,
+        "seed": 6006,
+        "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+      },
+      "selection": {
+        "score": 0.5784187168728694,
+        "positive": 0.9183447797194498,
+        "penalty": 0.33992606284658045,
+        "eligible": true,
+        "terms": {
+          "general_macro_f1": 0.9046237655884539,
+          "spanish_macro_f1": 0.9290909767844873,
+          "academic_macro_f1": 0.937031672099446,
+          "mixed_recall": 0.8313333333333334,
+          "ai_edited_macro_f1": 0.9391968010923606,
+          "ood_macro_f1": 0.92481949159933,
+          "unseen_generator_recall": 0.976
+        },
+        "fprs": {
+          "fpr_all_humans": 0.04929577464788732,
+          "spanish_fpr": 0.034106412005457026,
+          "academic_fpr": 0.028089887640449437,
+          "unseen_generator_fpr": 0.016,
+          "ood_fpr": 0.026,
+          "unseen_domain_fpr": 0.4399260628465804
+        }
+      }
+    },
+    {
+      "run": "A1_h0.5_r0.3_ce",
+      "config": {
+        "windows": 150000,
+        "human_share": 0.5,
+        "hard_ratio": 0.3,
+        "es_w": 3.0,
+        "aca_w": 1.25,
+        "para_frac": 0.25,
+        "emphasis": false,
+        "loss": "ce",
+        "human_weight": 1.0,
+        "focal_gamma": 1.0,
+        "lr": 1e-05,
+        "epochs": 1,
+        "seed": 6006,
+        "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+      },
+      "selection": {
+        "score": 0.514503188661042,
+        "positive": 0.9168454453336783,
+        "penalty": 0.40234225667263623,
+        "eligible": false,
+        "terms": {
+          "general_macro_f1": 0.9030219259622566,
+          "spanish_macro_f1": 0.9261700494321402,
+          "academic_macro_f1": 0.9344491151660038,
+          "mixed_recall": 0.8293333333333334,
+          "ai_edited_macro_f1": 0.9401009680159731,
+          "ood_macro_f1": 0.9273808864990801,
+          "unseen_generator_recall": 0.9733333333333334
+        },
+        "fprs": {
+          "fpr_all_humans": 0.05255744996293551,
+          "spanish_fpr": 0.034106412005457026,
+          "academic_fpr": 0.029863985807214666,
+          "unseen_generator_fpr": 0.015333333333333332,
+          "ood_fpr": 0.032,
+          "unseen_domain_fpr": 0.49722735674676527
+        }
+      }
+    },
+    {
+      "run": "A1_h0.6_r0.3_ce",
+      "config": {
+        "windows": 150000,
+        "human_share": 0.6,
+        "hard_ratio": 0.3,
+        "es_w": 3.0,
+        "aca_w": 1.25,
+        "para_frac": 0.25,
+        "emphasis": false,
+        "loss": "ce",
+        "human_weight": 1.0,
+        "focal_gamma": 1.0,
+        "lr": 1e-05,
+        "epochs": 1,
+        "seed": 6006,
+        "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+      },
+      "selection": {
+        "score": 0.5075942772943693,
+        "positive": 0.9151159713266436,
+        "penalty": 0.40752169403227423,
+        "eligible": false,
+        "terms": {
+          "general_macro_f1": 0.9014981534387847,
+          "spanish_macro_f1": 0.9238151186921826,
+          "academic_macro_f1": 0.9328709020422133,
+          "mixed_recall": 0.83,
+          "ai_edited_macro_f1": 0.9393004170735787,
+          "ood_macro_f1": 0.9248339582136941,
+          "unseen_generator_recall": 0.9693333333333334
+        },
+        "fprs": {
+          "fpr_all_humans": 0.05329873980726464,
+          "spanish_fpr": 0.04001819008640291,
+          "academic_fpr": 0.031046717918391486,
+          "unseen_generator_fpr": 0.014666666666666666,
+          "ood_fpr": 0.028,
+          "unseen_domain_fpr": 0.5009242144177449
+        }
+      }
+    },
+    {
+      "run": "A2_h0.4_r0.2_ce",
+      "config": {
+        "windows": 150000,
+        "human_share": 0.4,
+        "hard_ratio": 0.2,
+        "es_w": 3.0,
+        "aca_w": 1.25,
+        "para_frac": 0.25,
+        "emphasis": false,
+        "loss": "ce",
+        "human_weight": 1.0,
+        "focal_gamma": 1.0,
+        "lr": 1e-05,
+        "epochs": 1,
+        "seed": 6006,
+        "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+      },
+      "selection": {
+        "score": 0.5596130668527288,
+        "positive": 0.9126311852919369,
+        "penalty": 0.35301811843920805,
+        "eligible": false,
+        "terms": {
+          "general_macro_f1": 0.8980299445231453,
+          "spanish_macro_f1": 0.925001652249262,
+          "academic_macro_f1": 0.9301345061850878,
+          "mixed_recall": 0.8213333333333334,
+          "ai_edited_macro_f1": 0.9397347811962149,
+          "ood_macro_f1": 0.9188129450253384,
+          "unseen_generator_recall": 0.9713333333333334
+        },
+        "fprs": {
+          "fpr_all_humans": 0.05100074128984433,
+          "spanish_fpr": 0.03774442928603911,
+          "academic_fpr": 0.02631578947368421,
+          "unseen_generator_fpr": 0.014,
+          "ood_fpr": 0.033,
+          "unseen_domain_fpr": 0.4510166358595194
+        }
+      }
+    },
+    {
+      "run": "A2_h0.4_r0.4_ce",
+      "config": {
+        "windows": 150000,
+        "human_share": 0.4,
+        "hard_ratio": 0.4,
+        "es_w": 3.0,
+        "aca_w": 1.25,
+        "para_frac": 0.25,
+        "emphasis": false,
+        "loss": "ce",
+        "human_weight": 1.0,
+        "focal_gamma": 1.0,
+        "lr": 1e-05,
+        "epochs": 1,
+        "seed": 6006,
+        "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+      },
+      "selection": {
+        "score": 0.521702898540576,
+        "positive": 0.9144275703382656,
+        "penalty": 0.39272467179768955,
+        "eligible": false,
+        "terms": {
+          "general_macro_f1": 0.9026838197303038,
+          "spanish_macro_f1": 0.9232969728354755,
+          "academic_macro_f1": 0.93387112089048,
+          "mixed_recall": 0.8266666666666667,
+          "ai_edited_macro_f1": 0.9367827270958957,
+          "ood_macro_f1": 0.9263731962372195,
+          "unseen_generator_recall": 0.9666666666666667
+        },
+        "fprs": {
+          "fpr_all_humans": 0.05144551519644181,
+          "spanish_fpr": 0.03774442928603911,
+          "academic_fpr": 0.026611472501478415,
+          "unseen_generator_fpr": 0.013333333333333334,
+          "ood_fpr": 0.032,
+          "unseen_domain_fpr": 0.4898336414048059
+        }
+      }
+    },
+    {
+      "run": "A3_h0.4_r0.3_focal1",
+      "config": {
+        "windows": 150000,
+        "human_share": 0.4,
+        "hard_ratio": 0.3,
+        "es_w": 3.0,
+        "aca_w": 1.25,
+        "para_frac": 0.25,
+        "emphasis": false,
+        "loss": "focal",
+        "human_weight": 1.0,
+        "focal_gamma": 1.0,
+        "lr": 1e-05,
+        "epochs": 1,
+        "seed": 6006,
+        "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+      },
+      "selection": {
+        "score": 0.5510855520108779,
+        "positive": 0.921184303876092,
+        "penalty": 0.370098751865214,
+        "eligible": false,
+        "terms": {
+          "general_macro_f1": 0.9039514751818323,
+          "spanish_macro_f1": 0.9278744195526079,
+          "academic_macro_f1": 0.9341611351033527,
+          "mixed_recall": 0.8506666666666667,
+          "ai_edited_macro_f1": 0.9435261004620907,
+          "ood_macro_f1": 0.9263606559512236,
+          "unseen_generator_recall": 0.9766666666666667
+        },
+        "fprs": {
+          "fpr_all_humans": 0.05122312824314307,
+          "spanish_fpr": 0.034106412005457026,
+          "academic_fpr": 0.02897693672383205,
+          "unseen_generator_fpr": 0.015333333333333332,
+          "ood_fpr": 0.03,
+          "unseen_domain_fpr": 0.4676524953789279
+        }
+      }
+    },
+    {
+      "run": "A3_h0.4_r0.3_w1.5",
+      "config": {
+        "windows": 150000,
+        "human_share": 0.4,
+        "hard_ratio": 0.3,
+        "es_w": 3.0,
+        "aca_w": 1.25,
+        "para_frac": 0.25,
+        "emphasis": false,
+        "loss": "weighted",
+        "human_weight": 1.5,
+        "focal_gamma": 1.0,
+        "lr": 1e-05,
+        "epochs": 1,
+        "seed": 6006,
+        "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+      },
+      "selection": {
+        "score": 0.5983547711753314,
+        "positive": 0.9179481168315237,
+        "penalty": 0.31959334565619224,
+        "eligible": true,
+        "terms": {
+          "general_macro_f1": 0.9036979969183359,
+          "spanish_macro_f1": 0.9278803288519306,
+          "academic_macro_f1": 0.9341617094269674,
+          "mixed_recall": 0.8326666666666667,
+          "ai_edited_macro_f1": 0.9396659700501011,
+          "ood_macro_f1": 0.9273561470101168,
+          "unseen_generator_recall": 0.9753333333333334
+        },
+        "fprs": {
+          "fpr_all_humans": 0.04892512972572276,
+          "spanish_fpr": 0.03456116416552979,
+          "academic_fpr": 0.02956830277942046,
+          "unseen_generator_fpr": 0.014,
+          "ood_fpr": 0.028,
+          "unseen_domain_fpr": 0.4195933456561922
+        }
+      }
+    },
+    {
+      "run": "A3_h0.4_r0.3_w2.0",
+      "config": {
+        "windows": 150000,
+        "human_share": 0.4,
+        "hard_ratio": 0.3,
+        "es_w": 3.0,
+        "aca_w": 1.25,
+        "para_frac": 0.25,
+        "emphasis": false,
+        "loss": "weighted",
+        "human_weight": 2.0,
+        "focal_gamma": 1.0,
+        "lr": 1e-05,
+        "epochs": 1,
+        "seed": 6006,
+        "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+      },
+      "selection": {
+        "score": 0.587971983314969,
+        "positive": 0.920578459804023,
+        "penalty": 0.33260647648905395,
+        "eligible": false,
+        "terms": {
+          "general_macro_f1": 0.9059783656219296,
+          "spanish_macro_f1": 0.9308147022885638,
+          "academic_macro_f1": 0.9373185437527515,
+          "mixed_recall": 0.8366666666666667,
+          "ai_edited_macro_f1": 0.9382591878214924,
+          "ood_macro_f1": 0.9273688099129052,
+          "unseen_generator_recall": 0.9806666666666667
+        },
+        "fprs": {
+          "fpr_all_humans": 0.050037064492216454,
+          "spanish_fpr": 0.035925420645748066,
+          "academic_fpr": 0.027794204612655235,
+          "unseen_generator_fpr": 0.015333333333333332,
+          "ood_fpr": 0.03,
+          "unseen_domain_fpr": 0.43253234750462105
+        }
+      }
+    },
+    {
+      "run": "A4_aca1.5",
+      "config": {
+        "windows": 150000,
+        "human_share": 0.4,
+        "hard_ratio": 0.3,
+        "es_w": 3.0,
+        "aca_w": 1.5,
+        "para_frac": 0.25,
+        "emphasis": false,
+        "loss": "weighted",
+        "human_weight": 1.5,
+        "focal_gamma": 1.0,
+        "lr": 1e-05,
+        "epochs": 1,
+        "seed": 6006,
+        "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+      },
+      "selection": {
+        "score": 0.6238512579059188,
+        "positive": 0.9157181710297635,
+        "penalty": 0.2918669131238447,
+        "eligible": true,
+        "terms": {
+          "general_macro_f1": 0.9022592405864894,
+          "spanish_macro_f1": 0.9249707465803286,
+          "academic_macro_f1": 0.9357382126153457,
+          "mixed_recall": 0.828,
+          "ai_edited_macro_f1": 0.9407068008543404,
+          "ood_macro_f1": 0.9258929894768045,
+          "unseen_generator_recall": 0.9686666666666667
+        },
+        "fprs": {
+          "fpr_all_humans": 0.047664936990363234,
+          "spanish_fpr": 0.03547066848567531,
+          "academic_fpr": 0.026611472501478415,
+          "unseen_generator_fpr": 0.012666666666666666,
+          "ood_fpr": 0.036,
+          "unseen_domain_fpr": 0.39186691312384475
+        }
+      }
+    },
+    {
+      "run": "A4_es2.0",
+      "config": {
+        "windows": 150000,
+        "human_share": 0.4,
+        "hard_ratio": 0.3,
+        "es_w": 2.0,
+        "aca_w": 1.25,
+        "para_frac": 0.25,
+        "emphasis": false,
+        "loss": "weighted",
+        "human_weight": 1.5,
+        "focal_gamma": 1.0,
+        "lr": 1e-05,
+        "epochs": 1,
+        "seed": 6006,
+        "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+      },
+      "selection": {
+        "score": 0.5482273056256965,
+        "positive": 0.9179602083440791,
+        "penalty": 0.3697329027183825,
+        "eligible": false,
+        "terms": {
+          "general_macro_f1": 0.9026838197303038,
+          "spanish_macro_f1": 0.9232581830675379,
+          "academic_macro_f1": 0.9345924247137418,
+          "mixed_recall": 0.8413333333333334,
+          "ai_edited_macro_f1": 0.9415787246159558,
+          "ood_macro_f1": 0.9248798076923077,
+          "unseen_generator_recall": 0.9726666666666667
+        },
+        "fprs": {
+          "fpr_all_humans": 0.0519644180874722,
+          "spanish_fpr": 0.035015916325602546,
+          "academic_fpr": 0.02956830277942046,
+          "unseen_generator_fpr": 0.014666666666666666,
+          "ood_fpr": 0.035,
+          "unseen_domain_fpr": 0.4658040665434381
+        }
+      }
+    },
+    {
+      "run": "F006_FULL",
+      "config": {
+        "windows": 450000,
+        "human_share": 0.4,
+        "hard_ratio": 0.3,
+        "es_w": 3.0,
+        "aca_w": 1.5,
+        "para_frac": 0.25,
+        "emphasis": true,
+        "loss": "weighted",
+        "human_weight": 1.5,
+        "focal_gamma": 1.0,
+        "lr": 1e-05,
+        "epochs": 1,
+        "seed": 6006,
+        "hard_pool": "/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet"
+      },
+      "selection": {
+        "score": 0.603324261730317,
+        "positive": 0.9118270343735702,
+        "penalty": 0.3085027726432532,
+        "eligible": true,
+        "terms": {
+          "general_macro_f1": 0.8998926103622815,
+          "spanish_macro_f1": 0.923441737531602,
+          "academic_macro_f1": 0.933301616087947,
+          "mixed_recall": 0.824,
+          "ai_edited_macro_f1": 0.934481441369464,
+          "ood_macro_f1": 0.9228886512123506,
+          "unseen_generator_recall": 0.96
+        },
+        "fprs": {
+          "fpr_all_humans": 0.049962935507783544,
+          "spanish_fpr": 0.030923146884947704,
+          "academic_fpr": 0.031046717918391486,
+          "unseen_generator_fpr": 0.012666666666666666,
+          "ood_fpr": 0.039,
+          "unseen_domain_fpr": 0.40850277264325324
+        }
+      }
+    }
+  ]
+}
