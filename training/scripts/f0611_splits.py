@@ -113,6 +113,7 @@ def main() -> int:
                 total += int(sizes[g])
             new = new[(new["dataset"] != ds) | new["group_id"].isin(chosen)]
     new["text_hash"] = new["text"].map(normalized_text_hash)
+    new["parent_id"] = new["parent_id"].where(~new["parent_id"].astype(str).str.lower().isin(["none", "nan", "", "null"]), None)
     n0 = len(new)
     new = new.drop_duplicates("text_hash")
     f61new = pd.read_parquet(D61 / "datasets" / "new_spanish_humans.parquet", columns=["id", "text", "text_hash", "group_id"])
@@ -226,14 +227,38 @@ def main() -> int:
 
     vtexts, htexts = texts(val), texts(hold)
     # ------------------------------------------------ leakage gates
-    drop = near_dup_members(pd.concat([vtexts, htexts]), train_new.rename(columns={"text": "text_original"}))
-    if drop:
+    for _ in range(4):
+        drop = near_dup_members(pd.concat([vtexts, htexts]), train_new.rename(columns={"text": "text_original"}))
+        if not drop:
+            break
         log(f"dropping {len(drop)} TRAIN_NEW rows near-duplicate to evaluation rows")
-        train_new = train_new.reset_index(drop=True).drop(index=sorted(drop))
+        train_new = train_new.reset_index(drop=True).drop(index=sorted(drop)).reset_index(drop=True)
+    for _ in range(4):
+        vdrop = near_dup_members(htexts, vtexts)
+        if not vdrop:
+            break
+        log(f"dropping {len(vdrop)} VALIDATION docs near-duplicate to holdout docs")
+        vtexts = vtexts.drop(index=sorted(vdrop)).reset_index(drop=True)
+        val = val[val["id"].isin(set(vtexts["id"]))]
+    pdrop = set(vtexts["id"]) & (set(htexts["parent_id"].dropna()) | set(htexts["id"])) | set(vtexts.loc[vtexts["parent_id"].isin(set(htexts["parent_id"].dropna()) | set(htexts["id"])), "id"])
+    if pdrop:
+        log(f"dropping {len(pdrop)} VALIDATION docs sharing a parent with holdout docs")
+        vtexts = vtexts[~vtexts["id"].isin(pdrop)].reset_index(drop=True)
+        val = val[val["id"].isin(set(vtexts["id"]))]
     train_rows = idx[idx["split"] == "train"]
     tr_g = set(train_rows["group_id"]) | set(extra61["group_id"]) | set(train_new["group_id"])
     tr_h = set(train_rows["text_hash"]) | set(train_new["text_hash"])
     tr_p = set(train_rows["parent_id"].dropna()) | set(train_rows["id"]) | set(extra61["id"]) | set(train_new["parent_id"].dropna()) | set(train_new["id"])
+    for name_ in ("validation", "holdout"):
+        fr = vtexts if name_ == "validation" else htexts
+        bad = fr["parent_id"].isin(tr_p) | fr["id"].isin(tr_p)
+        if bad.any():
+            log(f"dropping {int(bad.sum())} {name_} docs whose parent / lineage is in TRAIN")
+            fr = fr[~bad].reset_index(drop=True)
+            if name_ == "validation":
+                vtexts, val = fr, val[val["id"].isin(set(fr["id"]))]
+            else:
+                htexts, hold = fr, hold[hold["id"].isin(set(fr["id"]))]
     vg, hg = set(val["group_id"]), set(hold["group_id"])
 
     def pcn(a):
