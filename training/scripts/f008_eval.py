@@ -36,6 +36,8 @@ W = Path("/content/f008work")
 D = Path("/content/drive/MyDrive/turniting/f008")
 REPO = Path(__file__).resolve().parents[1]
 SEED = 8008
+PAN_DISTRACTORS = 300
+ES_DISTRACTORS = 250_000
 BOILER = ["El presente estudio tiene como objetivo analizar los factores que inciden en el fenómeno estudiado.",
           "Los resultados muestran que existe una relación significativa entre las variables analizadas.",
           "En conclusión, se recomienda continuar investigando esta línea de trabajo en futuras investigaciones.",
@@ -152,10 +154,25 @@ def load_passages():
     if (W / "passages.parquet").exists():
         return pd.read_parquet(W / "passages.parquet")
     rows = []
-    for r in pd.read_parquet(W / "pan11_sources.parquet").itertuples(index=False):
+    # bounded corpus: every source referenced by an eval doc + random distractors (the full 7M-passage corpus = ~15 GPU hours)
+    cases = pd.read_parquet(W / "pan11_cases.parquet")
+    ev = pd.read_parquet(W / "pan_eval_docs.parquet")
+    srcs = pd.read_parquet(W / "pan11_sources.parquet")
+    need = set(cases.loc[cases["suspicious"].isin(set(ev["suspicious"])), "source"])
+    rest = srcs[~srcs["source"].isin(need)]
+    srcs = pd.concat([srcs[srcs["source"].isin(need)], rest.sample(min(PAN_DISTRACTORS, len(rest)), random_state=SEED)])
+    es = pd.read_parquet(W / "corpus_es.parquet")
+    synth = pd.read_parquet(W / "es_synth_docs.parquet")
+    used = {g["source"] for gs in synth["gold"] for g in json.loads(gs) if g.get("source")}
+    keep_art = {d.split("#")[0] for d in used}
+    core = es[es["article"].isin(keep_art) | es["docid"].astype(str).str.startswith("paws_src_")]
+    rest = es.drop(core.index)
+    es = pd.concat([core, rest.sample(min(ES_DISTRACTORS, len(rest)), random_state=SEED)])
+    log(f"corpus: PAN sources {len(srcs):,} ({len(need):,} referenced); ES passages {len(es):,} ({len(core):,} core)")
+    for r in srcs.itertuples(index=False):
         t = Path(r.txt).read_text(errors="ignore")
         rows += [{"pid": p.pid, "doc": f"pan:{p.doc_id}", "start": p.start, "end": p.end, "text": p.text, "family": "pan"} for p in chunk_document(t, r.source)]
-    for r in pd.read_parquet(W / "corpus_es.parquet").itertuples(index=False):
+    for r in es.itertuples(index=False):
         rows.append({"pid": f"es:{r.docid}", "doc": f"es:{r.docid}", "start": 0, "end": len(r.text), "text": r.text, "family": "es"})
     df = pd.DataFrame(rows)
     df.to_parquet(W / "passages.parquet", index=False)
