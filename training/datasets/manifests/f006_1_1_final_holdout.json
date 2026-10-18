@@ -1,0 +1,147 @@
+{
+  "name": "F006_1_1_FINAL_HOLDOUT",
+  "created_at": "2026-10-18T08:31:51Z",
+  "seed": 61106,
+  "dedup": {
+    "rows_before": 296437,
+    "exact_within_new_removed": 11634,
+    "exact_vs_v2_removed": 108193,
+    "exact_vs_f006_1_removed": 0,
+    "near_vs_reference_removed": 673,
+    "rows_after": 175937
+  },
+  "leakage": {
+    "group": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0,
+      "holdout_prior_holdouts": 0,
+      "holdout_ever_evaluated": 0
+    },
+    "exact": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "parent_child": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "participant": {
+      "cowsl2h_students_validation_train": 0,
+      "cowsl2h_students_holdout_train": 0,
+      "cowsl2h_students_validation_holdout": 0
+    },
+    "near_duplicate": {
+      "validation_holdout": 0,
+      "spanish_eval_f006_1_train_extra": 0,
+      "eval_train_new": 0
+    },
+    "result": "PASS"
+  },
+  "unseen_generator_families": {
+    "human": 1500,
+    "mistral": 1389,
+    "cohere": 427
+  },
+  "docs": 30363,
+  "humans": 13650,
+  "groups": 24186,
+  "by_primary": {
+    "academic": {
+      "docs": 2000,
+      "humans": 1000
+    },
+    "adversarial": {
+      "docs": 1000,
+      "humans": 0
+    },
+    "ai_edited": {
+      "docs": 2450,
+      "humans": 400
+    },
+    "general": {
+      "docs": 8000,
+      "humans": 4000
+    },
+    "mixed": {
+      "docs": 2520,
+      "humans": 20
+    },
+    "ood": {
+      "docs": 1200,
+      "humans": 600
+    },
+    "span": {
+      "docs": 1500,
+      "humans": 0
+    },
+    "spanish": {
+      "docs": 7177,
+      "humans": 5530
+    },
+    "unseen_domain": {
+      "docs": 1200,
+      "humans": 600
+    },
+    "unseen_generator": {
+      "docs": 3316,
+      "humans": 1500
+    }
+  },
+  "spanish_docs": 7177,
+  "spanish_humans": 5530,
+  "spanish_humans_by_dataset": {
+    "autextification2023": 1113,
+    "cowsl2h": 900,
+    "academic_abstracts_es": 900,
+    "f006_1_new_spanish": 900,
+    "spanish_billion_words": 900,
+    "scielo_es": 796,
+    "iberautextification": 21
+  },
+  "datasets": {
+    "autextification2023": 3210,
+    "detectrl_x": 2813,
+    "gradtex_f0611": 2744,
+    "mgtbench2_academic": 2496,
+    "semeval2024_task8": 2223,
+    "gradtex": 2020,
+    "iberautextification": 1914,
+    "mage": 1775,
+    "opai_bench": 1582,
+    "coling2025_mgt_en": 1087,
+    "beemo_f0611": 1019,
+    "academic_arxiv_gpt_gemini": 971,
+    "academic_abstracts_es": 900,
+    "spanish_billion_words": 900,
+    "f006_1_new_spanish": 900,
+    "cowsl2h": 900,
+    "scielo_es": 796,
+    "openllmtext": 488,
+    "mdta": 385,
+    "turingbench": 361,
+    "outfox": 302,
+    "hc3_chinese": 180,
+    "m4": 170,
+    "seqxgpt": 149,
+    "hc3": 78
+  },
+  "fine_labels": {
+    "HUMAN": 13650,
+    "AI_GENERATED": 7487,
+    "MIXED": 3839,
+    "AI_EDITED": 3163,
+    "PARAPHRASED_AI": 1930,
+    "HUMAN_EDITED_AI": 294
+  },
+  "span_docs": 1582,
+  "mixed_docs": 3839,
+  "hard_humans": 2058,
+  "ids_sha256": "02132e5a45444b2ac54d5d0212228acbc7674fb1778063be83ceade0b97430fb",
+  "holdout_file_sha256": "fc4b82e48fb044a9d22894a932f19b66470bbdf8ff741d58ff7998b493ebdf24",
+  "attacks_file_sha256": "d68da8db29f6d922464ab2add2d97b6a379d7be2aaebb4a5aeaa4b9e6f7a395b",
+  "LOCKED": true,
+  "rule": "never used for training / mining / selection / calibration / thresholds; evaluated ONCE after F006_1_1_MODEL_LOCK"
+}

@@ -1,0 +1,116 @@
+{
+  "rule": "applies the gate\nliterally: one global threshold set at overall human FPR = 0.05 (validation), then Spanish FPR must be <= 0.08.\nResults go to <drive>/reports/ablation_gate_check.json.",
+  "runs": {
+    "C10_hard35": {
+      "threshold_logit": 1.7890625000000002,
+      "overall_fpr": 0.04996608636671942,
+      "spanish_fpr": 0.0225939979303208,
+      "spanish_fpr_ci95": [
+        0.019073155788774325,
+        0.026747054125264007
+      ],
+      "spanish_recall": 0.798,
+      "passes": true
+    },
+    "C1_f0061": {
+      "threshold_logit": 2.0156250000000004,
+      "overall_fpr": 0.04981535910769463,
+      "spanish_fpr": 0.02242152466367713,
+      "spanish_fpr_ci95": [
+        0.01891502547051436,
+        0.026560466311267482
+      ],
+      "spanish_recall": 0.8382222222222222,
+      "passes": true
+    },
+    "C2_v3": {
+      "threshold_logit": 1.8281250000000002,
+      "overall_fpr": 0.04981535910769463,
+      "spanish_fpr": 0.02173163159710245,
+      "spanish_fpr_ci95": [
+        0.0182830941327897,
+        0.025813525119966183
+      ],
+      "spanish_recall": 0.7851111111111111,
+      "passes": true
+    },
+    "C3_f006": {
+      "threshold_logit": 1.9140625000000002,
+      "overall_fpr": 0.04981535910769463,
+      "spanish_fpr": 0.02466367713004484,
+      "spanish_fpr_ci95": [
+        0.020975045370984376,
+        0.028981782130131816
+      ],
+      "spanish_recall": 0.8173333333333334,
+      "passes": true
+    },
+    "C4_hw1.25": {
+      "threshold_logit": 1.7890625000000002,
+      "overall_fpr": 0.04996608636671942,
+      "spanish_fpr": 0.02397378406347016,
+      "spanish_fpr_ci95": [
+        0.020340223028401612,
+        0.02823773194368863
+      ],
+      "spanish_recall": 0.8106666666666666,
+      "passes": true
+    },
+    "C4_hw1.5": {
+      "threshold_logit": 1.6484375000000002,
+      "overall_fpr": 0.04996608636671942,
+      "spanish_fpr": 0.024491203863401173,
+      "spanish_fpr_ci95": [
+        0.02081626229896661,
+        0.028795847069893098
+      ],
+      "spanish_recall": 0.8022222222222222,
+      "passes": true
+    },
+    "C6_mixspan": {
+      "threshold_logit": 1.5390625000000002,
+      "overall_fpr": 0.04996608636671942,
+      "spanish_fpr": 0.027768195929630906,
+      "spanish_fpr_ci95": [
+        0.02384136063708584,
+        0.03232039324464716
+      ],
+      "spanish_recall": 0.8106666666666666,
+      "passes": true
+    },
+    "C7_h55": {
+      "threshold_logit": 1.9296875000000002,
+      "overall_fpr": 0.04996608636671942,
+      "spanish_fpr": 0.027078302863056226,
+      "spanish_fpr_ci95": [
+        0.023203119258724002,
+        0.03157976209398304
+      ],
+      "spanish_recall": 0.8108888888888889,
+      "passes": true
+    },
+    "C8_tok06": {
+      "threshold_logit": 1.7031250000000002,
+      "overall_fpr": 0.04973999547818223,
+      "spanish_fpr": 0.02224905139703346,
+      "spanish_fpr_ci95": [
+        0.01875695348045366,
+        0.026373820169071697
+      ],
+      "spanish_recall": 0.7977777777777778,
+      "passes": true
+    },
+    "C9_es3": {
+      "threshold_logit": 1.6406250000000002,
+      "overall_fpr": 0.04996608636671942,
+      "spanish_fpr": 0.024146257330113833,
+      "spanish_fpr_ci95": [
+        0.02049885059368785,
+        0.02842382251065888
+      ],
+      "spanish_recall": 0.8204444444444444,
+      "passes": true
+    }
+  },
+  "any_pass": true
+}

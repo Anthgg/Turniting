@@ -1,0 +1,20 @@
+{
+  "name": "EXPERIMENTAL_F006_1_1_MODEL",
+  "status": "EXPERIMENTAL",
+  "active": false,
+  "parentModel": "C3_f006",
+  "artifactPath": "MyDrive/turniting/f006_1_1/models/experimental_f006_1_1",
+  "calibration": {
+    "option": "ES_PLATT",
+    "global": "isotonic",
+    "spanish": "platt"
+  },
+  "thresholdGlobal": 0.767241379310345,
+  "thresholdSpanish": 0.767241379310345,
+  "modelSha256": "b8af9b183c4486fb41a1ac833221ac717fdf7fb56b2489ccb473b73a260c3e40",
+  "failedGates": [
+    "A_overall_human_fpr_le_0.05",
+    "H_mixed_recall_ge_0.65",
+    "I_span_token_f1_ge_0.86"
+  ]
+}

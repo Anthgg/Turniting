@@ -1,0 +1,21 @@
+{
+  "name": "F006_1_1_TRAIN_EXTRA",
+  "rows": 146081,
+  "f006_1_extra": 51346,
+  "f006_1_1_new": 94735,
+  "new_by_dataset_label": {
+    "scielo_es|HUMAN": 35003,
+    "spanish_billion_words|HUMAN": 33427,
+    "academic_abstracts_es|HUMAN": 9294,
+    "gradtex_f0611|HUMAN": 8621,
+    "gradtex_f0611|AI_EDITED": 2928,
+    "beemo_f0611|AI_EDITED": 1469,
+    "cowsl2h|HUMAN": 1390,
+    "gradtex_f0611|MIXED": 1161,
+    "gradtex_f0611|PARAPHRASED_AI": 589,
+    "gradtex_f0611|AI_GENERATED": 571,
+    "has_f0611|HUMAN": 142,
+    "has_f0611|MIXED": 140
+  },
+  "span_rows": 282
+}

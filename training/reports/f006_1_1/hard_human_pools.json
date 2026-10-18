@@ -1,0 +1,95 @@
+{
+  "source": "TRAIN humans only (V2 TRAIN + F006_1_1 TRAIN_EXTRA)",
+  "scored": 195064,
+  "scored_spanish": 86301,
+  "models": [
+    "V3",
+    "F006",
+    "F006_1"
+  ],
+  "rule": "'s document\nlogit is turned into a percentile rank among the scored humans; combined = max over the three models (a human\nany model finds machine-like). Global pool: top 15 % combined, <= 12 % of the pool per source dataset.\nSpanish pool: top 20 % combined among Spanish train humans, <= 15 % per (dataset, domain).",
+  "HARD_HUMAN_POOL_V3": {
+    "size": 28666,
+    "by_dataset": {
+      "autextification2023": 3514,
+      "iberautextification": 3441,
+      "detectrl_x": 2985,
+      "academic_abstracts_es": 2676,
+      "cc_news_es_2019": 2027,
+      "mage": 1963,
+      "gradtex_f0611": 1955,
+      "scielo_es": 1755,
+      "semeval2024_task8": 1230,
+      "beemo": 1053,
+      "raid": 921,
+      "coling2025_mgt_en": 785,
+      "spanish_billion_words": 556,
+      "m4": 510,
+      "cowsl2h": 481,
+      "xlsum_es_bbcmundo": 456,
+      "opai_bench": 404,
+      "hc3": 393,
+      "openllmtext": 350,
+      "seqxgpt": 305,
+      "hc3_chinese": 217,
+      "mgtbench2_academic": 167,
+      "txd22": 103,
+      "ghostbuster_essay": 101,
+      "has_f0611": 87,
+      "turingbench": 68,
+      "het_ai_spans": 55,
+      "academic_arxiv_gpt_gemini": 53,
+      "outfox": 49,
+      "nigerian_academic": 5
+    },
+    "by_language": {
+      "es": 12826,
+      "en": 10794,
+      "zh": 758,
+      "ru": 744,
+      "de": 734,
+      "pt": 596,
+      "gl": 473,
+      "ar": 473,
+      "ca": 449,
+      "eu": 353,
+      "id": 162,
+      "fr": 156
+    }
+  },
+  "SPANISH_HARD_POOL_V3": {
+    "size": 16473,
+    "by_dataset": {
+      "autextification2023": 4651,
+      "cc_news_es_2019": 2590,
+      "academic_abstracts_es": 2590,
+      "scielo_es": 2322,
+      "iberautextification": 1487,
+      "spanish_billion_words": 810,
+      "detectrl_x": 773,
+      "xlsum_es_bbcmundo": 695,
+      "cowsl2h": 555
+    },
+    "by_domain": {
+      "academic": 4946,
+      "news": 4872,
+      "wiki": 1791,
+      "social": 1021,
+      "general": 810,
+      "reviews": 655,
+      "essay": 555,
+      "howto": 438,
+      "chat": 330,
+      "legal": 320,
+      "seo": 231,
+      "webtext": 173,
+      "literary": 171,
+      "novel": 160
+    }
+  },
+  "model_agreement_top15": {
+    "F006_V3": 0.8201982228298018,
+    "F006_F006_1": 0.7646274777853725,
+    "F006_1_V3": 0.7437948717948718
+  }
+}

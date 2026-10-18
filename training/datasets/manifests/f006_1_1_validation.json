@@ -1,0 +1,150 @@
+{
+  "name": "F006_1_1_VALIDATION",
+  "created_at": "2026-10-18T08:31:51Z",
+  "seed": 61106,
+  "dedup": {
+    "rows_before": 296437,
+    "exact_within_new_removed": 11634,
+    "exact_vs_v2_removed": 108193,
+    "exact_vs_f006_1_removed": 0,
+    "near_vs_reference_removed": 673,
+    "rows_after": 175937
+  },
+  "leakage": {
+    "group": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0,
+      "holdout_prior_holdouts": 0,
+      "holdout_ever_evaluated": 0
+    },
+    "exact": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "parent_child": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "participant": {
+      "cowsl2h_students_validation_train": 0,
+      "cowsl2h_students_holdout_train": 0,
+      "cowsl2h_students_validation_holdout": 0
+    },
+    "near_duplicate": {
+      "validation_holdout": 0,
+      "spanish_eval_f006_1_train_extra": 0,
+      "eval_train_new": 0
+    },
+    "result": "PASS"
+  },
+  "unseen_generator_families": {
+    "deepseek": 1200,
+    "human": 1200
+  },
+  "docs": 30657,
+  "humans": 13269,
+  "groups": 20956,
+  "by_primary": {
+    "academic": {
+      "docs": 1800,
+      "humans": 900
+    },
+    "adversarial": {
+      "docs": 900,
+      "humans": 0
+    },
+    "ai_edited": {
+      "docs": 2200,
+      "humans": 400
+    },
+    "general": {
+      "docs": 7000,
+      "humans": 3500
+    },
+    "mixed": {
+      "docs": 3202,
+      "humans": 602
+    },
+    "ood": {
+      "docs": 1000,
+      "humans": 500
+    },
+    "span": {
+      "docs": 1000,
+      "humans": 12
+    },
+    "spanish": {
+      "docs": 10298,
+      "humans": 5798
+    },
+    "unseen_domain": {
+      "docs": 857,
+      "humans": 357
+    },
+    "unseen_generator": {
+      "docs": 2400,
+      "humans": 1200
+    }
+  },
+  "spanish_docs": 10298,
+  "spanish_humans": 5798,
+  "spanish_humans_by_dataset": {
+    "cowsl2h": 900,
+    "f006_1_new_spanish": 900,
+    "spanish_billion_words": 899,
+    "academic_abstracts_es": 896,
+    "scielo_es": 703,
+    "autextification2023": 538,
+    "detectrl_x": 482,
+    "iberautextification": 480
+  },
+  "datasets": {
+    "detectrl_x": 6245,
+    "opai_bench": 4163,
+    "autextification2023": 1993,
+    "iberautextification": 1875,
+    "mgtbench2_academic": 1628,
+    "gradtex": 1483,
+    "mage": 1234,
+    "semeval2024_task8": 1158,
+    "mdta": 1075,
+    "gradtex_f0611": 931,
+    "cowsl2h": 900,
+    "f006_1_new_spanish": 900,
+    "spanish_billion_words": 899,
+    "academic_abstracts_es": 896,
+    "beemo_f0611": 746,
+    "academic_arxiv_gpt_gemini": 738,
+    "coling2025_mgt_en": 712,
+    "scielo_es": 703,
+    "openllmtext": 403,
+    "hc3": 378,
+    "turingbench": 314,
+    "seqxgpt": 267,
+    "m4": 265,
+    "nigerian_academic": 237,
+    "txd22": 152,
+    "hc3_chinese": 117,
+    "outfox": 105,
+    "raid": 100,
+    "has_f0611": 29,
+    "het_ai_spans": 6,
+    "beemo": 5
+  },
+  "fine_labels": {
+    "HUMAN": 13269,
+    "AI_GENERATED": 7392,
+    "MIXED": 3846,
+    "AI_EDITED": 3129,
+    "PARAPHRASED_AI": 3020,
+    "HUMAN_EDITED_AI": 1
+  },
+  "span_docs": 4198,
+  "mixed_docs": 3846,
+  "hard_humans": 1992,
+  "ids_sha256": "5915ecca862add4f930978c386478478b696a38831c0b535a7f46708d8407609",
+  "file_sha256": "45e7e08342c8d7c453ceaa126df9c8645865771075efe056400c73743f77e440"
+}

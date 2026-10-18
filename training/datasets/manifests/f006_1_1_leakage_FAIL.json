@@ -1,0 +1,30 @@
+{
+  "group": {
+    "validation_train": 0,
+    "holdout_train": 0,
+    "validation_holdout": 0,
+    "holdout_prior_holdouts": 0,
+    "holdout_ever_evaluated": 0
+  },
+  "exact": {
+    "validation_train": 0,
+    "holdout_train": 0,
+    "validation_holdout": 0
+  },
+  "parent_child": {
+    "validation_train": 0,
+    "holdout_train": 0,
+    "validation_holdout": 0
+  },
+  "participant": {
+    "cowsl2h_students_validation_train": 0,
+    "cowsl2h_students_holdout_train": 0,
+    "cowsl2h_students_validation_holdout": 0
+  },
+  "near_duplicate": {
+    "validation_holdout": 0,
+    "spanish_eval_f006_1_train_extra": 0,
+    "eval_train_new": 2
+  },
+  "result": "FAIL"
+}
