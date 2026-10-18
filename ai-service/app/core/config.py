@@ -125,6 +125,9 @@ class Settings(BaseSettings):
     ai_model_v3_path: Path | None = Field(
         default=None, validation_alias="AI_MODEL_V3_PATH"
     )
+    ai_model_f006_path: Path | None = Field(
+        default=None, validation_alias="AI_MODEL_F006_PATH"
+    )
     ai_baseline_model_path: Path | None = Field(
         default=None,
         validation_alias="AI_BASELINE_MODEL_PATH",

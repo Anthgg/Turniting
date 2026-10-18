@@ -104,4 +104,10 @@ export class ModelVersionsController {
   importRegistry(@Body() body: ImportModelRegistryDto) {
     return this.models.importRegistry(body);
   }
+
+  @Post('import-f006-registry')
+  @ApiOperation({ summary: 'Register F006 experimental metadata without downloading model weights' })
+  importF006Registry() {
+    return this.models.importF006Registry();
+  }
 }

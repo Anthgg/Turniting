@@ -29,7 +29,8 @@ import {
   validateSplitManifest,
   validateStatistics,
 } from './manifest-schemas.js';
-import { ModelVersionService } from './model-version.service.js';
+import { ModelPromotionService } from './model-promotion.service.js';
+import { F006_MODEL_REGISTRY, ModelVersionService } from './model-version.service.js';
 import { TrainingFilesService } from './training-files.service.js';
 
 const fixtureDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../test/fixtures/datasets');
@@ -259,18 +260,24 @@ describe('GroundTruthDatasetService', () => {
 describe('ModelVersionService', () => {
   let prisma: Record<string, Record<string, ReturnType<typeof vi.fn>>>;
   let service: ModelVersionService;
+  let trainingFiles: TrainingFilesService;
 
   beforeEach(() => {
     prisma = {
-      datasetVersion: { findUnique: vi.fn().mockResolvedValue({ id: datasetId, name: 'SYNTHETIC_DATASET', version: 'V1' }) },
+      datasetVersion: {
+        findUnique: vi.fn().mockResolvedValue({ id: datasetId, name: 'SYNTHETIC_DATASET', version: 'V1' }),
+        findFirst: vi.fn().mockResolvedValue({ id: datasetId, name: 'TURNITING_DATASET', version: 'V2' }),
+      },
       modelVersion: {
         upsert: vi.fn().mockImplementation(async ({ create }) => ({ id: `id-${create.name}`, ...create })),
         findUnique: vi.fn().mockImplementation(async ({ where }) => ({ id: where.id, artifacts: [{ sizeBytes: 2048n }] })),
         findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn(),
       },
       datasetArtifact: { deleteMany: vi.fn(), create: vi.fn() },
     };
-    service = new ModelVersionService(prisma as unknown as PrismaService, files());
+    trainingFiles = files();
+    service = new ModelVersionService(prisma as unknown as PrismaService, trainingFiles, new ModelPromotionService());
   });
 
   it('imports the registry as CANDIDATE / RESEARCH_ONLY metadata with external weights', async () => {
@@ -291,5 +298,81 @@ describe('ModelVersionService', () => {
       name: 'MODEL_X', architecture: 'a', modelType: 'BASELINE', status: ModelStatus.ACTIVE,
       commercialEligibility: 'RESEARCH_ONLY', metrics: {},
     } as never)).rejects.toThrow(BadRequestException);
+  });
+
+  it('imports F006 as experimental metadata without exposing the Drive path', async () => {
+    const registry = {
+      name: 'EXPERIMENTAL_F006_MODEL', baseModel: 'microsoft/mdeberta-v3-base',
+      parentModel: 'CANDIDATE_MODEL_V3 (TURNITING_RESEARCH_V3_SPANISH_ACADEMIC)',
+      datasetVersion: 'TURNITING_DATASET_V2', trainingStrategy: 'HARD_NEGATIVE_TARGETED_FINETUNE',
+      status: 'EXPERIMENTAL', artifactProvider: 'GOOGLE_DRIVE_LOCAL_IMPORT',
+      artifactPath: 'MyDrive/turniting/f006/models/experimental_v4', checkpointPath: 'MyDrive/turniting/f006/runs/F006_FULL/best',
+      preprocessingVersion: 'V3_CANONICALIZED_V1', calibrationVersion: 'F006_ISOTONIC_V1',
+      thresholds: { BALANCED: 0.8433, LOW_FALSE_POSITIVE: 0.7694, VERY_LOW_FALSE_POSITIVE: 0.8433 },
+      selectedAnalyzer: 'V4_ONLY', metrics: { final_holdout_balanced: { all: { fpr: 0.0447 }, spanish: { fpr: 0.1423 } } },
+      warnings: ['F006_GATES_FAILED: D_spanish_strong'], active: false,
+    };
+    const gates = {
+      gates: {
+        A_holdout_human_fpr_le_0_05: true, B_unseen_generator_fpr_le_0_10_or_clear_gain: true,
+        C_academic_strong: true, D_spanish_strong: false, E_mixed_recall_drop_le_5pts: true,
+        F_ai_edited_f1_drop_le_5pts: true, G_ood_no_severe_drop: true, H_zero_width_homoglyph_robust: true,
+        I_no_leakage: true, J_holdout_never_used_for_tuning: true,
+      },
+      passed: false, status: 'EXPERIMENTAL', span_gate: true,
+    };
+    vi.spyOn(trainingFiles, 'readJson').mockImplementation(async (path) =>
+      path === F006_MODEL_REGISTRY ? registry : gates);
+    prisma.modelVersion.findUnique.mockResolvedValueOnce({
+      id: 'id-f006', artifactProvider: 'GOOGLE_DRIVE', artifactPath: registry.artifactPath,
+      artifacts: [{ storageProvider: 'GOOGLE_DRIVE', path: registry.artifactPath, sizeBytes: 2048n }],
+    });
+
+    const result = await service.importF006Registry();
+    const upsert = prisma.modelVersion.upsert.mock.calls[0][0];
+    expect(result).toMatchObject({ registered: 1, datasetVersion: 'TURNITING_DATASET_V2', datasetLinked: true,
+      artifactAvailableLocally: false });
+    expect(upsert.create).toMatchObject({
+      name: 'EXPERIMENTAL_F006_MODEL', architecture: 'microsoft/mdeberta-v3-base',
+      status: ModelStatus.EXPERIMENTAL, modelType: 'TRANSFORMER', commercialEligibility: 'RESEARCH_ONLY',
+      artifactProvider: 'GOOGLE_DRIVE', artifactPath: registry.artifactPath,
+      metadata: { parentModel: registry.parentModel, trainingStrategy: registry.trainingStrategy,
+        active: false, gatesPassed: 9, gatesTotal: 10 },
+    });
+    expect(prisma.datasetArtifact.create.mock.calls[0][0].data).toMatchObject({
+      storageProvider: 'GOOGLE_DRIVE', external: true,
+      metadata: { downloaded: false },
+    });
+    expect(result.model.artifactPath).toBeNull();
+    expect(result.model.artifacts[0].path).toBeNull();
+    expect(JSON.stringify(result)).not.toContain('MyDrive');
+  });
+
+  it('blocks F006 promotion even with an explicit review when Spanish FPR fails', async () => {
+    prisma.modelVersion.findUnique.mockResolvedValueOnce({
+      id: 'id-f006', name: 'EXPERIMENTAL_F006_MODEL', status: ModelStatus.EXPERIMENTAL,
+      metadata: null, artifacts: [],
+    });
+    const review = {
+      approved: true,
+      reviewer: 'reviewer-1',
+      reviewedAt: '2026-10-17T12:00:00.000Z',
+      rationale: 'Explicit review for the F006 promotion policy test.',
+    };
+    let error: unknown;
+    try {
+      await service.promoteToActive('EXPERIMENTAL_F006_MODEL', review);
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect((error as BadRequestException).getResponse()).toMatchObject({
+      promotion: { decision: 'BLOCKED', eligible: false, criteria: {
+        spanishHumanFpr: { state: 'FAIL', observed: 0.1423, limit: 0.08 },
+        paragraphStability: { state: 'NOT_EVALUATED' },
+        explicitReview: { state: 'PASS' },
+      } },
+    });
+    expect(prisma.modelVersion.update).not.toHaveBeenCalled();
   });
 });

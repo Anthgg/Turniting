@@ -155,6 +155,21 @@ describe('AnalyzerModelsService', () => {
     const out = await svc.list();
     expect(out.items.find((m) => m.name === 'CANDIDATE_MODEL_V3')?.availability).toBe('UNAVAILABLE');
     expect(out.items.find((m) => m.name === 'CANDIDATE_MODEL_V2')?.registeredInDatabase).toBe(true);
+    expect(out.activeModel).toBe('NONE');
+    expect(out.recommendedExperimentalAnalyzer).toBe('ENSEMBLE_V2_V3');
+    const f006 = out.items.find((m) => m.name === 'EXPERIMENTAL_F006_MODEL');
+    expect(f006).toMatchObject({
+      registeredInRegistry: true,
+      status: 'EXPERIMENTAL',
+      availability: 'UNAVAILABLE',
+      artifactPresent: false,
+      servable: false,
+      promotionEligible: false,
+      metrics: { evaluationSet: 'F006_FINAL_HOLDOUT', spanishHumanFpr: 0.1423 },
+      activeGateResults: { spanishHumanFpr: { observed: 0.1423, limit: 0.08, passed: false } },
+    });
+    expect(f006?.warnings).toContain('Spanish human false-positive rate is elevated.');
+    expect(f006?.officialGateResults?.D_spanish_strong).toBe(false);
     expect(JSON.stringify(out)).not.toContain('MyDrive');
     ai.listAnalyzerModels.mockRejectedValueOnce(new Error('down'));
     const down = await svc.list();

@@ -12,6 +12,7 @@ from pathlib import Path
 from app.core.config import Settings
 
 V2, V3, BASELINE = "CANDIDATE_MODEL_V2", "CANDIDATE_MODEL_V3", "BEST_BASELINE"
+F006 = "EXPERIMENTAL_F006_MODEL"
 
 
 @dataclass(frozen=True)
@@ -82,6 +83,35 @@ MODELS: dict[str, ModelSpec] = {
             "Frozen V1 test FPR at its BALANCED threshold is 0.275 vs 0.135 for CANDIDATE_MODEL_V2: "
             "use a validation-selected low false-positive profile.",
             "Context windows span several paragraphs; use paragraph-local scoring for version comparison.",
+        ),
+    ),
+    F006: ModelSpec(
+        name=F006,
+        kind="v3_multitask",
+        architecture="microsoft/mdeberta-v3-base + V3 multi-task heads (binary / fine / token)",
+        variant="F006_TRANSFORMER_EXPERIMENTAL",
+        dataset="TURNITING_DATASET_V2",
+        status="EXPERIMENTAL",
+        artifact_provider="GOOGLE_DRIVE",
+        artifact_logical_path="MyDrive/turniting/f006/models/experimental_v4",
+        checkpoint_logical_path="MyDrive/turniting/f006/runs/F006_FULL/best",
+        preprocessing="V3_CANONICALIZED_V1",
+        required_files=(
+            "backbone/config.json",
+            "backbone/model.safetensors",
+            "heads.pt",
+            "v3_config.json",
+            "inference_config.json",
+            "thresholds.json",
+            "calibration.json",
+            "model_manifest.json",
+        ),
+        setting="ai_model_f006_path",
+        approx_memory_mb=1300,
+        warnings=(
+            "SPANISH_FPR_REGRESSION",
+            "SPANISH_VALIDATION_SHIFT",
+            "Spanish human false-positive rate is elevated.",
         ),
     ),
     BASELINE: ModelSpec(

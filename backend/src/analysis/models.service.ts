@@ -3,8 +3,15 @@ import type { Prisma } from '@prisma/client';
 import { AiService, type AiAnalyzerModelStatus } from '../ai/ai.service.js';
 import { ModelVersionService } from '../datasets/model-version.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ACTIVE_ACCEPTANCE_LIMITS, MODEL_CATALOG, numericGateResults } from './model-catalog.js';
 
-const ANALYZER_MODELS = ['BEST_BASELINE', 'CANDIDATE_MODEL_V2', 'CANDIDATE_MODEL_V3'];
+const ANALYZER_MODELS = [
+  'BEST_BASELINE',
+  'CANDIDATE_MODEL_V2',
+  'CANDIDATE_MODEL_V3',
+  'ENSEMBLE_V2_V3',
+  'EXPERIMENTAL_F006_MODEL',
+];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
@@ -28,28 +35,75 @@ export class AnalyzerModelsService {
     } catch {
       aiReachable = false;
     }
+    const liveByName = new Map(live.map((model) => [model.model, model]));
+    const ensembleComponents = [liveByName.get('CANDIDATE_MODEL_V2'), liveByName.get('CANDIDATE_MODEL_V3')];
+    const ensembleReady = ensembleComponents.every((model) =>
+      Boolean(model?.servable && ['AVAILABLE', 'READY'].includes(model.state)),
+    );
+    const ensembleAvailability = !aiReachable
+      ? 'AI_SERVICE_UNREACHABLE'
+      : ensembleReady
+        ? 'COMPOSITE_AVAILABLE'
+        : 'DEPENDENCIES_UNAVAILABLE';
     const items = ANALYZER_MODELS.map((name) => {
       const db = registered.find((m) => m.name === name);
-      const st = live.find((m) => m.model === name);
+      const st = liveByName.get(name);
+      const defaults = MODEL_CATALOG[name];
+      const isEnsemble = name === 'ENSEMBLE_V2_V3';
+      const artifactPresent = isEnsemble
+        ? ensembleComponents.every((model) => Boolean(model?.artifactPresent))
+        : st?.artifactPresent ?? false;
+      const artifactValid = isEnsemble
+        ? ensembleComponents.every((model) => Boolean(model?.artifactValid))
+        : st?.artifactValid ?? false;
+      const missing = isEnsemble
+        ? ensembleComponents.flatMap((model) => model?.missing ?? [])
+        : st?.missing ?? [];
+      const availability = !aiReachable
+        ? 'AI_SERVICE_UNREACHABLE'
+        : isEnsemble
+          ? ensembleAvailability
+          : st?.state ?? 'UNAVAILABLE';
       return {
         name,
         id: db?.id ?? null,
         registeredInDatabase: Boolean(db),
-        status: db?.status ?? st?.status ?? null,
-        architecture: db?.architecture ?? st?.architecture ?? null,
-        variant: db?.variant ?? st?.variant ?? null,
-        dataset: st?.dataset ?? null,
-        artifactProvider: db?.artifactProvider ?? st?.artifactProvider ?? null,
-        availability: !aiReachable ? 'AI_SERVICE_UNREACHABLE' : (st?.state ?? 'UNAVAILABLE'),
-        artifactPresent: st?.artifactPresent ?? false,
-        servable: st?.servable ?? false,
-        thresholdProfiles: st?.thresholdProfiles ?? [],
-        thresholdSource: st?.thresholdSource ?? null,
-        preprocessing: st?.preprocessing ?? [],
-        warnings: [...new Set([...(st?.warnings ?? []), ...(db?.limitations ?? [])])],
+        registeredInRegistry: Boolean(defaults) || Boolean(st?.registered),
+        status: db?.status ?? st?.status ?? defaults.status,
+        architecture: db?.architecture ?? st?.architecture ?? defaults.architecture,
+        variant: db?.variant ?? st?.variant ?? defaults.variant,
+        dataset: st?.dataset ?? defaults.dataset,
+        artifactProvider: db?.artifactProvider ?? st?.artifactProvider ?? defaults.artifactProvider,
+        availability,
+        artifactPresent,
+        artifactValid,
+        missing,
+        servable: isEnsemble ? ensembleReady : st?.servable ?? false,
+        thresholdProfiles: st?.thresholdProfiles?.length ? st.thresholdProfiles : defaults.thresholdProfiles,
+        thresholdSource: st?.thresholdSource ?? defaults.thresholdSource,
+        preprocessing: st?.preprocessing?.length ? st.preprocessing : defaults.preprocessing,
+        metrics: defaults.metrics,
+        registryMetrics: db?.metrics ?? null,
+        strengths: defaults.strengths,
+        warnings: [...new Set([...(defaults.warnings ?? []), ...(st?.warnings ?? []), ...(db?.limitations ?? [])])],
+        activeGateResults: numericGateResults(defaults.metrics),
+        officialGateResults: defaults.officialGates,
+        promotionEvidence: defaults.promotionEvidence,
+        promotionEligible: false,
+        promotionReviewRequired: true,
       };
     });
-    return { aiServiceReachable: aiReachable, items };
+    return {
+      aiServiceReachable: aiReachable,
+      activeModel: 'NONE',
+      recommendedExperimentalAnalyzer: 'ENSEMBLE_V2_V3',
+      recommendedExperimentalThresholdProfile: 'BALANCED',
+      lowFprAlternative: 'CANDIDATE_MODEL_V2',
+      lowFprAlternativeThresholdProfile: 'LOW_FALSE_POSITIVE',
+      promotionReviewRequired: true,
+      activeAcceptanceLimits: ACTIVE_ACCEPTANCE_LIMITS,
+      items,
+    };
   }
 
   async metrics(idOrName: string) {

@@ -54,6 +54,7 @@ services:
       # ./data/models (Git-ignored) and mounted read-only; missing weights only make a model UNAVAILABLE.
       AI_MODEL_V2_PATH: /data/models/local/candidate-v2
       AI_MODEL_V3_PATH: /data/models/local/candidate-v3
+      AI_MODEL_F006_PATH: /data/models/local/experimental-f006
       AI_BASELINE_MODEL_PATH: /data/models/local/baseline
       AI_MODEL_DEVICE: ${AI_MODEL_DEVICE:-auto}
       MODEL_MAX_RESIDENT: ${MODEL_MAX_RESIDENT:-1}

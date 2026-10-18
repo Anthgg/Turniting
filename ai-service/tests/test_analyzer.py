@@ -19,7 +19,7 @@ from app.services.analyzer.comparison import align_paragraphs
 from app.services.analyzer.manager import ModelManager, ModelUnavailableError
 from app.services.analyzer.paragraphs import split_paragraphs
 from app.services.analyzer.preprocessing import V2_PREPROCESSING_V1, V3_CANONICALIZED_V1
-from app.services.analyzer.registry import MODELS, V2, V3
+from app.services.analyzer.registry import F006, MODELS, V2, V3
 from app.services.analyzer.scoring import (
     CONTEXTUAL,
     STRICT,
@@ -130,8 +130,16 @@ def test_missing_artifacts_are_unavailable_not_errors(tmp_path):
     )
     assert m.status(V2)["state"] == "UNAVAILABLE"
     assert m.status(V3)["artifactPresent"] is False
+    experimental = m.status(F006)
+    assert experimental["status"] == "EXPERIMENTAL"
+    assert experimental["state"] == "UNAVAILABLE"
+    assert experimental["artifactPresent"] is False
+    assert experimental["servable"] is False
+    assert "calibration.json" in experimental["missing"]
     with pytest.raises(ModelUnavailableError):
         m.predict(V3, "texto de prueba")
+    with pytest.raises(ModelUnavailableError):
+        m.predict(F006, "texto sintético de prueba")
 
 
 def test_manifest_validation_reports_missing_and_invalid(tmp_path):
@@ -348,3 +356,8 @@ def test_api_models_and_unavailable_predict(tmp_path, monkeypatch):
         pred.status_code == 503 and pred.json()["detail"]["code"] == "MODEL_UNAVAILABLE"
     )
     assert bad.status_code == 422
+    f006 = next(m for m in models.json()["models"] if m["model"] == F006)
+    assert f006["status"] == "EXPERIMENTAL"
+    assert f006["state"] == "UNAVAILABLE"
+    assert f006["servable"] is False
+    assert "Spanish human false-positive rate is elevated." in f006["warnings"]

@@ -23,7 +23,7 @@ describe('Dataset API routes', () => {
     getStatistics: vi.fn(), listSamples: vi.fn(), importManifest: vi.fn(),
   };
   const groundTruth = { importCase: vi.fn() };
-  const models = { list: vi.fn(), getById: vi.fn(), register: vi.fn(), importRegistry: vi.fn() };
+  const models = { list: vi.fn(), getById: vi.fn(), register: vi.fn(), importRegistry: vi.fn(), importF006Registry: vi.fn() };
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({ imports: [AppModule] })
@@ -132,5 +132,9 @@ describe('Dataset API routes', () => {
       .send({ datasetVersionId: datasetId })
       .expect(201);
     expect(models.importRegistry).toHaveBeenCalledWith(expect.objectContaining({ datasetVersionId: datasetId }));
+    models.importF006Registry.mockResolvedValue({ registered: 1, artifactAvailableLocally: false });
+    const f006 = await request(app.getHttpServer()).post('/api/model-versions/import-f006-registry').expect(201);
+    expect(f006.body).toMatchObject({ registered: 1, artifactAvailableLocally: false });
+    expect(models.importF006Registry).toHaveBeenCalledOnce();
   });
 });
