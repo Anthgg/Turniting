@@ -61,7 +61,7 @@ export function availabilityLabel(state: string): string {
 }
 
 export function isAnalyzerUsable(state: string): boolean {
-  return state === 'READY' || state === 'AVAILABLE'
+  return state === 'READY' || state === 'AVAILABLE' || state === 'COMPOSITE_AVAILABLE'
 }
 
 export function analysisErrorMessage(code: string | undefined, status: number | undefined): string {

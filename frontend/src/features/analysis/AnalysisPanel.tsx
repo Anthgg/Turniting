@@ -1,8 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ANALYZERS,
+  ANALYSIS_SEGMENT_FILTERS,
   PARAGRAPH_MODES,
   THRESHOLD_PROFILES,
   analysisQueryKeys,
@@ -10,12 +11,14 @@ import {
   getAnalysisSegments,
   listAnalyzerModels,
   listDocumentAnalyses,
+  type AnalysisSegmentFilter,
+  type AnalysisSegmentSort,
   type AnalyzerName,
   type ParagraphModeName,
   type ThresholdProfileName,
-} from '../../api/analysis'
-import { ApiRequestError } from '../../api/client'
-import { Icon } from '../../components/Icon'
+} from "../../api/analysis";
+import { ApiRequestError } from "../../api/client";
+import { Icon } from "../../components/Icon";
 import {
   ANALYZER_LABEL,
   PROFILE_LABEL,
@@ -25,136 +28,534 @@ import {
   formatSignal,
   isAnalyzerUsable,
   signalLevel,
-} from './analysis-utils'
+} from "./analysis-utils";
 
-const MODEL_OF: Record<AnalyzerName, string[]> = {
-  V3_ONLY: ['CANDIDATE_MODEL_V3'],
-  V2_ONLY: ['CANDIDATE_MODEL_V2'],
-  ENSEMBLE: ['CANDIDATE_MODEL_V2', 'CANDIDATE_MODEL_V3'],
+const MODEL_FOR_ANALYZER: Record<AnalyzerName, string> = {
+  V3_ONLY: "CANDIDATE_MODEL_V3",
+  V2_ONLY: "CANDIDATE_MODEL_V2",
+  ENSEMBLE: "ENSEMBLE_V2_V3",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  PENDING: "Pendiente",
+  RUNNING: "Analizando",
+  COMPLETED: "Completado",
+  FAILED: "Error",
+};
+
+function runDate(value: string) {
+  return new Intl.DateTimeFormat("es-PE", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
-export function AnalysisPanel({ documentId, hasText }: { documentId: string; hasText: boolean }) {
-  const queryClient = useQueryClient()
-  const [analyzer, setAnalyzer] = useState<AnalyzerName>('V3_ONLY')
-  const [profile, setProfile] = useState<ThresholdProfileName>('LOW_FALSE_POSITIVE')
-  const [mode, setMode] = useState<ParagraphModeName>('STRICT_PARAGRAPH')
-  const [selectedRun, setSelectedRun] = useState<string | null>(null)
+export function AnalysisPanel({
+  documentId,
+  fileName,
+  hasText,
+  researchMode = false,
+  documentWorkflowStatus,
+}: {
+  documentId: string;
+  fileName?: string;
+  hasText: boolean;
+  researchMode?: boolean;
+  documentWorkflowStatus?: string;
+}) {
+  const queryClient = useQueryClient();
+  const [analyzer, setAnalyzer] = useState<AnalyzerName>(
+    researchMode ? "ENSEMBLE" : "V3_ONLY",
+  );
+  const [profile, setProfile] = useState<ThresholdProfileName>(
+    researchMode ? "BALANCED" : "LOW_FALSE_POSITIVE",
+  );
+  const [mode, setMode] = useState<ParagraphModeName>("STRICT_PARAGRAPH");
+  const [selectedRun, setSelectedRun] = useState<string | null>(null);
+  const [sort, setSort] = useState<AnalysisSegmentSort>("PARAGRAPH");
+  const [filter, setFilter] = useState<AnalysisSegmentFilter>("ALL");
+  const [page, setPage] = useState(1);
+  const [expandedParagraphs, setExpandedParagraphs] = useState<
+    Record<number, boolean>
+  >({});
 
-  const models = useQuery({ queryKey: analysisQueryKeys.models(), queryFn: listAnalyzerModels, retry: 1 })
-  const runs = useQuery({ queryKey: analysisQueryKeys.documentAnalyses(documentId), queryFn: () => listDocumentAnalyses(documentId), retry: 1 })
-  const runId = selectedRun ?? runs.data?.items.find((r) => r.status === 'COMPLETED')?.id ?? null
-  const segments = useQuery({
-    queryKey: analysisQueryKeys.segments(runId ?? 'none'),
-    queryFn: () => getAnalysisSegments(runId as string),
-    enabled: Boolean(runId),
+  const models = useQuery({
+    queryKey: analysisQueryKeys.models(),
+    queryFn: listAnalyzerModels,
     retry: 1,
-  })
-  const run = runs.data?.items.find((r) => r.id === runId)
+  });
+  const runs = useQuery({
+    queryKey: analysisQueryKeys.documentAnalyses(documentId),
+    queryFn: () => listDocumentAnalyses(documentId),
+    retry: 1,
+  });
+  const history = runs.data?.items ?? [];
+  const runId = selectedRun ?? history[0]?.id ?? null;
+  const run = history.find((item) => item.id === runId);
+  const segmentQuery = researchMode
+    ? { page, pageSize: 20, sort, filter }
+    : undefined;
+  const segments = useQuery({
+    queryKey: analysisQueryKeys.segments(runId ?? "none", segmentQuery),
+    queryFn: () => getAnalysisSegments(runId as string, segmentQuery),
+    enabled: Boolean(runId && run?.status === "COMPLETED"),
+    retry: 1,
+  });
 
   const analyze = useMutation({
-    mutationFn: () => analyzeDocument(documentId, { analyzer, thresholdProfile: profile, paragraphMode: mode }),
+    mutationFn: () =>
+      analyzeDocument(documentId, {
+        analyzer,
+        thresholdProfile: profile,
+        paragraphMode: mode,
+      }),
     onSuccess: async (result) => {
-      setSelectedRun(result.id)
-      await queryClient.invalidateQueries({ queryKey: analysisQueryKeys.documentAnalyses(documentId) })
+      setSelectedRun(result.id);
+      setPage(1);
+      setFilter("ALL");
+      setExpandedParagraphs({});
+      await queryClient.invalidateQueries({
+        queryKey: analysisQueryKeys.documentAnalyses(documentId),
+      });
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: analysisQueryKeys.documentAnalyses(documentId) })
+      await queryClient.invalidateQueries({
+        queryKey: analysisQueryKeys.documentAnalyses(documentId),
+      });
     },
-  })
+  });
 
-  const needed = MODEL_OF[analyzer]
-  const modelStates = needed.map((name) => models.data?.items.find((m) => m.name === name))
-  const usable = modelStates.every((m) => m && isAnalyzerUsable(m.availability))
-  const error = analyze.error instanceof ApiRequestError ? analyze.error : null
+  const modelName = MODEL_FOR_ANALYZER[analyzer];
+  const requiredModelNames =
+    analyzer === "ENSEMBLE"
+      ? [modelName, "CANDIDATE_MODEL_V2", "CANDIDATE_MODEL_V3"]
+      : [modelName];
+  const requiredModels = requiredModelNames.map((name) =>
+    models.data?.items.find((item) => item.name === name),
+  );
+  const usable = requiredModels.every(
+    (item) => item && item.servable && isAnalyzerUsable(item.availability),
+  );
+  const f006 = models.data?.items.find(
+    (item) => item.name === "EXPERIMENTAL_F006_MODEL",
+  );
+  const error = analyze.error instanceof ApiRequestError ? analyze.error : null;
+  const paragraphItems = segments.data?.items ?? [];
+  const totalParagraphs = segments.data?.total ?? paragraphItems.length;
+  const pageCount = segments.data?.pages ?? 1;
+  const workflowStatus = analyze.isPending
+    ? "ANALYZING"
+    : run?.status === "COMPLETED"
+      ? "ANALYZED"
+      : run?.status === "FAILED"
+        ? "ERROR"
+        : (documentWorkflowStatus ?? (hasText ? "READY" : "PROCESSING"));
 
   return (
-    <section className="document-panel analysis-panel" aria-labelledby="analysis-title">
+    <section
+      className={`document-panel analysis-panel${researchMode ? " research-analysis-panel" : ""}`}
+      aria-labelledby="analysis-title"
+    >
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">ANÁLISIS LOCAL · F005</p>
+          <p className="eyebrow">
+            {researchMode
+              ? "RESEARCH · EXPERIMENTAL · ANÁLISIS LOCAL"
+              : "ANÁLISIS LOCAL · F005"}
+          </p>
           <h2 id="analysis-title">Señal de participación de IA</h2>
         </div>
-        <Link className="button button-quiet" to="/analysis/compare">Comparar versiones</Link>
+        <Link className="button button-quiet" to="/analysis/compare">
+          Comparar versiones
+        </Link>
       </div>
       <p className="analysis-disclaimer">
-        Estimación de un modelo de investigación independiente. No es un puntaje de Turnitin, no prueba autoría
-        y no debe usarse por sí sola para tomar decisiones sobre una persona.
+        Estimación de un modelo de investigación independiente. No es un puntaje
+        de Turnitin, no prueba autoría y no debe usarse por sí sola para tomar
+        decisiones sobre una persona.
       </p>
+      {researchMode && (
+        <div className="research-analyzer-notices">
+          <p className="analysis-notice research-default-note">
+            Configuración inicial: <strong>ENSEMBLE_V2_V3</strong>, perfil{" "}
+            <strong>BALANCED</strong>, pesos V2/V3 de 0.5/0.5, párrafo estricto
+            y agregación media ponderada por tokens. El puntaje mostrado es la
+            probabilidad calibrada × 100.
+          </p>
+          <p className="analysis-notice research-f006-note" role="status">
+            <strong>F006 experimental: no disponible para inferencia.</strong>{" "}
+            {f006
+              ? availabilityLabel(f006.availability)
+              : "Este artefacto no está habilitado en el registro local."}
+          </p>
+          <p className="analysis-notice">
+            Si el texto está en español, interpreta la señal con cautela: el
+            modelo es experimental y puede equivocarse. Esta advertencia no
+            bloquea el análisis.
+          </p>
+        </div>
+      )}
 
       <div className="analysis-controls">
         <label>
           <span>Analizador</span>
-          <select value={analyzer} onChange={(e) => setAnalyzer(e.currentTarget.value as AnalyzerName)}>
-            {ANALYZERS.map((a) => <option key={a} value={a}>{ANALYZER_LABEL[a]}</option>)}
+          <select
+            value={analyzer}
+            onChange={(event) =>
+              setAnalyzer(event.currentTarget.value as AnalyzerName)
+            }
+          >
+            {ANALYZERS.map((item) => (
+              <option key={item} value={item}>
+                {item === "ENSEMBLE"
+                  ? "ENSEMBLE_V2_V3 · V2 + V3"
+                  : ANALYZER_LABEL[item]}
+              </option>
+            ))}
           </select>
         </label>
         <label>
           <span>Perfil de umbral</span>
-          <select value={profile} onChange={(e) => setProfile(e.currentTarget.value as ThresholdProfileName)}>
-            {THRESHOLD_PROFILES.map((p) => <option key={p} value={p}>{PROFILE_LABEL[p]}</option>)}
+          <select
+            value={profile}
+            onChange={(event) =>
+              setProfile(event.currentTarget.value as ThresholdProfileName)
+            }
+          >
+            {THRESHOLD_PROFILES.map((item) => (
+              <option key={item} value={item}>
+                {PROFILE_LABEL[item]}
+              </option>
+            ))}
           </select>
         </label>
         <label>
           <span>Párrafos</span>
-          <select value={mode} onChange={(e) => setMode(e.currentTarget.value as ParagraphModeName)}>
-            {PARAGRAPH_MODES.map((m) => <option key={m} value={m}>{m === 'STRICT_PARAGRAPH' ? 'Solo el párrafo' : 'Con contexto breve'}</option>)}
+          <select
+            value={mode}
+            onChange={(event) =>
+              setMode(event.currentTarget.value as ParagraphModeName)
+            }
+          >
+            {PARAGRAPH_MODES.map((item) => (
+              <option key={item} value={item}>
+                {item === "STRICT_PARAGRAPH"
+                  ? "Solo el párrafo"
+                  : "Con contexto breve"}
+              </option>
+            ))}
           </select>
         </label>
-        <button className="button button-primary" type="button" disabled={!hasText || analyze.isPending || !usable}
-          onClick={() => analyze.mutate()} aria-busy={analyze.isPending}>
+        <button
+          className="button button-primary"
+          type="button"
+          disabled={!hasText || analyze.isPending || !usable}
+          onClick={() => analyze.mutate()}
+          aria-busy={analyze.isPending}
+        >
           <Icon name="spark" size={16} />
-          <span>{analyze.isPending ? 'Analizando…' : 'Analizar documento'}</span>
+          <span>{analyze.isPending ? "Analizando…" : "Analizar IA"}</span>
         </button>
       </div>
 
-      <ul className="analysis-model-status" aria-label="Estado de los modelos">
-        {needed.map((name, i) => (
-          <li key={name}>
-            <strong>{name}</strong>
-            <span>{modelStates[i] ? availabilityLabel(modelStates[i].availability) : models.isError ? 'Sin conexión con la API' : 'Comprobando…'}</span>
-          </li>
-        ))}
-      </ul>
-      {!usable && models.data && (
-        <p className="analysis-notice" role="status">
-          El modelo seleccionado está registrado pero sus pesos no están instalados en este equipo. Impórtalos con
-          scripts/import_model_artifact.py para habilitar el análisis.
-        </p>
-      )}
-      {!hasText && <p className="analysis-notice">El documento no tiene texto extraído todavía.</p>}
-      {error && <p className="analysis-notice analysis-error" role="alert">{analysisErrorMessage(error.code, error.status)}</p>}
-
-      {run && (
-        <div className="analysis-summary" aria-label="Resultado del análisis">
-          <div><span>Modelo</span><strong>{ANALYZER_LABEL[run.analyzerMode]}</strong></div>
-          <div><span>Perfil</span><strong>{PROFILE_LABEL[run.thresholdProfile] ?? run.thresholdProfile}</strong></div>
-          <div><span>Señal global</span><strong>{formatSignal(run.documentScore)}</strong></div>
-          <div><span>Nivel</span><strong>{signalLevel(run.documentScore) ? SIGNAL_LABEL[signalLevel(run.documentScore)!] : '—'}</strong></div>
-          <div><span>Párrafos evaluados</span><strong>{run.scoredSegments} · {run.insufficientSegments} con texto insuficiente</strong></div>
-          <div><span>Tiempo</span><strong>{run.inferenceMs !== null ? `${(run.inferenceMs / 1000).toFixed(1)} s` : '—'}</strong></div>
+      {researchMode && history.length > 0 && (
+        <div className="analysis-history-controls">
+          <label>
+            <span>Historial de análisis</span>
+            <select
+              value={runId ?? ""}
+              onChange={(event) => {
+                setSelectedRun(event.currentTarget.value);
+                setPage(1);
+                setExpandedParagraphs({});
+              }}
+            >
+              {history.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {runDate(item.createdAt)} ·{" "}
+                  {ANALYZER_LABEL[item.analyzerMode]} ·{" "}
+                  {PROFILE_LABEL[item.thresholdProfile] ??
+                    item.thresholdProfile}
+                  {" · "}
+                  {formatSignal(item.documentScore)} ·{" "}
+                  {STATUS_LABEL[item.status] ?? item.status}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       )}
-      {run?.status === 'FAILED' && <p className="analysis-notice analysis-error">El último análisis no se completó ({run.errorCode ?? 'error'}).</p>}
 
+      <ul className="analysis-model-status" aria-label="Estado de los modelos">
+        {requiredModelNames.map((name) => {
+          const item = models.data?.items.find((model) => model.name === name);
+          return (
+            <li key={name}>
+              <strong>{name}</strong>
+              <span>
+                {item
+                  ? availabilityLabel(item.availability)
+                  : models.isError
+                    ? "Sin conexión con la API"
+                    : "Comprobando…"}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {models.isError && (
+        <p className="analysis-notice" role="status">
+          No se pudo consultar el registro local de modelos; el análisis está
+          deshabilitado hasta verificar su disponibilidad.
+        </p>
+      )}
+      {!usable && models.data && (
+        <p className="analysis-notice" role="status">
+          El analizador {modelName} no está disponible. Revisa el artefacto
+          registrado para ese modelo; las rutas locales no se muestran aquí.
+        </p>
+      )}
+      {!hasText && (
+        <p className="analysis-notice">
+          El documento aún no tiene texto extraído listo. Completa la extracción
+          u OCR antes de analizarlo.
+        </p>
+      )}
+      {error && (
+        <p className="analysis-notice analysis-error" role="alert">
+          {analysisErrorMessage(error.code, error.status)}
+        </p>
+      )}
+      {analyze.isPending && (
+        <p className="analysis-notice" role="status" aria-live="polite">
+          Estado: ANALYZING · el análisis local está en curso, sin porcentaje
+          estimado.
+        </p>
+      )}
+      <p className="analysis-workflow-status" role="status">
+        Estado del flujo: <strong>{workflowStatus}</strong>
+      </p>
+
+      {researchMode && fileName && (
+        <p className="analysis-document-name">
+          Documento: <strong>{fileName}</strong>
+        </p>
+      )}
+      {run && (
+        <div className="analysis-summary" aria-label="Resultado del análisis">
+          <div>
+            <span>Estado</span>
+            <strong>{workflowStatus}</strong>
+          </div>
+          {fileName && (
+            <div>
+              <span>Documento</span>
+              <strong title={fileName}>{fileName}</strong>
+            </div>
+          )}
+          <div>
+            <span>Analizador</span>
+            <strong>
+              {run.analyzerMode === "ENSEMBLE"
+                ? "ENSEMBLE_V2_V3 · V2 + V3"
+                : ANALYZER_LABEL[run.analyzerMode]}
+            </strong>
+          </div>
+          <div>
+            <span>Perfil</span>
+            <strong>
+              {PROFILE_LABEL[run.thresholdProfile] ?? run.thresholdProfile}
+            </strong>
+          </div>
+          <div>
+            <span>Señal global</span>
+            <strong>
+              {run.status === "COMPLETED"
+                ? formatSignal(run.documentScore)
+                : "—"}
+            </strong>
+          </div>
+          <div>
+            <span>Nivel</span>
+            <strong>
+              {signalLevel(run.documentScore)
+                ? SIGNAL_LABEL[signalLevel(run.documentScore)!]
+                : "—"}
+            </strong>
+          </div>
+          <div>
+            <span>Párrafos</span>
+            <strong>
+              {run.scoredSegments} evaluados · {run.insufficientSegments}{" "}
+              insuficientes
+            </strong>
+          </div>
+          <div>
+            <span>Duración / fecha</span>
+            <strong>
+              {run.inferenceMs !== null
+                ? `${(run.inferenceMs / 1000).toFixed(1)} s`
+                : runDate(run.createdAt)}
+            </strong>
+          </div>
+          {run.threshold !== null && (
+            <div>
+              <span>Umbral aplicado</span>
+              <strong>{(run.threshold * 100).toFixed(0)} %</strong>
+            </div>
+          )}
+        </div>
+      )}
+      {run?.status === "FAILED" && (
+        <p className="analysis-notice analysis-error" role="alert">
+          El último análisis no se completó ({run.errorCode ?? "error"}).
+        </p>
+      )}
+
+      {run?.status === "COMPLETED" && researchMode && (
+        <div className="analysis-segment-controls">
+          <label>
+            <span>Filtrar párrafos</span>
+            <select
+              value={filter}
+              onChange={(event) => {
+                setFilter(event.currentTarget.value as AnalysisSegmentFilter);
+                setPage(1);
+              }}
+            >
+              {ANALYSIS_SEGMENT_FILTERS.map((item) => (
+                <option key={item} value={item}>
+                  {item === "ALL"
+                    ? "Todos los niveles"
+                    : item === "INSUFFICIENT"
+                      ? "Texto insuficiente"
+                      : SIGNAL_LABEL[item]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Orden</span>
+            <select
+              value={sort}
+              onChange={(event) => {
+                setSort(event.currentTarget.value as AnalysisSegmentSort);
+                setPage(1);
+              }}
+            >
+              <option value="PARAGRAPH">Orden del documento</option>
+              <option value="SCORE_DESC">Señal más alta primero</option>
+            </select>
+          </label>
+          <span className="analysis-result-count">
+            {totalParagraphs} párrafos
+          </span>
+        </div>
+      )}
+      {segments.isError && (
+        <p className="analysis-notice analysis-error" role="alert">
+          No se pudieron cargar los párrafos de este análisis.
+        </p>
+      )}
       {segments.data && (
-        <ol className="analysis-paragraphs" aria-label="Señal por párrafo">
-          {segments.data.stale && <li className="analysis-notice">El texto del documento cambió después de este análisis.</li>}
-          {segments.data.items.map((s) => {
-            const level = signalLevel(s.calibratedScore)
-            return (
-              <li key={s.paragraphIndex} className={`analysis-paragraph level-${(level ?? 'none').toLowerCase()}`}>
-                <div className="analysis-paragraph-head">
-                  <strong>Párrafo {s.paragraphIndex + 1}</strong>
-                  <span>{s.classification === 'INSUFFICIENT_TEXT' ? 'Texto insuficiente' : `Señal IA ${formatSignal(s.calibratedScore)}`}</span>
-                  {level && <span className="analysis-level">{SIGNAL_LABEL[level]}</span>}
-                  {s.pageNumber !== null && <small>pág. {s.pageNumber}</small>}
-                </div>
-                {s.text && <p>{s.text.length > 420 ? `${s.text.slice(0, 420)}…` : s.text}</p>}
-              </li>
-            )
-          })}
-        </ol>
+        <>
+          {segments.data.stale && (
+            <p className="analysis-notice" role="status">
+              El texto cambió después de este análisis; los fragmentos no se
+              muestran.
+            </p>
+          )}
+          {paragraphItems.length === 0 ? (
+            <p className="analysis-notice">No hay párrafos para este filtro.</p>
+          ) : (
+            <ol className="analysis-paragraphs" aria-label="Señal por párrafo">
+              {paragraphItems.map((segment) => {
+                const level = signalLevel(segment.calibratedScore);
+                const expanded = Boolean(
+                  expandedParagraphs[segment.paragraphIndex],
+                );
+                const preview =
+                  segment.text && segment.text.length > 260 && !expanded
+                    ? `${segment.text.slice(0, 260)}…`
+                    : segment.text;
+                return (
+                  <li
+                    key={segment.paragraphIndex}
+                    className={`analysis-paragraph level-${(level ?? "none").toLowerCase()}`}
+                  >
+                    <div className="analysis-paragraph-head">
+                      <strong>Párrafo {segment.paragraphIndex + 1}</strong>
+                      <span>
+                        {segment.classification === "INSUFFICIENT_TEXT"
+                          ? "Texto insuficiente"
+                          : `Señal IA ${formatSignal(segment.calibratedScore)}`}
+                      </span>
+                      {level && (
+                        <span className="analysis-level">
+                          {SIGNAL_LABEL[level]}
+                        </span>
+                      )}
+                      {segment.pageNumber !== null && (
+                        <small>pág. {segment.pageNumber}</small>
+                      )}
+                      <small>
+                        {segment.modelName} · {run?.analyzerMode} ·{" "}
+                        {run?.analyzerVersion} · {segment.classification}
+                      </small>
+                    </div>
+                    {preview && <p>{preview}</p>}
+                    {segment.text && segment.text.length > 260 && (
+                      <button
+                        className="analysis-text-toggle"
+                        type="button"
+                        aria-expanded={expanded}
+                        onClick={() =>
+                          setExpandedParagraphs((current) => ({
+                            ...current,
+                            [segment.paragraphIndex]: !expanded,
+                          }))
+                        }
+                      >
+                        {expanded
+                          ? "Ocultar texto completo"
+                          : "Ver texto completo"}
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+          {researchMode && pageCount > 1 && (
+            <nav
+              className="analysis-pagination"
+              aria-label="Paginación de párrafos"
+            >
+              <button
+                className="button button-quiet"
+                type="button"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={page <= 1}
+              >
+                Anterior
+              </button>
+              <span>
+                Página {page} de {pageCount}
+              </span>
+              <button
+                className="button button-quiet"
+                type="button"
+                onClick={() =>
+                  setPage((current) => Math.min(pageCount, current + 1))
+                }
+                disabled={page >= pageCount}
+              >
+                Siguiente
+              </button>
+            </nav>
+          )}
+        </>
       )}
     </section>
-  )
+  );
 }

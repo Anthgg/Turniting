@@ -28,6 +28,8 @@ export function DocumentDetailPage() {
   const queryClient = useQueryClient()
   const [showFullText, setShowFullText] = useState(false)
   const [selectedTurnitinReportId, setSelectedTurnitinReportId] = useState('')
+  const [activeTab, setActiveTab] = useState<'document' | 'analysis'>('analysis')
+  const [analysisMode, setAnalysisMode] = useState<'research' | 'f005'>('research')
 
   const document = useQuery({
     queryKey: documentQueryKeys.detail(id),
@@ -108,6 +110,15 @@ export function DocumentDetailPage() {
     ? turnitinItems.filter((item) => item.documentVersionId === record.documentVersionId)
     : []
   const attachableTurnitinReports = turnitinItems.filter((item) => !item.documentVersionId || item.documentVersionId === record?.documentVersionId)
+  const documentWorkflowStatus = processOcr.isPending
+    ? 'OCR_PROCESSING'
+    : record?.status === 'EXTRACTED'
+      ? 'READY'
+      : record?.status === 'OCR_REQUIRED'
+        ? 'OCR_REQUIRED'
+        : record?.status === 'FAILED'
+          ? 'ERROR'
+          : 'PROCESSING'
 
   return (
     <div className="dashboard-main document-detail-main">
@@ -158,6 +169,16 @@ export function DocumentDetailPage() {
 
       {record && (
         <>
+          <nav className="document-detail-tabs" aria-label="Secciones del documento">
+            <button className={activeTab === 'analysis' ? 'is-active' : ''} type="button" aria-pressed={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')}>
+              Análisis de investigación
+            </button>
+            <button className={activeTab === 'document' ? 'is-active' : ''} type="button" aria-pressed={activeTab === 'document'} onClick={() => setActiveTab('document')}>
+              Documento y extracción
+            </button>
+          </nav>
+          {activeTab === 'document' && (
+            <>
           <section className="document-summary-card" aria-label="Estado del procesamiento">
             <div className="document-summary-main">
               <span className="document-large-icon"><Icon name="file" size={22} /></span>
@@ -283,7 +304,28 @@ export function DocumentDetailPage() {
             </section>
           </div>
 
-          <AnalysisPanel documentId={id} hasText={Boolean(text.data?.text?.trim())} />
+            </>
+          )}
+          {activeTab === 'analysis' && (
+            <>
+              <div className="analysis-mode-switch" aria-label="Flujo de análisis">
+                <button className={analysisMode === 'research' ? 'is-active' : ''} type="button" aria-pressed={analysisMode === 'research'} onClick={() => setAnalysisMode('research')}>
+                  Research · experimental
+                </button>
+                <button className={analysisMode === 'f005' ? 'is-active' : ''} type="button" aria-pressed={analysisMode === 'f005'} onClick={() => setAnalysisMode('f005')}>
+                  F005 existente
+                </button>
+              </div>
+              <AnalysisPanel
+                key={analysisMode}
+                documentId={id}
+                fileName={record.originalName}
+                hasText={record.status === 'EXTRACTED' && (record.characterCount ?? 0) > 0}
+                researchMode={analysisMode === 'research'}
+                documentWorkflowStatus={documentWorkflowStatus}
+              />
+            </>
+          )}
         </>
       )}
     </div>

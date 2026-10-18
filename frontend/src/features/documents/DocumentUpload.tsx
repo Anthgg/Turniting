@@ -171,21 +171,21 @@ export function DocumentUpload() {
       {upload.isPending && (
         <div className="upload-state upload-state-processing" role="status" aria-live="polite">
           <span className="state-indicator is-animated" />
-          <span><strong>Subiendo archivo</strong><small>Estamos enviando el documento al backend.</small></span>
+          <span><strong>UPLOADING · Subiendo archivo</strong><small>Estamos enviando el documento al backend.</small></span>
         </div>
       )}
 
       {isProcessing && !uploadStatus.isError && (
         <div className="upload-state upload-state-processing" role="status" aria-live="polite">
           <span className="state-indicator is-animated" />
-          <span><strong>Procesando documento</strong><small>El estado se actualizará automáticamente.</small></span>
+          <span><strong>PROCESSING · Procesando documento</strong><small>El estado se actualizará automáticamente.</small></span>
         </div>
       )}
 
       {isCompleted && trackedDocument && (
         <div className="upload-state upload-state-complete" role="status" aria-live="polite">
           <span className="state-indicator"><Icon name="check" size={13} /></span>
-          <span><strong>Documento completado</strong><small>El texto está listo para consultarse.</small></span>
+          <span><strong>READY · Documento completado</strong><small>El texto está listo para consultarse.</small></span>
           <Link className="button button-quiet upload-result-link" to={`/documents/${trackedDocument.id}`}>Ver documento</Link>
         </div>
       )}
@@ -193,7 +193,7 @@ export function DocumentUpload() {
       {isOcrRequired && trackedDocument && (
         <div className="upload-state upload-state-warning" role="status" aria-live="polite">
           <span className="state-indicator">!</span>
-          <span><strong>OCR requerido</strong><small>El documento está listo para procesar sus páginas escaneadas.</small></span>
+          <span><strong>OCR_REQUIRED · OCR requerido</strong><small>El documento está listo para procesar sus páginas escaneadas.</small></span>
           <Link className="button button-quiet upload-result-link" to={`/documents/${trackedDocument.id}`}>Ver detalle</Link>
         </div>
       )}
@@ -201,7 +201,7 @@ export function DocumentUpload() {
       {isProcessingFailed && trackedDocument && (
         <div className="upload-state upload-state-error" role="alert">
           <span className="state-indicator">!</span>
-          <span><strong>Falló el procesamiento</strong><small>{trackedDocument.extractionError || 'Puedes revisar el detalle y volver a intentarlo.'}</small></span>
+          <span><strong>ERROR · Falló el procesamiento</strong><small>{trackedDocument.extractionError || 'Puedes revisar el detalle y volver a intentarlo.'}</small></span>
           <Link className="button button-quiet upload-result-link" to={`/documents/${trackedDocument.id}`}>Ver detalle</Link>
         </div>
       )}

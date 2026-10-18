@@ -26,6 +26,7 @@ describe('analysis presentation', () => {
     expect(availabilityLabel('COMPOSITE_AVAILABLE')).toBe('Disponible · combinación V2 + V3')
     expect(availabilityLabel('DEPENDENCIES_UNAVAILABLE')).toBe('Componentes no disponibles')
     expect(isAnalyzerUsable('UNAVAILABLE')).toBe(false)
+    expect(isAnalyzerUsable('COMPOSITE_AVAILABLE')).toBe(true)
     expect(isAnalyzerUsable('READY')).toBe(true)
   })
 
@@ -35,12 +36,16 @@ describe('analysis presentation', () => {
       variant: null, dataset: 'TURNITING_DATASET_V2', availability: 'UNAVAILABLE', artifactPresent: false,
       servable: true, thresholdProfiles: [], thresholdSource: null, preprocessing: ['V3_CANONICALIZED_V1'], warnings: [] }] })
     expect(models.items[0].availability).toBe('UNAVAILABLE')
-    const segments = segmentListSchema.parse({ analysisId: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', stale: false, items: [
-      { paragraphIndex: 0, charStart: 0, charEnd: 10, pageNumber: null, words: 2, calibratedScore: 0.12,
+    const segments = segmentListSchema.parse({ analysisId: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', stale: false,
+      page: 1, pageSize: 20, total: 2, pages: 1, items: [
+      { paragraphIndex: 0, charStart: 0, charEnd: 10, pageNumber: null, words: 2, tokens: 3,
+        modelName: 'CANDIDATE_MODEL_V3', rawScore: 0.2, calibratedScore: 0.12,
         classification: 'LOW_SIGNAL', signalLevel: 'LOW', confidence: 'HIGH', text: 'Párrafo 1' },
-      { paragraphIndex: 1, charStart: 12, charEnd: 20, pageNumber: 2, words: 1, calibratedScore: null,
+      { paragraphIndex: 1, charStart: 12, charEnd: 20, pageNumber: 2, words: 1, tokens: 1,
+        modelName: 'CANDIDATE_MODEL_V3', rawScore: null, calibratedScore: null,
         classification: 'INSUFFICIENT_TEXT', signalLevel: null, confidence: null, text: 'Título' }] })
     expect(segments.items[1].classification).toBe('INSUFFICIENT_TEXT')
+    expect(segments.total).toBe(2)
     const comparison = comparisonSchema.parse({ id: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', documentSimilarity: 0.9,
       globalScoreDelta: -0.07, changedSegments: 1, unchangedSegments: 1, addedSegments: 0, removedSegments: 0,
       disclaimer: 'not a Turnitin score', details: { baseDocumentScore: 0.31, targetDocumentScore: 0.24,

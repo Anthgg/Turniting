@@ -8,9 +8,13 @@ const classification = z.enum(['MACHINE_SIGNAL', 'LOW_SIGNAL', 'INSUFFICIENT_TEX
 export const ANALYZERS = ['V3_ONLY', 'V2_ONLY', 'ENSEMBLE'] as const
 export const THRESHOLD_PROFILES = ['BALANCED', 'LOW_FALSE_POSITIVE', 'VERY_LOW_FALSE_POSITIVE'] as const
 export const PARAGRAPH_MODES = ['STRICT_PARAGRAPH', 'CONTEXTUAL_PARAGRAPH'] as const
+export const ANALYSIS_SEGMENT_SORTS = ['PARAGRAPH', 'SCORE_DESC'] as const
+export const ANALYSIS_SEGMENT_FILTERS = ['ALL', 'LOW', 'MODERATE', 'HIGH', 'INSUFFICIENT'] as const
 export type AnalyzerName = (typeof ANALYZERS)[number]
 export type ThresholdProfileName = (typeof THRESHOLD_PROFILES)[number]
 export type ParagraphModeName = (typeof PARAGRAPH_MODES)[number]
+export type AnalysisSegmentSort = (typeof ANALYSIS_SEGMENT_SORTS)[number]
+export type AnalysisSegmentFilter = (typeof ANALYSIS_SEGMENT_FILTERS)[number]
 
 export const modelResultSchema = z.object({
   modelName: z.string(),
@@ -55,6 +59,9 @@ export const segmentSchema = z.object({
   charEnd: z.number(),
   pageNumber: nullableNumber,
   words: nullableNumber,
+  tokens: nullableNumber,
+  modelName: z.string(),
+  rawScore: nullableNumber,
   calibratedScore: nullableNumber,
   classification,
   signalLevel: nullableString,
@@ -66,6 +73,10 @@ export const segmentListSchema = z.object({
   analysisId: z.string().uuid(),
   stale: z.boolean(),
   items: z.array(segmentSchema),
+  page: z.number().optional(),
+  pageSize: z.number().optional(),
+  total: z.number().optional(),
+  pages: z.number().optional(),
 })
 
 export const comparisonParagraphSchema = z.object({
@@ -184,11 +195,18 @@ export type AnalysisSegment = z.infer<typeof segmentSchema>
 export type AnalysisComparison = z.infer<typeof comparisonSchema>
 export type AnalyzerModel = z.infer<typeof analyzerModelSchema>
 
+export type AnalysisSegmentsQuery = {
+  page: number
+  pageSize: number
+  sort: AnalysisSegmentSort
+  filter: AnalysisSegmentFilter
+}
+
 export const analysisQueryKeys = {
   models: () => ['analysis', 'models'] as const,
   documentAnalyses: (documentId: string) => ['analysis', 'document', documentId] as const,
   run: (id: string) => ['analysis', 'run', id] as const,
-  segments: (id: string) => ['analysis', 'segments', id] as const,
+  segments: (id: string, query?: AnalysisSegmentsQuery) => ['analysis', 'segments', id, query ?? null] as const,
 }
 
 export function listAnalyzerModels() {
@@ -207,8 +225,15 @@ export function analyzeDocument(documentId: string, body: {
   return postJson(`/documents/${documentId}/analyze`, analysisRunSchema, { ...body, granularity: 'PARAGRAPH' })
 }
 
-export function getAnalysisSegments(analysisId: string) {
-  return getJson(`/analyses/${analysisId}/segments`, segmentListSchema)
+export function getAnalysisSegments(analysisId: string, query?: AnalysisSegmentsQuery) {
+  const params = query ? new URLSearchParams({
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+    sort: query.sort,
+    filter: query.filter,
+  }) : null
+  const suffix = params ? `?${params.toString()}` : ''
+  return getJson(`/analyses/${analysisId}/segments${suffix}`, segmentListSchema)
 }
 
 export function compareAnalyses(baseAnalysisId: string, targetAnalysisId: string) {

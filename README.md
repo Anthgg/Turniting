@@ -4,6 +4,8 @@ Turniting es una aplicación local para ingesta y extracción de texto de docume
 
 Resultados, comparación congelada y decisión de promoción: [F006_TRANSFORMER_AI_DETECTOR.md](docs/F006_TRANSFORMER_AI_DETECTOR.md).
 
+F006.2 agrega una vista Research experimental dentro del detalle local del documento. Reutiliza extracción/OCR F001–F003 y el analizador F005; el ensemble V2/V3 comienza en `BALANCED` (0.59). F006 sigue sin inferencia habilitada y `ACTIVE = NONE`. Guía y smoke seguro: [F006.2 Research Analyzer](docs/F006_2_RESEARCH_ANALYZER_UI.md).
+
 > Turniting es una herramienta independiente de análisis probabilístico. No constituye un resultado oficial de Turnitin ni afirma reproducir su algoritmo propietario.
 
 ## Arquitectura
@@ -118,6 +120,7 @@ CLOUD_RUN = DEFERRED_TO_F011. F001–F005 no crean proyectos GCP ni despliegan s
 - [OCR selectivo y reconstrucción F003](docs/F003_OCR.md)
 - [Datasets y artefactos de entrenamiento F004](docs/F004_DATASET.md)
 - [Analizador local de señal de IA F005](docs/F005_LOCAL_AI_ANALYZER.md)
+- [UI Research Analyzer F006.2](docs/F006_2_RESEARCH_ANALYZER_UI.md)
 - [Instalación local](docs/LOCAL_SETUP.md)
 - [Configuración de Supabase](docs/SUPABASE_SETUP.md)
 - [Despliegue en Cloud Run](docs/CLOUD_RUN_DEPLOYMENT.md)
