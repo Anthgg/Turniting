@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AnalysisService } from './analysis.service.js';
-import { AnalyzeDocumentDto, CompareAnalysesDto } from './dto/analysis.dto.js';
+import { AnalysisSegmentsQueryDto, AnalyzeDocumentDto, CompareAnalysesDto } from './dto/analysis.dto.js';
 import { AnalyzerModelsService } from './models.service.js';
 
 @ApiTags('analysis')
@@ -26,8 +26,8 @@ export class AnalysisController {
   }
 
   @Get('analyses/:id/segments')
-  segments(@Param('id', ParseUUIDPipe) id: string) {
-    return this.analysis.getSegments(id);
+  segments(@Param('id', ParseUUIDPipe) id: string, @Query() query: AnalysisSegmentsQueryDto) {
+    return this.analysis.getSegments(id, query);
   }
 
   @Post('analyses/compare')

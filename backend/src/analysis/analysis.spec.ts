@@ -16,7 +16,7 @@ function aiResult() {
     analyzer: 'V3_ONLY', model: 'CANDIDATE_MODEL_V3', modelVersion: 'TURNITING_RESEARCH_V3_SPANISH_ACADEMIC',
     paragraphMode: 'CONTEXTUAL_PARAGRAPH', thresholdProfile: 'LOW_FALSE_POSITIVE', threshold: 0.9,
     thresholdSource: 'f005-test', calibration: 'isotonic', documentAggregation: 'token_weighted_mean',
-    documentScore: 0.42, documentClassification: 'LOW_SIGNAL', documentSignalLevel: 'MODERATE', scoredParagraphs: 1,
+    documentScore: 0.42, rawDocumentScore: 0.31, documentClassification: 'LOW_SIGNAL', documentSignalLevel: 'MODERATE', scoredParagraphs: 1,
     insufficientParagraphs: 1, preprocessingVersion: 'V3_CANONICALIZED_V1', inferenceMs: 12,
     segments: [
       { paragraphIndex: 0, charStart: 0, charEnd: 55, pageNumber: null, textHash: 'a'.repeat(64), words: 8, tokens: 14,
@@ -47,12 +47,13 @@ describe('AnalysisService', () => {
 
   beforeEach(() => {
     prisma = makePrisma();
-    ai = { analyzeParagraphs: vi.fn(), alignVersions: vi.fn() };
+    ai = { analyzeParagraphs: vi.fn(), alignVersions: vi.fn(), listAnalyzerModels: vi.fn().mockResolvedValue({ models: [] }) };
     service = new AnalysisService(prisma as unknown as PrismaService, ai as unknown as AiService);
     prisma.document.findUnique.mockResolvedValue({ id: DOC, currentVersion: { id: 'v1', extractedText: SECRET_TEXT } });
     prisma.analysisRun.create.mockResolvedValue({ id: RUN });
     prisma.analysisRun.findUnique.mockResolvedValue({ id: RUN, status: 'COMPLETED', modelResults: [],
       documentVersion: { documentId: DOC } });
+    prisma.analysisRun.findMany.mockResolvedValue([]);
     prisma.modelVersion.findUnique.mockResolvedValue({ id: 'mv3' });
   });
 
@@ -71,6 +72,7 @@ describe('AnalysisService', () => {
     expect(logs.join(' ')).not.toContain('sintético');
     const completed = prisma.analysisRun.update.mock.calls.at(-1)[0].data;
     expect(completed.status).toBe(AnalysisRunStatus.COMPLETED);
+    expect(prisma.analysisModelResult.create.mock.calls[0][0].data).toMatchObject({ rawScore: 0.31, calibratedScore: 0.42 });
   });
 
   it('marks the run FAILED and surfaces MODEL_UNAVAILABLE when weights are missing', async () => {
@@ -102,6 +104,60 @@ describe('AnalysisService', () => {
     const stale = await service.getSegments(RUN);
     expect(stale.stale).toBe(true);
     expect(stale.items[0].text).toBeNull();
+  });
+
+  it('paginates, sorts and filters the segment list for the research UI', async () => {
+    const extractedText = 'Low high insufficient';
+    const rows = [
+      { paragraphIndex: 0, charStart: 0, charEnd: 3, calibratedScore: 0.2, signalLevel: 'LOW', classification: 'LOW_SIGNAL' },
+      { paragraphIndex: 1, charStart: 4, charEnd: 8, calibratedScore: 0.9, signalLevel: 'HIGH', classification: 'MACHINE_SIGNAL' },
+      { paragraphIndex: 2, charStart: 9, charEnd: 21, calibratedScore: null, signalLevel: null, classification: 'INSUFFICIENT_TEXT' },
+    ];
+    prisma.analysisRun.findUnique.mockResolvedValueOnce({ id: RUN, textHash: sha256(extractedText), segments: rows,
+      documentVersion: { extractedText } });
+    const page = await service.getSegments(RUN, { page: 1, pageSize: 1, sort: 'SCORE_DESC', filter: 'ALL' });
+    expect(page.items).toHaveLength(1);
+    expect(page.items[0].paragraphIndex).toBe(1);
+    expect(page).toMatchObject({ page: 1, pageSize: 1, total: 3, pages: 3 });
+
+    prisma.analysisRun.findUnique.mockResolvedValueOnce({ id: RUN, textHash: sha256(extractedText), segments: rows,
+      documentVersion: { extractedText } });
+    const insufficient = await service.getSegments(RUN, { page: 1, pageSize: 20, sort: 'PARAGRAPH', filter: 'INSUFFICIENT' });
+    expect(insufficient.total).toBe(1);
+    expect(insufficient.items[0]).toMatchObject({ paragraphIndex: 2, text: 'insufficient' });
+  });
+
+  it('creates a new run from an exact cache hit without calling model inference', async () => {
+    ai.listAnalyzerModels.mockResolvedValue({ models: [{
+      model: 'CANDIDATE_MODEL_V3', status: 'CANDIDATE', state: 'AVAILABLE', artifactPresent: true,
+      artifactValid: true, servable: true, variant: 'spec-v3', modelVersion: 'test-v3',
+      preprocessing: ['V3_PREPROCESSING_V1'],
+    }] });
+    prisma.analysisRun.findMany.mockResolvedValueOnce([{
+      id: 'cached-run', threshold: 0.59, documentAggregation: 'token_weighted_mean', documentScore: 0.42,
+      documentClassification: 'LOW_SIGNAL', signalLevel: 'MODERATE', scoredSegments: 1, insufficientSegments: 1,
+      modelResults: [{ modelVersionId: 'mv3', modelName: 'CANDIDATE_MODEL_V3', modelVariant: 'test-v3', rawScore: 0.31,
+        calibratedScore: 0.42, thresholdProfile: 'BALANCED', threshold: 0.59, classification: 'LOW_SIGNAL', confidence: 'LOW',
+        calibration: 'isotonic', preprocessing: 'V3_PREPROCESSING_V1', inferenceMs: 12 }],
+      segments: [{ paragraphIndex: 0, textHash: 'a'.repeat(64), charStart: 0, charEnd: 55, pageNumber: null,
+        words: 8, tokens: 14, rawScore: 0.5, calibratedScore: 0.42, classification: 'LOW_SIGNAL',
+        signalLevel: 'MODERATE', confidence: 'LOW', modelVersionId: 'mv3', modelName: 'CANDIDATE_MODEL_V3' }],
+    }]);
+    const out = await service.analyzeDocument(DOC, { analyzer: 'V3_ONLY', thresholdProfile: 'BALANCED',
+      granularity: 'PARAGRAPH', paragraphMode: 'STRICT_PARAGRAPH' });
+    expect(out.id).toBe(RUN);
+    expect(prisma.analysisRun.create).toHaveBeenCalledOnce();
+    expect(ai.analyzeParagraphs).not.toHaveBeenCalled();
+    expect(prisma.analysisRun.update.mock.calls.at(-1)?.[0].data).toMatchObject({
+      status: AnalysisRunStatus.COMPLETED,
+      inferenceMs: 0,
+      metadata: { cacheHit: true, reusedAnalysisId: 'cached-run' },
+    });
+    expect(prisma.analysisSegment.createMany.mock.calls[0][0].data[0]).toMatchObject({
+      analysisRunId: RUN,
+      modelName: 'CANDIDATE_MODEL_V3',
+      calibratedScore: 0.42,
+    });
   });
 
   it('compares two analyses paragraph by paragraph', async () => {

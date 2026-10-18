@@ -7,9 +7,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AnalysisClassification, AnalysisRunStatus, AnalyzerMode, Prisma } from '@prisma/client';
-import { AiService, type AiAnalyzerSegment } from '../ai/ai.service.js';
+import { AiService, type AiAnalyzerModelStatus, type AiAnalyzerSegment, type AnalyzerModeName } from '../ai/ai.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { AnalyzeDocumentDto, CompareAnalysesDto } from './dto/analysis.dto.js';
+import type { AnalysisSegmentsQueryDto, AnalyzeDocumentDto, CompareAnalysesDto } from './dto/analysis.dto.js';
 
 export const ANALYZER_VERSION = 'f005-local-analyzer-v1';
 const MODEL_FOR_MODE: Record<string, string> = {
@@ -58,6 +58,7 @@ export class AnalysisService {
     const version = document.currentVersion;
     const text = version?.extractedText ?? '';
     if (!version || !text.trim()) throw new ConflictException('Document has no extracted text to analyze');
+    const textHash = sha256(text);
 
     const run = await this.prisma.analysisRun.create({
       data: {
@@ -68,10 +69,102 @@ export class AnalysisService {
         thresholdProfile: dto.thresholdProfile,
         granularity: dto.granularity,
         paragraphMode: dto.paragraphMode,
-        textHash: sha256(text),
+        textHash,
       },
     });
     const started = Date.now();
+    const cacheIdentity = await this.cacheIdentity(dto.analyzer);
+    if (cacheIdentity) {
+      const cacheKey = sha256([
+        textHash,
+        cacheIdentity.modelVersion,
+        cacheIdentity.preprocessingVersion,
+        dto.thresholdProfile,
+        dto.customThreshold ?? '',
+        dto.paragraphMode,
+        ANALYZER_VERSION,
+      ].join('\0'));
+      const candidates = await this.prisma.analysisRun.findMany({
+        where: {
+          documentVersionId: version.id,
+          textHash,
+          analyzerMode: dto.analyzer as AnalyzerMode,
+          analyzerVersion: ANALYZER_VERSION,
+          thresholdProfile: dto.thresholdProfile,
+          paragraphMode: dto.paragraphMode,
+          status: AnalysisRunStatus.COMPLETED,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        include: { modelResults: true, segments: { orderBy: { paragraphIndex: 'asc' } } },
+      });
+      const cached = candidates.find((candidate) => candidate.modelResults.some((result) =>
+        result.modelName === MODEL_FOR_MODE[dto.analyzer]
+        && result.modelVariant === cacheIdentity.modelVersion
+        && result.preprocessing === cacheIdentity.preprocessingVersion
+        && result.thresholdProfile === dto.thresholdProfile
+        && (dto.thresholdProfile !== 'CUSTOM' || result.threshold === dto.customThreshold)));
+      const cachedModel = cached?.modelResults.find((result) => result.modelName === MODEL_FOR_MODE[dto.analyzer]);
+      if (cached && cachedModel) {
+        await this.prisma.$transaction([
+          this.prisma.analysisModelResult.create({
+            data: {
+              analysisRunId: run.id,
+              modelVersionId: cachedModel.modelVersionId,
+              modelName: cachedModel.modelName,
+              modelVariant: cachedModel.modelVariant,
+              rawScore: cachedModel.rawScore,
+              calibratedScore: cachedModel.calibratedScore,
+              thresholdProfile: cachedModel.thresholdProfile,
+              threshold: cachedModel.threshold,
+              classification: cachedModel.classification,
+              confidence: cachedModel.confidence,
+              calibration: cachedModel.calibration,
+              preprocessing: cachedModel.preprocessing,
+              inferenceMs: 0,
+            },
+          }),
+          this.prisma.analysisSegment.createMany({
+            data: cached.segments.map((segment) => ({
+              analysisRunId: run.id,
+              paragraphIndex: segment.paragraphIndex,
+              textHash: segment.textHash,
+              charStart: segment.charStart,
+              charEnd: segment.charEnd,
+              pageNumber: segment.pageNumber,
+              words: segment.words,
+              tokens: segment.tokens,
+              rawScore: segment.rawScore,
+              calibratedScore: segment.calibratedScore,
+              classification: segment.classification,
+              signalLevel: segment.signalLevel,
+              confidence: segment.confidence,
+              modelVersionId: segment.modelVersionId,
+              modelName: segment.modelName,
+            })),
+          }),
+          this.prisma.analysisRun.update({
+            where: { id: run.id },
+            data: {
+              status: AnalysisRunStatus.COMPLETED,
+              threshold: cached.threshold,
+              documentAggregation: cached.documentAggregation,
+              documentScore: cached.documentScore,
+              documentClassification: cached.documentClassification,
+              signalLevel: cached.signalLevel,
+              scoredSegments: cached.scoredSegments,
+              insufficientSegments: cached.insufficientSegments,
+              inferenceMs: 0,
+              completedAt: new Date(),
+              metadata: { cacheHit: true, cacheKey, reusedAnalysisId: cached.id } as Prisma.InputJsonValue,
+            },
+          }),
+        ]);
+        this.logger.log(JSON.stringify({ event: 'analysis_completed', analysisId: run.id, documentId, model: MODEL_FOR_MODE[dto.analyzer],
+          durationMs: Date.now() - started, cacheHit: true }));
+        return this.getRun(run.id);
+      }
+    }
     try {
       const result = await this.ai.analyzeParagraphs({
         text,
@@ -89,7 +182,7 @@ export class AnalysisService {
             modelVersionId: modelVersion?.id ?? null,
             modelName,
             modelVariant: result.modelVersion,
-            rawScore: result.documentScore,
+            rawScore: result.rawDocumentScore ?? null,
             calibratedScore: result.documentScore,
             thresholdProfile: result.thresholdProfile,
             threshold: result.threshold,
@@ -132,7 +225,9 @@ export class AnalysisService {
             insufficientSegments: result.insufficientParagraphs,
             inferenceMs: result.inferenceMs,
             completedAt: new Date(),
-            metadata: { thresholdSource: result.thresholdSource, model: result.model } as Prisma.InputJsonValue,
+            metadata: { thresholdSource: result.thresholdSource, model: result.model,
+              cacheKey: cacheIdentity ? sha256([textHash, cacheIdentity.modelVersion, cacheIdentity.preprocessingVersion,
+                dto.thresholdProfile, dto.customThreshold ?? '', dto.paragraphMode, ANALYZER_VERSION].join('\0')) : null } as Prisma.InputJsonValue,
           },
         }),
       ]);
@@ -150,6 +245,27 @@ export class AnalysisService {
       throw error;
     }
     return this.getRun(run.id);
+  }
+
+  private async cacheIdentity(analyzer: AnalyzerModeName) {
+    try {
+      const models = (await this.ai.listAnalyzerModels()).models;
+      const names = analyzer === 'ENSEMBLE'
+        ? ['CANDIDATE_MODEL_V2', 'CANDIDATE_MODEL_V3']
+        : [MODEL_FOR_MODE[analyzer]];
+      const required = names.map((name) => models.find((model) => model.model === name));
+      if (required.some((model) => !model || !model.servable || !model.artifactPresent || !model.artifactValid
+        || !['AVAILABLE', 'READY'].includes(model.state))) return null;
+      const available = required as AiAnalyzerModelStatus[];
+      const versions = available.map((model) => model.modelVersion ?? model.variant);
+      const preprocessing = available.map((model) => model.preprocessing.join('+'));
+      return {
+        modelVersion: versions.join(analyzer === 'ENSEMBLE' ? '+' : ''),
+        preprocessingVersion: preprocessing.join(analyzer === 'ENSEMBLE' ? '|' : ''),
+      };
+    } catch {
+      return null;
+    }
   }
 
   async getRun(id: string) {
@@ -175,7 +291,7 @@ export class AnalysisService {
   }
 
   /** Segments with their text materialized from the canonical extracted text (not stored twice). */
-  async getSegments(id: string) {
+  async getSegments(id: string, query?: AnalysisSegmentsQueryDto) {
     const run = await this.prisma.analysisRun.findUnique({
       where: { id },
       include: { segments: { orderBy: { paragraphIndex: 'asc' } }, documentVersion: true },
@@ -183,10 +299,26 @@ export class AnalysisService {
     if (!run) throw new NotFoundException('Analysis not found');
     const text = run.documentVersion.extractedText ?? '';
     const stale = run.textHash !== null && run.textHash !== sha256(text);
+    let segments = run.segments;
+    if (query?.filter && query.filter !== 'ALL') {
+      segments = segments.filter((segment) => query.filter === 'INSUFFICIENT'
+        ? segment.classification === 'INSUFFICIENT_TEXT'
+        : segment.signalLevel === query.filter);
+    }
+    if (query?.sort === 'SCORE_DESC') {
+      segments = [...segments].sort((a, b) =>
+        (b.calibratedScore ?? -1) - (a.calibratedScore ?? -1) || a.paragraphIndex - b.paragraphIndex);
+    }
+    const paginated = query?.page !== undefined || query?.pageSize !== undefined;
+    const page = query?.page ?? 1;
+    const pageSize = query?.pageSize ?? 20;
+    const total = segments.length;
+    if (paginated) segments = segments.slice((page - 1) * pageSize, page * pageSize);
     return {
       analysisId: run.id,
       stale,
-      items: run.segments.map((s) => ({ ...s, text: stale ? null : text.slice(s.charStart, s.charEnd) })),
+      items: segments.map((s) => ({ ...s, text: stale ? null : text.slice(s.charStart, s.charEnd) })),
+      ...(paginated ? { page, pageSize, total, pages: Math.ceil(total / pageSize) } : {}),
     };
   }
 

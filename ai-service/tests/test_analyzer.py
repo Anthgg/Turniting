@@ -265,6 +265,14 @@ def test_short_paragraphs_are_insufficient(manager):
     assert out["segments"][0]["classification"] == "INSUFFICIENT_TEXT"
     assert out["segments"][0]["calibratedScore"] is None
     assert out["insufficientParagraphs"] == 1 and out["scoredParagraphs"] == 2
+    scored = [segment for segment in out["segments"] if segment["rawScore"] is not None]
+    expected_raw = aggregate_document(
+        [segment["rawScore"] for segment in scored],
+        [segment["tokens"] for segment in scored],
+        out["documentAggregation"],
+        out["threshold"],
+    )
+    assert out["rawDocumentScore"] == pytest.approx(expected_raw)
 
 
 def test_document_aggregation_methods():

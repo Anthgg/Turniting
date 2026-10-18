@@ -118,6 +118,7 @@ def analyze(
         "calibration": "per-model",
         "documentAggregation": agg,
         "documentScore": doc,
+        "rawDocumentScore": doc,
         "documentClassification": None
         if doc is None
         else ("MACHINE_SIGNAL" if doc >= threshold else "LOW_SIGNAL"),

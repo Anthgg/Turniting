@@ -153,6 +153,7 @@ export type AiAnalyzerModelStatus = {
   error: string | null;
   architecture: string;
   variant: string;
+  modelVersion?: string;
   dataset: string;
   artifactProvider: string;
   preprocessing: string[];
@@ -191,6 +192,7 @@ export type AiParagraphAnalysis = {
   calibration: string;
   documentAggregation: string;
   documentScore: number | null;
+  rawDocumentScore?: number | null;
   documentClassification: AnalyzerClassification | null;
   documentSignalLevel: string | null;
   scoredParagraphs: number;

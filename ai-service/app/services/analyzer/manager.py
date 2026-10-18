@@ -148,6 +148,10 @@ class ModelManager:
             "error": st.error,
             "architecture": st.spec.architecture,
             "variant": st.spec.variant,
+            "modelVersion": (
+                st.check.manifest.get("variant") if st.check else None
+            )
+            or st.spec.variant,
             "dataset": st.spec.dataset,
             "artifactProvider": st.spec.artifact_provider,
             "preprocessing": self._preprocessing_names(name),
@@ -317,7 +321,7 @@ class ModelManager:
         calibrator, cal_source = self.calibrator(name)
         st = self.states[name]
         agg = st.analyzer_profile.get("documentAggregation", DEFAULT_DOC_AGGREGATION)
-        segs, probs, toks = [], [], []
+        segs, probs, raw_probs, toks = [], [], [], []
         for sc in scores:
             p = sc.paragraph
             seg = {
@@ -349,6 +353,7 @@ class ModelManager:
                     confidence=cal.confidence(pc, threshold),
                 )
                 probs.append(pc)
+                raw_probs.append(float(cal.sigmoid(sc.logit)))
                 toks.append(sc.tokens)
             segs.append(seg)
         doc_score = aggregate_document(probs, toks, agg, threshold)
@@ -363,6 +368,7 @@ class ModelManager:
             "calibrationSource": cal_source,
             "documentAggregation": agg,
             "documentScore": doc_score,
+            "rawDocumentScore": aggregate_document(raw_probs, toks, agg, threshold),
             "documentClassification": (
                 None
                 if doc_score is None
