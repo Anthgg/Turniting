@@ -72,7 +72,14 @@ def encode_units(tok, frame: pd.DataFrame, scheme: str) -> list[dict]:
     out = []
     for i, r in enumerate(frame.itertuples(index=False)):
         offs = [tuple(o) for o in enc["offset_mapping"][i]]
-        spans = json.loads(r.spans)
+        spans = []
+        for s_, e_ in json.loads(r.spans):  # same visible-character convention as predictions (metrics only; data untouched)
+            while s_ < e_ and r.text[s_].isspace():
+                s_ += 1
+            while e_ > s_ and r.text[e_ - 1].isspace():
+                e_ -= 1
+            if e_ > s_:
+                spans.append([s_, e_])
         out.append({"ids": np.asarray(enc["input_ids"][i], np.int32), "offs": offs, "tl": token_labels(offs, spans, len(r.text), scheme),
                     "a": float(r.n_spans > 0), "spans": spans, "text_len": len(r.text), "text": r.text})
     return out
