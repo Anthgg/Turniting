@@ -119,3 +119,58 @@ export function analysisErrorMessage(code: string | undefined, status: number | 
   if (status === 409) return 'El documento todavía no tiene texto extraído para analizar.'
   return 'No se pudo completar el análisis.'
 }
+
+export type ParagraphDisplayItem<TSegment extends { paragraphIndex: number; classification: string }> =
+  | { type: 'single'; segment: TSegment }
+  | {
+      type: 'insufficient-group'
+      groupKey: string
+      startIndex: number
+      endIndex: number
+      items: TSegment[]
+    }
+
+export function groupParagraphSegments<TSegment extends { paragraphIndex: number; classification: string }>(
+  items: TSegment[],
+  enableCompaction: boolean,
+): ParagraphDisplayItem<TSegment>[] {
+  if (!enableCompaction || items.length === 0) {
+    return items.map((segment) => ({ type: 'single', segment }))
+  }
+
+  const result: ParagraphDisplayItem<TSegment>[] = []
+  let index = 0
+
+  while (index < items.length) {
+    const current = items[index]
+    if (current.classification === 'INSUFFICIENT_TEXT') {
+      const runItems: TSegment[] = [current]
+      let nextIndex = index + 1
+      while (nextIndex < items.length && items[nextIndex].classification === 'INSUFFICIENT_TEXT') {
+        runItems.push(items[nextIndex])
+        nextIndex += 1
+      }
+
+      if (runItems.length >= 2) {
+        const startIndex = runItems[0].paragraphIndex
+        const endIndex = runItems[runItems.length - 1].paragraphIndex
+        result.push({
+          type: 'insufficient-group',
+          groupKey: `${startIndex}-${endIndex}`,
+          startIndex,
+          endIndex,
+          items: runItems,
+        })
+      } else {
+        result.push({ type: 'single', segment: current })
+      }
+      index = nextIndex
+    } else {
+      result.push({ type: 'single', segment: current })
+      index += 1
+    }
+  }
+
+  return result
+}
+

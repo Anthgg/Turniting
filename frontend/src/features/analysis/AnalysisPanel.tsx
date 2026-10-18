@@ -12,6 +12,7 @@ import {
   listAnalyzerModels,
   listDocumentAnalyses,
   getAnalysisSegmentContext,
+  type AnalysisSegment,
   type AnalysisSegmentFilter,
   type AnalysisSegmentSort,
   type AnalyzerName,
@@ -30,6 +31,7 @@ import {
   formatPercent,
   formatPercentPoints,
   formatSignal,
+  groupParagraphSegments,
   isAnalyzerUsable,
   operationErrorMessage,
   segmentsBelongToRun,
@@ -97,6 +99,9 @@ export function AnalysisPanel({
   const [expandedParagraphs, setExpandedParagraphs] = useState<
     Record<number, boolean>
   >({});
+  const [expandedInsufficientGroups, setExpandedInsufficientGroups] = useState<
+    Record<string, boolean>
+  >({});
   const [contextSegmentId, setContextSegmentId] = useState<string | null>(null);
 
   const models = useQuery({
@@ -134,6 +139,7 @@ export function AnalysisPanel({
       setPage(1);
       setFilter("ALL");
       setExpandedParagraphs({});
+      setExpandedInsufficientGroups({});
       setContextSegmentId(null);
       await queryClient.invalidateQueries({
         queryKey: analysisQueryKeys.documentAnalyses(documentId),
@@ -209,6 +215,214 @@ export function AnalysisPanel({
         : (documentWorkflowStatus ?? (hasText ? "READY" : "PROCESSING"));
 
   const runLevel = run ? signalLevel(run.documentScore) : null;
+
+  const enableCompaction = filter === "ALL" && sort === "PARAGRAPH";
+  const displayItems = groupParagraphSegments(paragraphItems, enableCompaction);
+
+  const highCount = paragraphItems.filter(
+    (s) => s.classification !== "INSUFFICIENT_TEXT" && signalLevel(s.calibratedScore) === "HIGH",
+  ).length;
+  const moderateCount = paragraphItems.filter(
+    (s) => s.classification !== "INSUFFICIENT_TEXT" && signalLevel(s.calibratedScore) === "MODERATE",
+  ).length;
+  const lowCount = paragraphItems.filter(
+    (s) => s.classification !== "INSUFFICIENT_TEXT" && signalLevel(s.calibratedScore) === "LOW",
+  ).length;
+  const insufficientCount =
+    paragraphItems.length > 0
+      ? paragraphItems.filter((s) => s.classification === "INSUFFICIENT_TEXT").length
+      : (run?.insufficientSegments ?? 0);
+  const distTotal = Math.max(1, highCount + moderateCount + lowCount + insufficientCount);
+
+  function jumpToParagraph(paragraphIndex: number) {
+    const containingGroup = displayItems.find(
+      (item) =>
+        item.type === "insufficient-group" &&
+        paragraphIndex >= item.startIndex &&
+        paragraphIndex <= item.endIndex,
+    );
+    if (containingGroup && containingGroup.type === "insufficient-group") {
+      setExpandedInsufficientGroups((current) => ({
+        ...current,
+        [containingGroup.groupKey]: true,
+      }));
+    }
+    if (typeof document !== "undefined") {
+      window.requestAnimationFrame(() => {
+        const element = document.getElementById(`analysis-paragraph-${paragraphIndex}`);
+        element?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }
+
+  function renderParagraphRow(segment: AnalysisSegment) {
+    const level = signalLevel(segment.calibratedScore);
+    const expanded = Boolean(expandedParagraphs[segment.paragraphIndex]);
+    const preview =
+      segment.text && segment.text.length > 260 && !expanded
+        ? `${segment.text.slice(0, 260)}…`
+        : segment.text;
+    const canInspectContext =
+      run?.paragraphMode === "CONTEXTUAL_PARAGRAPH" &&
+      segment.classification !== "INSUFFICIENT_TEXT" &&
+      Boolean(segment.id);
+    const isContextOpen = Boolean(canInspectContext && contextSegmentId === segment.id);
+
+    return (
+      <li
+        key={segment.paragraphIndex}
+        id={`analysis-paragraph-${segment.paragraphIndex}`}
+        className={`analysis-paragraph level-${(level ?? "none").toLowerCase()}`}
+      >
+        <div className="analysis-paragraph-head">
+          <div className="analysis-paragraph-id">
+            <strong>Párrafo {segment.paragraphIndex + 1}</strong>
+            {segment.pageNumber !== null && <small>pág. {segment.pageNumber}</small>}
+          </div>
+          <div className="analysis-paragraph-badges">
+            <span className="analysis-paragraph-score">
+              {segment.classification === "INSUFFICIENT_TEXT"
+                ? "Texto insuficiente"
+                : formatSignal(segment.calibratedScore)}
+            </span>
+            {level && (
+              <span className={`analysis-level level-pill-${level.toLowerCase()}`}>
+                {SIGNAL_LABEL[level]}
+              </span>
+            )}
+            {run?.paragraphMode === "CONTEXTUAL_PARAGRAPH" && (
+              <span className="analysis-context-badge">
+                {segment.classification === "INSUFFICIENT_TEXT"
+                  ? "Contexto no aplicado"
+                  : "Contexto utilizado"}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {preview && <p className="analysis-paragraph-text">{preview}</p>}
+
+        <div className="analysis-paragraph-footer">
+          {segment.text && segment.text.length > 260 && (
+            <button
+              className="analysis-text-toggle"
+              type="button"
+              aria-expanded={expanded}
+              onClick={() =>
+                setExpandedParagraphs((current) => ({
+                  ...current,
+                  [segment.paragraphIndex]: !expanded,
+                }))
+              }
+            >
+              {expanded ? "Ocultar texto completo" : "Ver texto completo"}
+            </button>
+          )}
+
+          {canInspectContext && (
+            <button
+              className="analysis-text-toggle"
+              type="button"
+              aria-expanded={isContextOpen}
+              aria-controls={`analysis-context-${segment.id}`}
+              onClick={() =>
+                setContextSegmentId((current) =>
+                  current === segment.id ? null : segment.id ?? null,
+                )
+              }
+            >
+              {isContextOpen ? "Ocultar contexto utilizado" : "Ver contexto utilizado"}
+            </button>
+          )}
+
+          <details className="analysis-paragraph-tech">
+            <summary>Detalles técnicos</summary>
+            <span>
+              {segment.modelName} · {run?.analyzerMode} · {run?.analyzerVersion} ·{" "}
+              {segment.classification}
+              {segment.words !== undefined ? ` · ${segment.words} palabras` : ""}
+            </span>
+          </details>
+        </div>
+
+        {isContextOpen && (
+          <div
+            className="analysis-context-drawer"
+            id={`analysis-context-${segment.id}`}
+            role="region"
+            aria-label={`Contexto del párrafo ${segment.paragraphIndex + 1}`}
+          >
+            {segmentContext.isError && (
+              <p className="analysis-context-message" role="alert">
+                <span>No se pudo cargar el contexto utilizado.</span>
+                <button
+                  className="button button-quiet"
+                  type="button"
+                  onClick={() => void segmentContext.refetch()}
+                >
+                  Reintentar
+                </button>
+              </p>
+            )}
+            {segmentContext.isPending && !segmentContext.data && (
+              <p className="analysis-context-message" role="status">
+                Cargando contexto…
+              </p>
+            )}
+            {segmentContext.data && (
+              <>
+                <p className="analysis-context-explanation">
+                  El modelo usa hasta{" "}
+                  {segmentContext.data.contextMetadata.tokenLimitPerSide ??
+                    "un límite no registrado"}{" "}
+                  tokens por lado y ventana. Se muestran los párrafos vecinos
+                  completos como referencia; el porcentaje pertenece solo al
+                  párrafo evaluado.
+                </p>
+                <div className="analysis-context-grid">
+                  <section className="analysis-context-neighbor">
+                    <h4>Anterior</h4>
+                    {segmentContext.data.before.paragraphIndex === null ? (
+                      <p>No disponible: es el primer párrafo.</p>
+                    ) : (
+                      <p>{segmentContext.data.before.text}</p>
+                    )}
+                    {segmentContext.data.before.paragraphIndex !== null && (
+                      <small>
+                        Tokens usados por ventana ·{" "}
+                        {contextTokenLabel(segmentContext.data.before.tokensUsed)}
+                      </small>
+                    )}
+                  </section>
+                  <section className="analysis-context-target">
+                    <h4>
+                      Párrafo evaluado · Señal IA{" "}
+                      {formatSignal(segment.calibratedScore)}
+                    </h4>
+                    <p>{segmentContext.data.target.text}</p>
+                  </section>
+                  <section className="analysis-context-neighbor">
+                    <h4>Siguiente</h4>
+                    {segmentContext.data.after.paragraphIndex === null ? (
+                      <p>No disponible: es el último párrafo.</p>
+                    ) : (
+                      <p>{segmentContext.data.after.text}</p>
+                    )}
+                    {segmentContext.data.after.paragraphIndex !== null && (
+                      <small>
+                        Tokens usados por ventana ·{" "}
+                        {contextTokenLabel(segmentContext.data.after.tokensUsed)}
+                      </small>
+                    )}
+                  </section>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </li>
+    );
+  }
 
   return (
     <section
@@ -316,6 +530,7 @@ export function AnalysisPanel({
                 setSelectedRun(event.currentTarget.value);
                 setPage(1);
                 setExpandedParagraphs({});
+                setExpandedInsufficientGroups({});
                 setContextSegmentId(null);
               }}
             >
@@ -429,6 +644,47 @@ export function AnalysisPanel({
                 {STATUS_LABEL[run.status] ?? run.status}
               </span>
             </div>
+
+            {run.status === "COMPLETED" && (
+              <div className="analysis-distribution" aria-label="Distribución de señal en la vista actual">
+                <div className="analysis-distribution-bar" role="presentation">
+                  {highCount > 0 && (
+                    <span
+                      className="dist-segment dist-high"
+                      style={{ width: `${(highCount / distTotal) * 100}%` }}
+                      title={`Alta: ${highCount}`}
+                    />
+                  )}
+                  {moderateCount > 0 && (
+                    <span
+                      className="dist-segment dist-moderate"
+                      style={{ width: `${(moderateCount / distTotal) * 100}%` }}
+                      title={`Moderada: ${moderateCount}`}
+                    />
+                  )}
+                  {lowCount > 0 && (
+                    <span
+                      className="dist-segment dist-low"
+                      style={{ width: `${(lowCount / distTotal) * 100}%` }}
+                      title={`Baja: ${lowCount}`}
+                    />
+                  )}
+                  {insufficientCount > 0 && (
+                    <span
+                      className="dist-segment dist-insufficient"
+                      style={{ width: `${(insufficientCount / distTotal) * 100}%` }}
+                      title={`Insuficiente: ${insufficientCount}`}
+                    />
+                  )}
+                </div>
+                <div className="analysis-distribution-legend">
+                  <span><i className="dist-dot dist-high" />Alta ({highCount})</span>
+                  <span><i className="dist-dot dist-moderate" />Moderada ({moderateCount})</span>
+                  <span><i className="dist-dot dist-low" />Baja ({lowCount})</span>
+                  <span><i className="dist-dot dist-insufficient" />Insuf. ({insufficientCount})</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <dl className="analysis-meta-grid">
@@ -577,189 +833,116 @@ export function AnalysisPanel({
           {paragraphItems.length === 0 ? (
             <p className="analysis-notice">No hay párrafos para este filtro.</p>
           ) : (
-            <ol className="analysis-paragraphs" aria-label="Señal por párrafo">
-              {paragraphItems.map((segment) => {
-                const level = signalLevel(segment.calibratedScore);
-                const expanded = Boolean(
-                  expandedParagraphs[segment.paragraphIndex],
-                );
-                const preview =
-                  segment.text && segment.text.length > 260 && !expanded
-                    ? `${segment.text.slice(0, 260)}…`
-                    : segment.text;
-                const canInspectContext =
-                  run?.paragraphMode === "CONTEXTUAL_PARAGRAPH"
-                  && segment.classification !== "INSUFFICIENT_TEXT"
-                  && Boolean(segment.id);
-                const isContextOpen = Boolean(
-                  canInspectContext && contextSegmentId === segment.id,
-                );
+            <>
+              <div
+                className="analysis-heatmap-strip"
+                role="navigation"
+                aria-label="Mapa de navegación de párrafos"
+              >
+                <span className="analysis-heatmap-caption">Mapa de párrafos</span>
+                <div className="analysis-heatmap-track">
+                  {paragraphItems.map((segment) => {
+                    const level = signalLevel(segment.calibratedScore);
+                    const cellTone =
+                      segment.classification === "INSUFFICIENT_TEXT"
+                        ? "insufficient"
+                        : (level ?? "low").toLowerCase();
+                    const cellLabel =
+                      segment.classification === "INSUFFICIENT_TEXT"
+                        ? `Párrafo ${segment.paragraphIndex + 1}: Texto insuficiente`
+                        : `Párrafo ${segment.paragraphIndex + 1}: ${formatSignal(segment.calibratedScore)} (${level ? SIGNAL_LABEL[level] : ""})`;
+                    return (
+                      <button
+                        key={segment.paragraphIndex}
+                        type="button"
+                        className={`heatmap-cell heatmap-cell-${cellTone}`}
+                        title={cellLabel}
+                        aria-label={cellLabel}
+                        onClick={() => jumpToParagraph(segment.paragraphIndex)}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
 
-                return (
-                  <li
-                    key={segment.paragraphIndex}
-                    className={`analysis-paragraph level-${(level ?? "none").toLowerCase()}`}
-                  >
-                    <div className="analysis-paragraph-head">
-                      <div className="analysis-paragraph-id">
-                        <strong>Párrafo {segment.paragraphIndex + 1}</strong>
-                        {segment.pageNumber !== null && (
-                          <small>pág. {segment.pageNumber}</small>
-                        )}
-                      </div>
-                      <div className="analysis-paragraph-badges">
-                        <span className="analysis-paragraph-score">
-                          {segment.classification === "INSUFFICIENT_TEXT"
-                            ? "Texto insuficiente"
-                            : formatSignal(segment.calibratedScore)}
-                        </span>
-                        {level && (
-                          <span className={`analysis-level level-pill-${level.toLowerCase()}`}>
-                            {SIGNAL_LABEL[level]}
-                          </span>
-                        )}
-                        {run?.paragraphMode === "CONTEXTUAL_PARAGRAPH" && (
-                          <span className="analysis-context-badge">
-                            {segment.classification === "INSUFFICIENT_TEXT"
-                              ? "Contexto no aplicado"
-                              : "Contexto utilizado"}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+              <ol className="analysis-paragraphs" aria-label="Señal por párrafo">
+                {displayItems.map((item) => {
+                  if (item.type === "single") {
+                    return renderParagraphRow(item.segment);
+                  }
 
-                    {preview && <p className="analysis-paragraph-text">{preview}</p>}
+                  const isGroupExpanded = Boolean(
+                    expandedInsufficientGroups[item.groupKey],
+                  );
+                  const count = item.items.length;
 
-                    <div className="analysis-paragraph-footer">
-                      {segment.text && segment.text.length > 260 && (
+                  if (!isGroupExpanded) {
+                    return (
+                      <li
+                        key={`group-${item.groupKey}`}
+                        className="analysis-paragraph analysis-insufficient-group"
+                      >
+                        <div className="analysis-insufficient-group-bar">
+                          <div className="analysis-insufficient-group-copy">
+                            <strong>
+                              Párrafos {item.startIndex + 1}–{item.endIndex + 1}
+                            </strong>
+                            <span>
+                              {count} bloques cortos / títulos con texto insuficiente
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className="analysis-text-toggle"
+                            aria-expanded={false}
+                            onClick={() =>
+                              setExpandedInsufficientGroups((current) => ({
+                                ...current,
+                                [item.groupKey]: true,
+                              }))
+                            }
+                          >
+                            Expandir ({count})
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  }
+
+                  return (
+                    <li
+                      key={`group-${item.groupKey}`}
+                      className="analysis-insufficient-expanded-wrap"
+                    >
+                      <div className="analysis-insufficient-group-bar is-expanded">
+                        <div className="analysis-insufficient-group-copy">
+                          <strong>
+                            Párrafos {item.startIndex + 1}–{item.endIndex + 1}
+                          </strong>
+                          <span>Mostrando {count} bloques con texto insuficiente</span>
+                        </div>
                         <button
-                          className="analysis-text-toggle"
                           type="button"
-                          aria-expanded={expanded}
+                          className="analysis-text-toggle"
+                          aria-expanded={true}
                           onClick={() =>
-                            setExpandedParagraphs((current) => ({
+                            setExpandedInsufficientGroups((current) => ({
                               ...current,
-                              [segment.paragraphIndex]: !expanded,
+                              [item.groupKey]: false,
                             }))
                           }
                         >
-                          {expanded
-                            ? "Ocultar texto completo"
-                            : "Ver texto completo"}
+                          Compactar ({count})
                         </button>
-                      )}
-
-                      {canInspectContext && (
-                        <button
-                          className="analysis-text-toggle"
-                          type="button"
-                          aria-expanded={isContextOpen}
-                          aria-controls={`analysis-context-${segment.id}`}
-                          onClick={() =>
-                            setContextSegmentId((current) =>
-                              current === segment.id ? null : segment.id ?? null,
-                            )
-                          }
-                        >
-                          {isContextOpen
-                            ? "Ocultar contexto utilizado"
-                            : "Ver contexto utilizado"}
-                        </button>
-                      )}
-
-                      <details className="analysis-paragraph-tech">
-                        <summary>Detalles técnicos</summary>
-                        <span>
-                          {segment.modelName} · {run?.analyzerMode} ·{" "}
-                          {run?.analyzerVersion} · {segment.classification}
-                          {segment.words !== undefined ? ` · ${segment.words} palabras` : ""}
-                        </span>
-                      </details>
-                    </div>
-
-                    {isContextOpen && (
-                      <div
-                        className="analysis-context-drawer"
-                        id={`analysis-context-${segment.id}`}
-                        role="region"
-                        aria-label={`Contexto del párrafo ${segment.paragraphIndex + 1}`}
-                      >
-                        {segmentContext.isError && (
-                          <p className="analysis-context-message" role="alert">
-                            <span>No se pudo cargar el contexto utilizado.</span>
-                            <button
-                              className="button button-quiet"
-                              type="button"
-                              onClick={() => void segmentContext.refetch()}
-                            >
-                              Reintentar
-                            </button>
-                          </p>
-                        )}
-                        {segmentContext.isPending && !segmentContext.data && (
-                          <p className="analysis-context-message" role="status">
-                            Cargando contexto…
-                          </p>
-                        )}
-                        {segmentContext.data && (
-                          <>
-                            <p className="analysis-context-explanation">
-                              El modelo usa hasta{" "}
-                              {segmentContext.data.contextMetadata.tokenLimitPerSide ??
-                                "un límite no registrado"}{" "}
-                              tokens por lado y ventana. Se muestran los párrafos
-                              vecinos completos como referencia; el porcentaje
-                              pertenece solo al párrafo evaluado.
-                            </p>
-                            <div className="analysis-context-grid">
-                              <section className="analysis-context-neighbor">
-                                <h4>Anterior</h4>
-                                {segmentContext.data.before.paragraphIndex === null ? (
-                                  <p>No disponible: es el primer párrafo.</p>
-                                ) : (
-                                  <p>{segmentContext.data.before.text}</p>
-                                )}
-                                {segmentContext.data.before.paragraphIndex !== null && (
-                                  <small>
-                                    Tokens usados por ventana ·{" "}
-                                    {contextTokenLabel(
-                                      segmentContext.data.before.tokensUsed,
-                                    )}
-                                  </small>
-                                )}
-                              </section>
-                              <section className="analysis-context-target">
-                                <h4>
-                                  Párrafo evaluado · Señal IA{" "}
-                                  {formatSignal(segment.calibratedScore)}
-                                </h4>
-                                <p>{segmentContext.data.target.text}</p>
-                              </section>
-                              <section className="analysis-context-neighbor">
-                                <h4>Siguiente</h4>
-                                {segmentContext.data.after.paragraphIndex === null ? (
-                                  <p>No disponible: es el último párrafo.</p>
-                                ) : (
-                                  <p>{segmentContext.data.after.text}</p>
-                                )}
-                                {segmentContext.data.after.paragraphIndex !== null && (
-                                  <small>
-                                    Tokens usados por ventana ·{" "}
-                                    {contextTokenLabel(
-                                      segmentContext.data.after.tokensUsed,
-                                    )}
-                                  </small>
-                                )}
-                              </section>
-                            </div>
-                          </>
-                        )}
                       </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
+                      <ol className="analysis-insufficient-sublist">
+                        {item.items.map((segment) => renderParagraphRow(segment))}
+                      </ol>
+                    </li>
+                  );
+                })}
+              </ol>
+            </>
           )}
           {researchMode && pageCount > 1 && (
             <nav
@@ -805,3 +988,4 @@ export function AnalysisPanel({
     </section>
   );
 }
+

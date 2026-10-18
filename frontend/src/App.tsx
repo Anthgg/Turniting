@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, NavLink, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
+import { documentQueryKeys, getDocument, listDocuments } from './api/documents'
 import { getHealth } from './api/health'
 import type { HealthService } from './api/health'
 import { Icon } from './components/Icon'
@@ -9,6 +10,7 @@ import { ComparePage } from './features/analysis/ComparePage'
 import { ModelsPage } from './features/analysis/ModelsPage'
 import { DocumentDetailPage } from './features/documents/DocumentDetailPage'
 import { DocumentListPage } from './features/documents/DocumentListPage'
+import { formatBytes, formatDate, statusClass, statusLabel } from './features/documents/document-utils'
 import { DatasetDetailPage } from './features/datasets/DatasetDetailPage'
 import { DatasetsPage } from './features/datasets/DatasetsPage'
 import { TurnitinReportDetailPage } from './features/turnitin/TurnitinReportDetailPage'
@@ -21,11 +23,39 @@ const serviceEndpoints: Record<HealthService, string> = {
   ai: '/api/health/ai',
 }
 
-function WorkspaceLayout() {
+export function WorkspaceLayout() {
   const location = useLocation()
+  const docMatch = /^\/documents\/([^/]+)$/.exec(location.pathname)
+  const activeDocId = docMatch ? decodeURIComponent(docMatch[1]) : null
+
+  const recentDocs = useQuery({
+    queryKey: documentQueryKeys.list(1, 5),
+    queryFn: () => listDocuments(1, 5),
+    staleTime: 15_000,
+    retry: 1,
+  })
+
+  const activeDoc = useQuery({
+    queryKey: activeDocId ? documentQueryKeys.detail(activeDocId) : ['documents', 'detail', 'none'],
+    queryFn: () => getDocument(activeDocId!),
+    enabled: Boolean(activeDocId),
+    staleTime: 15_000,
+    retry: 1,
+  })
+
+  const firstDocId = recentDocs.data?.items[0]?.id ?? null
+  const analysisTargetHref = activeDocId
+    ? `/documents/${activeDocId}`
+    : firstDocId
+      ? `/documents/${firstDocId}`
+      : '/documents'
+
+  const isAnalysisRoute = Boolean(activeDocId)
+  const isDocumentsListRoute = location.pathname === '/documents'
+
   const section = location.pathname === '/'
     ? 'Inicio'
-    : location.pathname === '/documents'
+    : isDocumentsListRoute
       ? 'Documentos'
       : location.pathname.startsWith('/turnitin-reports')
         ? 'Reportes Turnitin'
@@ -35,75 +65,166 @@ function WorkspaceLayout() {
         ? 'Modelos'
       : location.pathname.startsWith('/analysis')
         ? 'Comparar versiones'
-      : 'Detalle del documento'
+      : activeDoc.data?.originalName ?? 'Detalle del documento'
 
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Saltar al contenido principal</a>
-      <aside className="sidebar">
-        <div className="sidebar-top">
+
+      <header className="topbar">
+        <div className="topbar-left">
           <Link className="brand" to="/" aria-label="Turniting, inicio">
             <span className="brand-mark" aria-hidden="true">T</span>
-            <span className="brand-copy">
-              <span className="brand-name">Turniting</span>
-              <span className="brand-workspace">Área académica</span>
-            </span>
+            <span className="brand-name">Turniting</span>
           </Link>
+          <span className="topbar-divider" aria-hidden="true" />
+          <details className="workspace-selector">
+            <summary className="workspace-selector-trigger" aria-label="Espacio de trabajo: Área académica">
+              <span>Área académica</span>
+              <Icon name="chevron-down" size={13} />
+            </summary>
+            <div className="workspace-selector-menu" role="menu" aria-label="Espacios de trabajo">
+              <div className="workspace-selector-item is-selected" role="menuitem">
+                <div>
+                  <strong>Área académica</strong>
+                  <small>Investigación local · F006.2</small>
+                </div>
+                <Icon name="check" size={14} />
+              </div>
+              <div className="workspace-selector-footer">
+                <span>Modelos V2, V3 y Ensemble activos localmente</span>
+              </div>
+            </div>
+          </details>
         </div>
 
-        <nav className="sidebar-nav" aria-label="Navegación principal">
-          <NavLink to="/" end className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
-            <Icon name="grid" size={17} />
-            <span>Inicio</span>
-          </NavLink>
-          <NavLink to="/documents" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
-            <Icon name="file" size={17} />
-            <span>Documentos</span>
-          </NavLink>
-          <NavLink to="/turnitin-reports" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
-            <Icon name="file" size={17} />
-            <span>Reportes Turnitin</span>
-          </NavLink>
-          <NavLink to="/datasets" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
-            <Icon name="database" size={17} />
-            <span>Datasets</span>
-          </NavLink>
-          <NavLink to="/models" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
-            <Icon name="brain" size={17} />
-            <span>Modelos</span>
-          </NavLink>
-          <NavLink to="/analysis/compare" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
-            <Icon name="spark" size={17} />
-            <span>Comparar versiones</span>
-          </NavLink>
-          <span className="nav-item is-disabled" aria-disabled="true" aria-label="Historial, próxima fase">
-            <Icon name="clock" size={17} />
-            <span>Historial</span>
-          </span>
+        <nav className="breadcrumbs" aria-label="Ubicación actual">
+          {isAnalysisRoute ? (
+            <>
+              <Link to="/documents">Documentos</Link>
+              <Icon name="chevron-right" size={13} />
+              <span className="breadcrumb-current" aria-current="page" title={section}>{section}</span>
+            </>
+          ) : (
+            <>
+              <Link to="/">Espacio de trabajo</Link>
+              <Icon name="chevron-right" size={13} />
+              <span className="breadcrumb-current" aria-current="page">{section}</span>
+            </>
+          )}
         </nav>
 
-        <div className="sidebar-bottom">
-          <div className="phase-summary">
-            <span className="phase-label">Fase actual</span>
-            <strong className="phase-value">F006.2 · Research UI</strong>
-          </div>
-        </div>
-      </aside>
-
-      <div className="main-shell">
-        <header className="topbar">
-          <div className="breadcrumbs" aria-label="Ubicación actual">
-            <Link to="/">Espacio de trabajo</Link>
-            <Icon name="chevron-right" size={13} />
-            <span className="breadcrumb-current" aria-current="page">{section}</span>
-          </div>
-          <div className="topbar-meta">
+        <div className="topbar-right">
+          <div className="topbar-meta" title="Servicios conectados en entorno local">
             <span className="environment-dot" aria-hidden="true" />
             <span>Entorno local</span>
           </div>
-        </header>
+          <Link className="button button-quiet topbar-upload-btn" to="/documents">
+            <Icon name="upload" size={14} />
+            <span>Subir</span>
+          </Link>
+        </div>
+      </header>
+
+      <div className="main-shell">
         <main id="main-content" className="main-content"><Outlet /></main>
       </div>
+
+      <nav className="bottom-dock" aria-label="Navegación principal">
+        <div className="bottom-dock-inner">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) => `dock-item${isActive ? ' is-active' : ''}`}
+            aria-label="Inicio"
+            data-tooltip="Inicio"
+          >
+            <span className="dock-icon"><Icon name="grid" size={18} /></span>
+            <span className="dock-label">Inicio</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <NavLink
+            to="/documents"
+            end
+            className={({ isActive }) => `dock-item${isActive ? ' is-active' : ''}`}
+            aria-label="Documentos"
+            data-tooltip="Documentos"
+          >
+            <span className="dock-icon"><Icon name="file" size={18} /></span>
+            <span className="dock-label">Documentos</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <Link
+            to={analysisTargetHref}
+            className={`dock-item${isAnalysisRoute ? ' is-active' : ''}`}
+            aria-label="Análisis IA"
+            aria-current={isAnalysisRoute ? 'page' : undefined}
+            data-tooltip="Análisis IA"
+          >
+            <span className="dock-icon"><Icon name="spark" size={18} /></span>
+            <span className="dock-label">Análisis IA</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </Link>
+
+          <NavLink
+            to="/analysis/compare"
+            className={({ isActive }) => `dock-item${isActive ? ' is-active' : ''}`}
+            aria-label="Comparar versiones"
+            data-tooltip="Comparar versiones"
+          >
+            <span className="dock-icon"><Icon name="diff" size={18} /></span>
+            <span className="dock-label">Comparar</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <NavLink
+            to="/turnitin-reports"
+            className={({ isActive }) => `dock-item${isActive ? ' is-active' : ''}`}
+            aria-label="Reportes Turnitin"
+            data-tooltip="Reportes Turnitin"
+          >
+            <span className="dock-icon"><Icon name="layers" size={18} /></span>
+            <span className="dock-label">Reportes</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <NavLink
+            to="/models"
+            className={({ isActive }) => `dock-item${isActive ? ' is-active' : ''}`}
+            aria-label="Modelos"
+            data-tooltip="Modelos"
+          >
+            <span className="dock-icon"><Icon name="brain" size={18} /></span>
+            <span className="dock-label">Modelos</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <NavLink
+            to="/datasets"
+            className={({ isActive }) => `dock-item${isActive ? ' is-active' : ''}`}
+            aria-label="Datasets"
+            data-tooltip="Datasets"
+          >
+            <span className="dock-icon"><Icon name="database" size={18} /></span>
+            <span className="dock-label">Datasets</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <span className="dock-divider" aria-hidden="true" />
+
+          <Link
+            to="/documents"
+            className="dock-item dock-item-upload"
+            aria-label="Subir nuevo documento"
+            data-tooltip="Subir documento"
+          >
+            <span className="dock-icon"><Icon name="plus" size={18} /></span>
+            <span className="dock-label">Subir</span>
+          </Link>
+        </div>
+      </nav>
     </div>
   )
 }
@@ -127,11 +248,17 @@ function DashboardPage() {
     refetchInterval: 30_000,
     retry: 1,
   })
+  const recentDocuments = useQuery({
+    queryKey: documentQueryKeys.list(1, 5),
+    queryFn: () => listDocuments(1, 5),
+    retry: 1,
+  })
 
   const isRefreshing = backend.isFetching || database.isFetching || ai.isFetching
+  const recentItems = recentDocuments.data?.items ?? []
 
   async function refreshHealth() {
-    await Promise.all([backend.refetch(), database.refetch(), ai.refetch()])
+    await Promise.all([backend.refetch(), database.refetch(), ai.refetch(), recentDocuments.refetch()])
   }
 
   return (
@@ -139,13 +266,19 @@ function DashboardPage() {
       <div className="page-heading">
         <div>
           <p className="eyebrow">ESPACIO DE INVESTIGACIÓN</p>
-          <h1>Turniting</h1>
-          <p className="page-subtitle">Lectura, extracción y análisis local de señal de IA en documentos académicos.</p>
+          <h1>Espacio de trabajo</h1>
+          <p className="page-subtitle">
+            Evaluación local de señal de IA por párrafos (PDF, DOCX, TXT hasta {MAX_UPLOAD_MB} MB). Independiente de Turnitin.
+          </p>
         </div>
         <div className="page-heading-actions">
           <Link className="button button-primary" to="/documents">
             <Icon name="upload" size={15} />
             <span>Subir documento</span>
+          </Link>
+          <Link className="button button-quiet" to="/analysis/compare">
+            <Icon name="diff" size={15} />
+            <span>Comparar versiones</span>
           </Link>
           <button
             className="button button-quiet refresh-button"
@@ -155,30 +288,76 @@ function DashboardPage() {
             aria-busy={isRefreshing}
           >
             <Icon name="refresh" size={15} className={isRefreshing ? 'is-spinning' : undefined} />
-            <span>Actualizar estado</span>
+            <span>Actualizar</span>
           </button>
         </div>
       </div>
 
-      <section className="open-section" aria-labelledby="welcome-title">
-        <div className="open-section-row">
+      <section className="open-section" aria-labelledby="recent-docs-title">
+        <div className="section-heading">
           <div>
-            <h2 id="welcome-title" className="open-section-title">Ingesta y evaluación por párrafos</h2>
-            <p className="open-section-copy">
-              Sube archivos PDF, DOCX o TXT (hasta {MAX_UPLOAD_MB} MB) para extraer su texto e inspeccionar la señal probabilística de modelos locales.
-              Los resultados son experimentales e independientes de Turnitin.
-            </p>
+            <p className="eyebrow">ACTIVIDAD RECIENTE</p>
+            <h2 id="recent-docs-title">Últimos documentos</h2>
           </div>
-          <div className="open-section-links">
-            <Link className="button button-quiet" to="/documents">Ir a documentos</Link>
-            <Link className="button button-quiet" to="/analysis/compare">Comparar versiones</Link>
-          </div>
+          <Link className="button button-quiet" to="/documents">
+            <span>Ver biblioteca completa</span>
+            <Icon name="arrow-right" size={14} />
+          </Link>
         </div>
+
+        {recentItems.length === 0 ? (
+          <div className="documents-empty-state">
+            <span>Aún no hay documentos cargados en este entorno.</span>
+            <Link className="button button-quiet" to="/documents">Subir primer documento</Link>
+          </div>
+        ) : (
+          <div className="finder-table-wrap">
+            <table className="finder-table" aria-label="Últimos documentos">
+              <thead>
+                <tr>
+                  <th>Documento</th>
+                  <th>Formato</th>
+                  <th>Tamaño</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                  <th className="finder-col-action">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentItems.map((doc) => (
+                  <tr key={doc.id}>
+                    <td className="finder-col-name">
+                      <Link to={`/documents/${doc.id}`} title={doc.originalName}>
+                        <Icon name="file" size={15} />
+                        <span>{doc.originalName}</span>
+                      </Link>
+                    </td>
+                    <td className="finder-col-mono">{doc.extension?.toUpperCase() || 'DOC'}</td>
+                    <td className="finder-col-mono">{formatBytes(doc.sizeBytes)}</td>
+                    <td>
+                      <span className={statusClass(doc.status)}>{statusLabel(doc.status)}</span>
+                    </td>
+                    <td className="finder-col-date">
+                      <time dateTime={doc.createdAt}>{formatDate(doc.createdAt)}</time>
+                    </td>
+                    <td className="finder-col-action">
+                      <Link className="finder-row-action" to={`/documents/${doc.id}`}>
+                        <span>Analizar</span>
+                        <Icon name="arrow-right" size={14} />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section className="health-section open-section" aria-labelledby="health-title">
         <div className="section-heading">
           <div>
+            <p className="eyebrow">INFRAESTRUCTURA LOCAL</p>
             <h2 id="health-title">Servicios conectados</h2>
           </div>
           <span className="auto-refresh"><span className="live-pulse" /> Actualización cada 30 s</span>
@@ -228,3 +407,4 @@ export default function App() {
     </Routes>
   )
 }
+

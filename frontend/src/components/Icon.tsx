@@ -4,13 +4,17 @@ export type IconName =
   | 'arrow-right'
   | 'brain'
   | 'check'
+  | 'chevron-down'
   | 'chevron-right'
   | 'chevrons'
   | 'clock'
   | 'database'
+  | 'diff'
   | 'file'
   | 'file-plus'
   | 'grid'
+  | 'layers'
+  | 'plus'
   | 'refresh'
   | 'server'
   | 'shield-check'
@@ -21,13 +25,17 @@ const iconContent: Record<IconName, ReactNode> = {
   'arrow-right': <><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></>,
   brain: <><path d="M12 18V5" /><path d="M15.5 6.5a3 3 0 0 1 2.4 4.8 3.5 3.5 0 0 1-1 6.7H15" /><path d="M8.5 6.5a3 3 0 0 0-2.4 4.8 3.5 3.5 0 0 0 1 6.7H9" /><path d="M9 4a3 3 0 0 1 6 0v14a3 3 0 0 1-6 0" /></>,
   check: <path d="m5 12 4 4L19 6" />,
+  'chevron-down': <path d="m6 9 6 6 6-6" />,
   'chevron-right': <path d="m9 18 6-6-6-6" />,
   chevrons: <><path d="m7 15 5-5 5 5" /><path d="m7 9 5-5 5 5" /></>,
   clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
   database: <><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5" /><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" /></>,
+  diff: <><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="M6 8.5v7a2.5 2.5 0 0 0 2.5 2.5H15.5" /><path d="M18 15.5v-7A2.5 2.5 0 0 0 15.5 6H8.5" /></>,
   file: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M8 13h8M8 17h8" /></>,
   'file-plus': <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8" /><path d="M14 2v6h6M8 13h7" /><path d="M19 16v6M16 19h6" /></>,
   grid: <><rect x="3" y="3" width="8" height="8" rx="2" /><rect x="13" y="3" width="8" height="5" rx="2" /><rect x="13" y="10" width="8" height="11" rx="2" /><rect x="3" y="13" width="8" height="8" rx="2" /></>,
+  layers: <><path d="m12 3 9 4.5-9 4.5-9-4.5L12 3Z" /><path d="m3 12 9 4.5 9-4.5" /><path d="m3 16.5 9 4.5 9-4.5" /></>,
+  plus: <><path d="M12 5v14" /><path d="M5 12h14" /></>,
   refresh: <><path d="M20 7v5h-5" /><path d="M4 17v-5h5" /><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2" /></>,
   server: <><rect x="3" y="4" width="18" height="7" rx="2" /><rect x="3" y="13" width="18" height="7" rx="2" /><path d="M7 7.5h.01M7 16.5h.01M11 7.5h6M11 16.5h6" /></>,
   'shield-check': <><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11" /><path d="m9 12 2 2 4-4" /></>,

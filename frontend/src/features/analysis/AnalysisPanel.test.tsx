@@ -12,6 +12,7 @@ const queryMocks = vi.hoisted(() => ({
 vi.mock('@tanstack/react-query', () => queryMocks)
 
 import { AnalysisPanel } from './AnalysisPanel'
+import { groupParagraphSegments } from './analysis-utils'
 
 const RUN_ID = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d'
 
@@ -196,15 +197,56 @@ describe('AnalysisPanel run provenance and operation errors', () => {
     expect(html).not.toContain('Synthetic run paragraph')
   })
 
-  it('renders the minimal open layout with hero metric, metadata grid, and secondary technical details', () => {
+  it('renders the minimal open layout with hero metric, distribution bar, heatmap strip, and secondary technical details', () => {
     const html = renderPanel({ paragraphMode: 'STRICT_PARAGRAPH' })
 
     expect(html).toContain('analysis-toolbar')
     expect(html).toContain('analysis-summary-band')
     expect(html).toContain('analysis-hero-metric')
+    expect(html).toContain('analysis-distribution')
+    expect(html).toContain('analysis-heatmap-strip')
     expect(html).toContain('analysis-meta-grid')
     expect(html).toContain('analysis-paragraph-tech')
     expect(html).toContain('Detalles técnicos')
     expect(html).not.toContain('document-panel analysis-panel')
   })
+
+  it('compacts consecutive INSUFFICIENT_TEXT paragraphs (>= 2) while leaving single items ungrouped', () => {
+    const baseSegment = {
+      id: '00000000-0000-4000-8000-000000000011',
+      charStart: 0,
+      charEnd: 20,
+      pageNumber: 1,
+      words: 3,
+      tokens: 4,
+      modelName: 'CANDIDATE_MODEL_V3',
+      rawScore: null,
+      calibratedScore: null,
+      classification: 'INSUFFICIENT_TEXT' as const,
+      signalLevel: null,
+      confidence: 'INSUFFICIENT' as const,
+      text: 'Título corto',
+    }
+    const items = [
+      { ...baseSegment, paragraphIndex: 0, classification: 'LOW_SIGNAL' as const, calibratedScore: 0.12 },
+      { ...baseSegment, paragraphIndex: 1 },
+      { ...baseSegment, paragraphIndex: 2 },
+      { ...baseSegment, paragraphIndex: 3 },
+      { ...baseSegment, paragraphIndex: 4, classification: 'MACHINE_SIGNAL' as const, calibratedScore: 0.91 },
+      { ...baseSegment, paragraphIndex: 5 },
+    ]
+
+    const grouped = groupParagraphSegments(items, true)
+    expect(grouped).toHaveLength(4)
+    expect(grouped[0].type).toBe('single')
+    expect(grouped[1]).toMatchObject({
+      type: 'insufficient-group',
+      groupKey: '1-3',
+      startIndex: 1,
+      endIndex: 3,
+    })
+    expect(grouped[2].type).toBe('single')
+    expect(grouped[3].type).toBe('single')
+  })
 })
+

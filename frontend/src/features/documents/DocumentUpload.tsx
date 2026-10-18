@@ -90,65 +90,66 @@ export function DocumentUpload() {
 
   return (
     <section className="upload-card" aria-labelledby="upload-title">
-      <div className="upload-card-heading">
-        <div>
-          <p className="eyebrow">INGESTA DE ARCHIVOS</p>
-          <h2 id="upload-title">Subir un documento</h2>
-          <p>PDF, DOCX, TXT, PNG o JPEG · hasta {MAX_UPLOAD_MB} MB por archivo</p>
-        </div>
-        <span className="upload-heading-icon"><Icon name="file-plus" size={20} /></span>
-      </div>
-
-      <div
-        className={`upload-dropzone${selectedFile ? ' has-file' : ''}`}
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={handleDrop}
-      >
-        <span className="upload-dropzone-icon"><Icon name="upload" size={21} /></span>
-        <div className="upload-dropzone-copy">
-          <strong>{selectedFile ? 'Archivo listo para subir' : 'Arrastra tu archivo aquí'}</strong>
-          <span>{selectedFile ? 'Revisa el nombre y confirma la carga.' : 'o selecciona un archivo desde tu dispositivo.'}</span>
-        </div>
-        <button
-          className="button button-quiet upload-browse-button"
-          type="button"
-          onClick={() => fileInput.current?.click()}
-          disabled={upload.isPending}
+      <div className="upload-horizontal-bar">
+        <div
+          className={`upload-dropzone${selectedFile ? ' has-file' : ''}`}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={handleDrop}
         >
-          Elegir archivo
-        </button>
-        <input
-          ref={fileInput}
-          className="visually-hidden"
-          type="file"
-          tabIndex={-1}
-          accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/png,image/jpeg"
-          aria-label="Seleccionar un archivo PDF, DOCX, TXT, PNG o JPEG"
-          onChange={(event) => {
-            chooseFile(event.currentTarget.files?.[0])
-            event.currentTarget.value = ''
-          }}
-        />
-      </div>
-
-      {selectedFile && (
-        <div className="selected-file" aria-live="polite">
-          <span className="selected-file-icon"><Icon name="file" size={18} /></span>
-          <span className="selected-file-copy">
-            <strong title={selectedFile.name}>{selectedFile.name}</strong>
-            <small>{formatBytes(selectedFile.size)} · Archivo seleccionado</small>
-          </span>
-          <button
-            className="icon-button"
-            type="button"
-            aria-label="Quitar el archivo seleccionado"
-            onClick={() => chooseFile(undefined)}
-            disabled={upload.isPending}
-          >
-            <span aria-hidden="true">×</span>
-          </button>
+          <span className="upload-dropzone-icon"><Icon name="upload" size={18} /></span>
+          <div className="upload-dropzone-copy">
+            <strong id="upload-title">{selectedFile ? selectedFile.name : 'Subir un documento (arrastra o selecciona)'}</strong>
+            <span>
+              {selectedFile
+                ? `${formatBytes(selectedFile.size)} · Listo para enviar al backend`
+                : `PDF, DOCX, TXT, PNG o JPEG · hasta ${MAX_UPLOAD_MB} MB por archivo`}
+            </span>
+          </div>
+          {selectedFile ? (
+            <button
+              className="button button-quiet"
+              type="button"
+              aria-label="Quitar el archivo seleccionado"
+              onClick={() => chooseFile(undefined)}
+              disabled={upload.isPending}
+            >
+              Cambiar
+            </button>
+          ) : (
+            <button
+              className="button button-quiet upload-browse-button"
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              disabled={upload.isPending}
+            >
+              Elegir archivo
+            </button>
+          )}
+          <input
+            ref={fileInput}
+            className="visually-hidden"
+            type="file"
+            tabIndex={-1}
+            accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/png,image/jpeg"
+            aria-label="Seleccionar un archivo PDF, DOCX, TXT, PNG o JPEG"
+            onChange={(event) => {
+              chooseFile(event.currentTarget.files?.[0])
+              event.currentTarget.value = ''
+            }}
+          />
         </div>
-      )}
+
+        <button
+          className="button button-primary upload-submit-button"
+          type="button"
+          onClick={startUpload}
+          disabled={!selectedFile || upload.isPending}
+          aria-busy={upload.isPending}
+        >
+          <Icon name="upload" size={15} />
+          <span>{upload.isPending ? 'Subiendo…' : 'Subir documento'}</span>
+        </button>
+      </div>
 
       {clientIssue && (
         <div className="api-error" role="alert">
@@ -156,20 +157,6 @@ export function DocumentUpload() {
         </div>
       )}
       {uploadError && <ApiErrorNotice error={uploadError} title={operationErrorMessage('uploadError')} />}
-
-      <div className="upload-card-actions">
-        <p className="upload-privacy-note">El archivo se envía al backend para extraer texto y metadatos.</p>
-        <button
-          className="button button-primary"
-          type="button"
-          onClick={startUpload}
-          disabled={!selectedFile || upload.isPending}
-          aria-busy={upload.isPending}
-        >
-          <Icon name="upload" size={16} />
-          <span>{upload.isPending ? 'Subiendo…' : 'Subir documento'}</span>
-        </button>
-      </div>
 
       {upload.isPending && (
         <div className="upload-state upload-state-processing" role="status" aria-live="polite">
