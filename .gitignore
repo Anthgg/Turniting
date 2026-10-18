@@ -45,7 +45,9 @@ cache/
 turniting_pgdata/
 postgres-data/
 data/uploads/
+data/reports/
 backend/data/uploads/
+backend/data/reports/
 debug/
 turnitin-private/
 private-fixtures/

@@ -7,6 +7,7 @@ import { DatasetsModule } from './datasets/datasets.module.js';
 import { DocumentsModule } from './documents/documents.module.js';
 import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { ReportsModule } from './reports/reports.module.js';
 import { TurnitinModule } from './turnitin/turnitin.module.js';
 
 @Module({
@@ -22,6 +23,7 @@ import { TurnitinModule } from './turnitin/turnitin.module.js';
     TurnitinModule,
     DatasetsModule,
     AnalysisModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}

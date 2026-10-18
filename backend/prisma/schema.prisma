@@ -17,17 +17,18 @@ model User {
 }
 
 model Document {
-  id             String           @id @default(uuid()) @db.Uuid
-  userId         String?          @db.Uuid
-  originalName   String
-  mimeType       String
-  size           Int
-  status         DocumentStatus   @default(UPLOADED)
-  createdAt      DateTime         @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime         @updatedAt @db.Timestamptz(6)
-  user           User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
-  currentVersion DocumentVersion?
-  analyses       Analysis[]
+  id              String           @id @default(uuid()) @db.Uuid
+  userId          String?          @db.Uuid
+  originalName    String
+  mimeType        String
+  size            Int
+  status          DocumentStatus   @default(UPLOADED)
+  createdAt       DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(6)
+  user            User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  currentVersion  DocumentVersion?
+  analyses        Analysis[]
+  reportArtifacts ReportArtifact[]
 
   @@index([userId])
   @@index([status])
@@ -64,6 +65,7 @@ model DocumentVersion {
   groundTruthCases     GroundTruthCase[]
   trainingSamples      TrainingSample[]
   analysisRuns         AnalysisRun[]
+  reportArtifacts      ReportArtifact[]
 }
 
 enum OcrStatus {
@@ -610,6 +612,26 @@ enum AnalysisRunStatus {
   FAILED
 }
 
+enum ReportType {
+  AI_REPORT
+  SIMILARITY_REPORT
+}
+
+enum ReportArtifactStatus {
+  GENERATING
+  AVAILABLE
+  ERROR
+  EXPIRED
+  DELETED
+}
+
+enum ReportAuditEventType {
+  REPORT_GENERATED
+  REPORT_DOWNLOADED
+  REPORT_EXPIRED
+  REPORT_DELETED
+}
+
 enum AnalyzerMode {
   V2_ONLY
   V3_ONLY
@@ -655,9 +677,52 @@ model AnalysisRun {
   segments               AnalysisSegment[]
   comparisonsAsBase      AnalysisComparison[]    @relation("ComparisonBase")
   comparisonsAsTarget    AnalysisComparison[]    @relation("ComparisonTarget")
+  reportArtifacts        ReportArtifact[]
 
   @@index([documentVersionId, createdAt])
   @@index([status, createdAt])
+}
+
+model ReportArtifact {
+  id                String               @id @default(uuid()) @db.Uuid
+  documentId        String               @db.Uuid
+  documentVersionId String               @db.Uuid
+  analysisRunId     String?              @db.Uuid
+  similarityRunId   String?              @db.Uuid
+  type              ReportType
+  status            ReportArtifactStatus @default(GENERATING)
+  filename          String
+  storageKey        String
+  fingerprint       String               @db.Char(64)
+  activeFingerprint String?              @unique @db.VarChar(64)
+  contentHash       String?              @db.Char(64)
+  generatedAt       DateTime             @default(now()) @db.Timestamptz(6)
+  expiresAt         DateTime             @db.Timestamptz(6)
+  deletedAt         DateTime?            @db.Timestamptz(6)
+  generationVersion String
+  createdAt         DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime             @updatedAt @db.Timestamptz(6)
+  document          Document             @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentVersion   DocumentVersion      @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+  analysisRun       AnalysisRun?         @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
+  auditEvents       ReportAuditEvent[]
+
+  @@index([documentId, generatedAt])
+  @@index([expiresAt, deletedAt])
+  @@index([analysisRunId])
+  @@index([similarityRunId])
+  @@index([fingerprint])
+}
+
+model ReportAuditEvent {
+  id               String               @id @default(uuid()) @db.Uuid
+  reportArtifactId String               @db.Uuid
+  type             ReportAuditEventType
+  createdAt        DateTime             @default(now()) @db.Timestamptz(6)
+  metadata         Json?
+  reportArtifact   ReportArtifact       @relation(fields: [reportArtifactId], references: [id], onDelete: Cascade)
+
+  @@index([reportArtifactId, createdAt])
 }
 
 model AnalysisModelResult {

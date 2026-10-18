@@ -97,7 +97,9 @@
   cursor: pointer;
   list-style: none;
   user-select: none;
-  transition: background 140ms ease, border-color 140ms ease;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
 }
 
 .workspace-selector-trigger::-webkit-details-marker {
@@ -229,7 +231,9 @@
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.08),
+    0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .dock-item {
@@ -243,7 +247,10 @@
   border-radius: 12px;
   color: var(--muted);
   text-decoration: none;
-  transition: transform 140ms ease, background 140ms ease, color 140ms ease;
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
 }
 
 .dock-item:hover {
@@ -304,7 +311,9 @@
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 130ms ease, transform 130ms ease;
+  transition:
+    opacity 130ms ease,
+    transform 130ms ease;
 }
 
 .dock-item:hover::after,
@@ -391,7 +400,10 @@
   line-height: 1;
   text-decoration: none;
   cursor: pointer;
-  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
 }
 
 .button-quiet {
@@ -689,6 +701,123 @@
   font-weight: 640;
 }
 
+.report-export-panel {
+  margin-top: 12px;
+}
+
+.report-export-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.report-export-action,
+.report-artifact-list li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.report-export-action h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.report-export-action p,
+.report-export-note,
+.report-export-error {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.report-export-error {
+  color: #9f3c38;
+}
+
+.report-run-select {
+  display: flex;
+  min-width: 180px;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.report-run-select select {
+  max-width: 300px;
+  min-height: 34px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--surface);
+  font: inherit;
+}
+
+.report-artifact-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-artifact-list li > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.report-artifact-list strong {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.report-artifact-list small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.report-artifact-status {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.report-artifact-status.is-available {
+  color: #2f7164;
+}
+.report-artifact-status.is-expired,
+.report-artifact-status.is-error {
+  color: #9f3c38;
+}
+.report-artifact-status.is-generating {
+  color: #315c7d;
+}
+
+@media (max-width: 720px) {
+  .report-export-action,
+  .report-artifact-list li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .report-run-select,
+  .report-run-select select {
+    width: 100%;
+    max-width: none;
+  }
+}
+
 .upload-heading-icon,
 .document-large-icon,
 .document-list-icon,
@@ -719,7 +848,9 @@
   border: 1px dashed var(--line-strong);
   border-radius: 8px;
   background: var(--surface);
-  transition: border-color 140ms ease, background 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
 }
 
 .upload-dropzone:hover,
@@ -977,7 +1108,9 @@
   font-size: 12px;
   font-weight: 560;
   text-decoration: none;
-  transition: color 140ms ease, background 140ms ease;
+  transition:
+    color 140ms ease,
+    background 140ms ease;
 }
 
 .finder-row-action:hover {
@@ -1144,7 +1277,9 @@
   font-size: 13px;
   font-weight: 550;
   cursor: pointer;
-  transition: color 140ms ease, border-color 140ms ease;
+  transition:
+    color 140ms ease,
+    border-color 140ms ease;
 }
 
 .document-detail-tabs button:hover {
@@ -1772,7 +1907,9 @@
   border: 0;
   border-radius: 2px;
   cursor: pointer;
-  transition: transform 120ms ease, opacity 120ms ease;
+  transition:
+    transform 120ms ease,
+    opacity 120ms ease;
 }
 
 .heatmap-cell:hover,
