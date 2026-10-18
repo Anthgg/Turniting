@@ -173,7 +173,7 @@ def main() -> int:
     man = {"created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "sources": status,
            "rows_before_dedup": int(before), "exact_dup_vs_v2_removed": int(exact.sum()), "near_dup_removed": len(near_new),
            "rows_final": int(len(new)), "by_dataset": new["dataset"].value_counts().to_dict(),
-           "by_region": new.groupby(["dataset", "region"]).size().astype(int).rename(lambda k: "|".join(map(str, k))).to_dict(),
+           "by_region": (new["dataset"] + "|" + new["region"].astype(str)).value_counts().to_dict(),
            "by_provenance": new["provenance"].value_counts().to_dict(), "licenses": new.groupby("dataset")["license"].first().to_dict(),
            "official_sources": {"xlsum_es_bbcmundo": "https://huggingface.co/datasets/csebuetnlp/xlsum",
                                 "cc_news_es_2019": "https://huggingface.co/datasets/LeoCordoba/CC-NEWS-ES"},
