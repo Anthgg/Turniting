@@ -50,10 +50,13 @@ export function availabilityLabel(state: string): string {
   switch (state) {
     case 'READY': return 'Cargado'
     case 'AVAILABLE': return 'Disponible'
+    case 'COMPOSITE_AVAILABLE': return 'Disponible · combinación V2 + V3'
     case 'LOADING': return 'Cargando'
     case 'ERROR': return 'Error en artefacto'
     case 'AI_SERVICE_UNREACHABLE': return 'Servicio de IA no disponible'
-    default: return 'Registrado · faltan pesos'
+    case 'DEPENDENCIES_UNAVAILABLE': return 'Componentes no disponibles'
+    case 'UNAVAILABLE': return 'No disponible'
+    default: return 'Estado desconocido'
   }
 }
 

@@ -22,7 +22,9 @@ describe('analysis presentation', () => {
 
   it('explains a missing model without a generic application error', () => {
     expect(analysisErrorMessage('MODEL_UNAVAILABLE', 503)).toMatch(/no está disponible/)
-    expect(availabilityLabel('UNAVAILABLE')).toBe('Registrado · faltan pesos')
+    expect(availabilityLabel('UNAVAILABLE')).toBe('No disponible')
+    expect(availabilityLabel('COMPOSITE_AVAILABLE')).toBe('Disponible · combinación V2 + V3')
+    expect(availabilityLabel('DEPENDENCIES_UNAVAILABLE')).toBe('Componentes no disponibles')
     expect(isAnalyzerUsable('UNAVAILABLE')).toBe(false)
     expect(isAnalyzerUsable('READY')).toBe(true)
   })
@@ -48,5 +50,42 @@ describe('analysis presentation', () => {
           { status: 'UNCHANGED', baseParagraphIndex: 12, targetParagraphIndex: 12, similarity: 1, baseScore: 0.18,
             targetScore: 0.17, delta: -0.01 }] } })
     expect(formatDelta(comparison.details.paragraphs[0].delta)).toBe('-37 pp')
+  })
+
+  it('parses F006 as experimental and preserves its Spanish gate failure', () => {
+    const models = analyzerModelListSchema.parse({
+      aiServiceReachable: true,
+      activeModel: 'NONE',
+      recommendedExperimentalAnalyzer: 'ENSEMBLE_V2_V3',
+      recommendedExperimentalThresholdProfile: 'BALANCED',
+      items: [{
+        name: 'EXPERIMENTAL_F006_MODEL', id: null, registeredInDatabase: true, registeredInRegistry: true,
+        status: 'EXPERIMENTAL', architecture: 'microsoft/mdeberta-v3-base', variant: 'F006_TRANSFORMER_EXPERIMENTAL',
+        dataset: 'TURNITING_DATASET_V2', availability: 'UNAVAILABLE', artifactPresent: false, artifactValid: false,
+        missing: ['backbone/model.safetensors'], servable: false, thresholdProfiles: ['BALANCED'],
+        thresholdSource: 'F006_ISOTONIC_V1', preprocessing: ['V3_CANONICALIZED_V1'],
+        metrics: {
+          evaluationSet: 'F006_FINAL_HOLDOUT', operatingPoint: 'BALANCED', macroF1: 0.8314,
+          overallHumanFpr: 0.0447, spanishHumanFpr: 0.1423, academicHumanFpr: 0.0025,
+          unseenGeneratorHumanFpr: 0.0692, oodHumanFpr: 0.0133, unseenDomainHumanFpr: 0.018,
+          mixedRecall: 0.6695, aiEditedF1: 0.8616, oodF1: 0.9308, unseenGeneratorF1: 0.8308,
+          adversarialRecall: 0.7475, zeroWidthF1: 0.8215, homoglyphF1: 0.8194, spanTokenF1: 0.888,
+        },
+        activeGateResults: {
+          overallHumanFpr: { observed: 0.0447, limit: 0.05, passed: true },
+          spanishHumanFpr: { observed: 0.1423, limit: 0.08, passed: false },
+          academicHumanFpr: { observed: 0.0025, limit: 0.05, passed: true },
+          unseenGeneratorHumanFpr: { observed: 0.0692, limit: 0.1, passed: true },
+        },
+        officialGateResults: { D_spanish_strong: false },
+        strengths: ['Low overall human false-positive rate'],
+        warnings: ['Spanish human false-positive rate is elevated.'],
+        promotionEligible: false, promotionReviewRequired: true,
+      }],
+    })
+    expect(models.activeModel).toBe('NONE')
+    expect(models.items[0].status).toBe('EXPERIMENTAL')
+    expect(models.items[0].activeGateResults?.spanishHumanFpr.passed).toBe(false)
+    expect(models.items[0].warnings).toContain('Spanish human false-positive rate is elevated.')
   })
 })

@@ -98,27 +98,86 @@ export const comparisonSchema = z.object({
   disclaimer: z.string(),
 }).passthrough()
 
+const modelHoldoutMetricsSchema = z.object({
+  evaluationSet: z.string(),
+  operatingPoint: z.string(),
+  macroF1: z.number(),
+  overallHumanFpr: z.number(),
+  spanishHumanFpr: z.number(),
+  academicHumanFpr: z.number(),
+  unseenGeneratorHumanFpr: z.number(),
+  oodHumanFpr: z.number(),
+  unseenDomainHumanFpr: z.number(),
+  mixedRecall: z.number(),
+  aiEditedF1: z.number(),
+  oodF1: z.number(),
+  unseenGeneratorF1: z.number(),
+  adversarialRecall: z.number(),
+  zeroWidthF1: z.number(),
+  homoglyphF1: z.number(),
+  spanTokenF1: nullableNumber.optional(),
+}).passthrough()
+
+const numericGateResultSchema = z.object({
+  observed: z.number(),
+  limit: z.number(),
+  passed: z.boolean(),
+})
+
 export const analyzerModelSchema = z.object({
   name: z.string(),
   id: nullableString,
   registeredInDatabase: z.boolean(),
+  registeredInRegistry: z.boolean().optional(),
   status: nullableString,
   architecture: nullableString,
   variant: nullableString,
   dataset: nullableString,
   availability: z.string(),
   artifactPresent: z.boolean(),
+  artifactValid: z.boolean().optional(),
+  missing: z.array(z.string()).optional(),
   servable: z.boolean(),
   thresholdProfiles: z.array(z.string()),
   thresholdSource: nullableString,
   preprocessing: z.array(z.string()),
   warnings: z.array(z.string()),
+  metrics: modelHoldoutMetricsSchema.nullable().optional(),
+  strengths: z.array(z.string()).optional(),
+  activeGateResults: z.object({
+    overallHumanFpr: numericGateResultSchema,
+    spanishHumanFpr: numericGateResultSchema,
+    academicHumanFpr: numericGateResultSchema,
+    unseenGeneratorHumanFpr: numericGateResultSchema,
+  }).nullable().optional(),
+  officialGateResults: z.record(z.string(), z.boolean()).nullable().optional(),
+  promotionEvidence: z.object({
+    mixedAiEdited: z.boolean().nullable(),
+    robustness: z.boolean().nullable(),
+    paragraphStability: z.boolean().nullable(),
+    noLeakage: z.boolean().nullable(),
+    holdoutNeverTuned: z.boolean().nullable(),
+  }).optional(),
+  promotionEligible: z.boolean().optional(),
+  promotionReviewRequired: z.boolean().optional(),
 }).passthrough()
 
 export const analyzerModelListSchema = z.object({
   aiServiceReachable: z.boolean(),
+  activeModel: z.string().optional(),
+  recommendedExperimentalAnalyzer: z.string().optional(),
+  recommendedExperimentalThresholdProfile: z.string().optional(),
+  lowFprAlternative: z.string().optional(),
+  lowFprAlternativeThresholdProfile: z.string().optional(),
+  promotionReviewRequired: z.boolean().optional(),
+  activeAcceptanceLimits: z.object({
+    overallHumanFpr: z.number(),
+    spanishHumanFpr: z.number(),
+    academicHumanFpr: z.number(),
+    unseenGeneratorHumanFpr: z.number(),
+  }).optional(),
   items: z.array(analyzerModelSchema),
-})
+}).passthrough()
 
 export type AnalysisRun = z.infer<typeof analysisRunSchema>
 export type AnalysisSegment = z.infer<typeof segmentSchema>
