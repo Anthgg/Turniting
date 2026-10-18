@@ -71,32 +71,57 @@ def xlsum(max_rows: int) -> pd.DataFrame:
     return df
 
 
-def ccnews(max_rows: int, max_files: int) -> pd.DataFrame:
-    from huggingface_hub import HfApi, hf_hub_download
+def _read_member(zf, name):
+    import zipfile  # noqa: F401
 
-    files = sorted(f for f in HfApi().list_repo_files("LeoCordoba/CC-NEWS-ES", repo_type="dataset") if f.endswith((".parquet", ".csv", ".json", ".jsonl", ".gz")))
+    raw = zf.read(name)
+    low = name.lower()
+    if low.endswith(".parquet"):
+        return pd.read_parquet(io.BytesIO(raw))
+    if low.endswith((".jsonl", ".json")):
+        try:
+            return pd.read_json(io.BytesIO(raw), lines=True)
+        except ValueError:
+            return pd.read_json(io.BytesIO(raw))
+    if low.endswith((".csv", ".tsv")):
+        return pd.read_csv(io.BytesIO(raw), sep="	" if low.endswith(".tsv") else ",")
+    return None
+
+
+COUNTRIES = ["es", "mx", "ar", "co", "pe", "cl", "ve", "uy", "ec", "bo", "py", "cr", "gt", "hn", "sv", "ni", "pa", "pr"]
+
+
+def ccnews(max_rows: int, max_files: int) -> pd.DataFrame:
+    import zipfile
+
+    from huggingface_hub import hf_hub_download
+
+    per_country = max(500, max_rows // 8)
     frames = []
-    for f in files[:max_files]:
-        p = hf_hub_download("LeoCordoba/CC-NEWS-ES", f, repo_type="dataset")
-        if f.endswith(".parquet"):
-            frames.append(pd.read_parquet(p))
-        elif ".json" in f:
-            frames.append(pd.read_json(p, lines=True))
-        else:
-            frames.append(pd.read_csv(p))
+    for cc in COUNTRIES[:max_files]:
+        try:
+            p = hf_hub_download("LeoCordoba/CC-NEWS-ES", f"{cc}.zip", repo_type="dataset")
+        except Exception:
+            continue
+        with zipfile.ZipFile(p) as zf:
+            parts = [x for x in (_read_member(zf, n) for n in zf.namelist()) if x is not None and len(x)]
+        if not parts:
+            continue
+        df = pd.concat(parts, ignore_index=True)
+        tcol = next((c for c in ("text", "content", "article", "maintext", "body") if c in df.columns), None)
+        if tcol is None:
+            raise ValueError(f"{cc}.zip columns {list(df.columns)[:12]}")
+        ucol = next((c for c in ("url", "link") if c in df.columns), None)
+        df = df.rename(columns={tcol: "text"})
+        df["text"] = df["text"].astype(str).map(clean)
+        df = df[df["text"].str.split().str.len() >= 40]
+        df = df.sample(min(per_country, len(df)), random_state=62)
+        df["url"] = df[ucol] if ucol else None
+        df["region"] = TLD_REGION.get(cc, cc.upper())
+        df["src_id"] = df["url"].fillna(df["text"].str[:200]) if ucol else df["text"].str[:200]
+        frames.append(df[["src_id", "url", "text", "region"]])
+        log(f"  cc_news_es {cc}: {len(df):,}")
     df = pd.concat(frames, ignore_index=True)
-    tcol = next(c for c in ("text", "content", "article") if c in df.columns)
-    ucol = next((c for c in ("url", "link") if c in df.columns), None)
-    dcol = next((c for c in ("country", "domain", "source") if c in df.columns), None)
-    df = df.rename(columns={tcol: "text"})
-    df["text"] = df["text"].map(clean)
-    df = df[df["text"].str.split().str.len() >= 40]
-    df["url"] = df[ucol] if ucol else None
-    host = (df[ucol].astype(str).str.extract(r"https?://([^/]+)")[0] if ucol else df[dcol].astype(str) if dcol else pd.Series([""] * len(df), index=df.index))
-    tld = host.fillna("").str.extract(r"\.([a-z]{2})$")[0]
-    df["region"] = tld.map(TLD_REGION).fillna("UNKNOWN")
-    df["src_id"] = df["url"].fillna(df["text"].str[:200])
-    df = df.sample(min(max_rows, len(df)), random_state=62) if len(df) > max_rows else df
     df["dataset"], df["domain"], df["year"] = "cc_news_es_2019", "news", 2019
     df["provenance"], df["license"], df["title"], df["original_split"] = "HUMAN_STRONG", "MIT (dataset card); article rights remain with publishers; research use", None, None
     return df[["src_id", "url", "text", "title", "original_split", "dataset", "domain", "region", "year", "provenance", "license"]]
@@ -108,12 +133,12 @@ def main() -> int:
     ap.add_argument("--master", default="/content/f006work/master_v2")
     ap.add_argument("--xlsum-rows", type=int, default=25000)
     ap.add_argument("--ccnews-rows", type=int, default=25000)
-    ap.add_argument("--ccnews-files", type=int, default=4)
+    ap.add_argument("--ccnews-files", type=int, default=18)
     ap.add_argument("--repo-reports", default=str(Path(__file__).resolve().parents[1] / "reports" / "f006_1"))
     a = ap.parse_args()
     out = Path(a.out)
     dest = out / "datasets" / "new_spanish_humans.parquet"
-    if dest.exists():
+    if dest.exists() and (out / "manifests" / "new_spanish_sources.json").exists():
         log(f"{dest} exists; skipping")
         return 0
     t0 = time.time()
@@ -125,7 +150,7 @@ def main() -> int:
             status[name] = {"status": "DOWNLOADED", "rows_after_length_filter": int(len(df))}
             log(f"{name}: {len(df):,} rows")
         except Exception as e:
-            status[name] = {"status": "FAILED", "error": f"{type(e).__name__}: {str(e)[:200]}"}
+            status[name] = {"status": "FAILED", "error": f"{type(e).__name__}: {str(e)[:300]}"}
             log(f"{name}: FAILED {e}")
     if not parts:
         write_json(out / "manifests" / "new_spanish_sources.json", {"sources": status})
