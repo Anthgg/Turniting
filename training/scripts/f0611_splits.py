@@ -32,7 +32,32 @@ import pyarrow.dataset as pads
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from f006_1_splits import near_dup_members, three_way  # noqa: E402
+from f006_1_splits import three_way  # noqa: E402
+
+
+def near_dup_members(a: pd.DataFrame, b: pd.DataFrame, per_bucket: int = 64) -> set:
+    """Row indices of `b` that are MinHash near duplicates (J>=0.8) of any row of `a`.
+
+    Cross-set version: every b row is compared with (up to `per_bucket`) a rows sharing any LSH band, instead of
+    chain-linking adjacent rows (which made results depend on which rows were still present)."""
+    from turniting_train.dedup import MinHasher, band_hashes
+
+    mh = MinHasher(num_perm=64, seed=42, max_chars=3000)
+    sa = np.stack([mh.signature(t) for t in a["text_original"].tolist()])
+    sb = np.stack([mh.signature(t) for t in b["text_original"].tolist()])
+    ba, bb = band_hashes(sa, 8), band_hashes(sb, 8)
+    pairs = []
+    for k in range(ba.shape[1]):
+        fa = pd.DataFrame({"v": ba[:, k], "ia": np.arange(len(sa))}).groupby("v").head(per_bucket)
+        fb = pd.DataFrame({"v": bb[:, k], "ib": np.arange(len(sb))})
+        m = fb.merge(fa, on="v")
+        if len(m):
+            pairs.append(m[["ia", "ib"]].to_numpy())
+    if not pairs:
+        return set()
+    pr = np.unique(np.concatenate(pairs), axis=0)
+    j = np.concatenate([(sa[pr[i:i + 200_000, 0]] == sb[pr[i:i + 200_000, 1]]).mean(axis=1) for i in range(0, len(pr), 200_000)])
+    return set(int(x) for x in pr[j >= 0.8, 1])
 from f006_lib import categorical_to_str, log, sha256_file, sha256_ids, write_json  # noqa: E402
 from f006_splits import COLS, attacks, cap, group_sides, hard_flags, near_dup_cross, select  # noqa: E402
 from turniting_train.splits import unit_hash  # noqa: E402
