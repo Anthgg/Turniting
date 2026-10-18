@@ -90,6 +90,14 @@ PUBLIC DATASETS → training pipeline → TURNITING_DATASET_V1 → DatasetVersio
 TURNITIN REPORT → GroundTruthCase → TurnitinSegment → TrainingSample → futuras versiones de dataset
 ```
 
+## F006: modelo experimental y promoción
+
+`POST /api/model-versions/import-f006-registry` valida el manifiesto F006 y sus 10 gates antes de registrar metadata en `ModelVersion`. La importación solo crea referencias de artefacto; no descarga pesos ni cambia el estado `EXPERIMENTAL`. `AI_MODEL_F006_PATH` apunta al directorio local ignorado por Git. F006 no forma parte de la lista de modelos servibles de FastAPI, por lo que la falta de pesos lo deja `UNAVAILABLE` sin cambiar el health del servicio.
+
+`GET /api/models` combina estado del catálogo, disponibilidad de artefactos y métricas BALANCED de `F006_FINAL_HOLDOUT` para V2, V3, el ensemble y F006. El ensemble se presenta como una composición de V2 y V3, no como un modelo con pesos propios. Las respuestas muestran proveedor/estado y omiten rutas de artefactos.
+
+`ModelPromotionService` evalúa límites numéricos, gates documentados, los criterios cualitativos y una revisión explícita. `ModelVersionService` rechaza `ACTIVE` durante el registro; la promoción interna bloquea cualquier gate fallido o no evaluado. Con F006, el FPR español es 0.1423 frente al máximo 0.08, paragraph stability no tiene medición independiente y `ACTIVE = NONE`. La recomendación de desarrollo (`ENSEMBLE_V2_V3` / `BALANCED`) no cambia ese estado. Ver [F006_TRANSFORMER_AI_DETECTOR.md](F006_TRANSFORMER_AI_DETECTOR.md).
+
 ## Referencias técnicas
 
 - [Documentación de NestJS: configuración](https://docs.nestjs.com/techniques/configuration)
