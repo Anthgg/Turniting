@@ -473,7 +473,7 @@ def main() -> int:
         f"aca={a.aca_w} para={a.para_frac} lr={a.lr}; validation {len(val):,} docs; view={icfg.get('view')} agg={icfg.get('aggregation')}")
 
     model = V3Detector.load(a.init).to(device)
-    probe = auto_batch(model, device, cfg["max_length"], 0.84, candidates=tuple(c for c in (32, 40, 48, 56, 64, 80, 96, 112, 128) if c <= int(os.environ.get("F006_MAX_MICRO", "128"))))) \
+    probe = auto_batch(model, device, cfg["max_length"], 0.84, candidates=tuple(c for c in (32, 40, 48, 56, 64, 80, 96, 112, 128) if c <= int(os.environ.get("F006_MAX_MICRO", "128")))) \
         if device.type == "cuda" else {"micro_batch": 4}
     micro = probe["micro_batch"]
     accum = max(1, round(cfg["effective_batch"] / micro))
