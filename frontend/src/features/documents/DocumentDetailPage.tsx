@@ -708,7 +708,6 @@ export function DocumentDetailPage() {
           />
           <ReportExportPanel
             documentId={id}
-            documentVersionId={record.documentVersionId ?? null}
             canExport={
               record.status === "EXTRACTED" && (record.characterCount ?? 0) > 0
             }

@@ -7,7 +7,7 @@ import type {
   SimilarityReportInput,
 } from './report.contracts.js';
 
-export const REPORT_RENDERER_VERSION = 'f009-report-renderer-v1';
+export const REPORT_RENDERER_VERSION = 'f0091-report-renderer-v2';
 
 const PAGE = { width: 595.28, height: 841.89 };
 const COLOR = {
@@ -16,10 +16,10 @@ const COLOR = {
   line: '#d9e1e8',
   panel: '#f4f7f9',
   blue: '#315c7d',
-  high: '#9f3c38',
-  moderate: '#a76b12',
+  high: '#46596b',
+  moderate: '#718096',
   low: '#2f7164',
-  insufficient: '#718096',
+  insufficient: '#a7b0ba',
   white: '#ffffff',
 };
 
@@ -92,6 +92,12 @@ function formatDuration(value: number | null): string {
   return `${(value / 1000).toFixed(1)} s`;
 }
 
+function paragraphModeLabel(value: string | null | undefined): string {
+  if (value === 'STRICT_PARAGRAPH') return 'Solo el párrafo';
+  if (value === 'CONTEXTUAL_PARAGRAPH') return 'Contexto breve';
+  return value ?? 'No disponible';
+}
+
 function addFooter(doc: PDFDoc, reportId: string): void {
   const range = doc.bufferedPageRange();
   for (let index = range.start; index < range.start + range.count; index += 1) {
@@ -113,7 +119,7 @@ function addFooter(doc: PDFDoc, reportId: string): void {
       .fontSize(8)
       .fillColor(COLOR.muted)
       .text(
-        `Página ${index - range.start + 1} de ${range.count} | Turniting | Reporte ${reportId.slice(0, 8)}`,
+        `Turniting | Reporte independiente | Página ${index - range.start + 1} de ${range.count} | ID ${reportId.slice(0, 8)}`,
         48,
         y,
         {
@@ -131,7 +137,7 @@ function addFooter(doc: PDFDoc, reportId: string): void {
 export class ReportRenderer {
   renderAI(input: AIReportInput): Promise<Buffer> {
     return this.renderPdf(
-      'Reporte independiente de señal de IA',
+      'Reporte de señal de IA',
       input.reportId,
       input.generatedAt,
       (doc) => {
@@ -285,7 +291,7 @@ export class ReportRenderer {
       290,
       metaY,
     );
-    this.keyValue(doc, 'Run ID', input.run.id, 48, metaY + 43);
+    this.keyValue(doc, 'Run ID', input.run.id.slice(0, 8), 48, metaY + 43);
     this.keyValue(
       doc,
       'Fecha de generación',
@@ -302,7 +308,7 @@ export class ReportRenderer {
       .font('Helvetica')
       .fontSize(8)
       .fillColor(COLOR.muted)
-      .text('SEÑAL GLOBAL', 64, cardY + 14);
+      .text('SEÑAL GLOBAL ESTIMADA', 64, cardY + 14);
     doc
       .font('Helvetica-Bold')
       .fontSize(32)
@@ -344,7 +350,7 @@ export class ReportRenderer {
     this.keyValue(
       doc,
       'Modo de párrafo',
-      input.run.paragraphMode ?? 'No disponible',
+      paragraphModeLabel(input.run.paragraphMode),
       48,
       rowY,
     );
@@ -514,7 +520,7 @@ export class ReportRenderer {
       .fontSize(8)
       .fillColor(COLOR.muted)
       .text(
-        `${count} ${count === 1 ? 'fragmento' : 'fragmentos'} con texto insuficiente`,
+        `${count} ${count === 1 ? 'bloque sin' : 'bloques sin'} texto suficiente para evaluación`,
         61,
         y + 22,
       );
@@ -641,7 +647,7 @@ export class ReportRenderer {
         .font('Helvetica')
         .fontSize(8)
         .fillColor(COLOR.muted)
-        .text(cleanText(item.paragraphMode ?? '—', 40), 328, y, { width: 92 });
+        .text(paragraphModeLabel(item.paragraphMode), 328, y, { width: 92 });
       doc
         .font('Helvetica-Bold')
         .fontSize(8.5)
@@ -658,11 +664,12 @@ export class ReportRenderer {
       `Versión(es) del modelo: ${input.run.modelVersions.join(' + ') || 'no disponible'}`,
       `Versión del analizador: ${input.run.analyzerVersion}`,
       `Umbral y perfil: ${input.run.threshold === null ? 'no disponible' : percentage(input.run.threshold)} | ${input.run.thresholdProfile}`,
-      `Modo de párrafo: ${input.run.paragraphMode ?? 'no disponible'}`,
+      `Modo de párrafo: ${paragraphModeLabel(input.run.paragraphMode)}`,
       `Agregación: ${input.run.documentAggregation ?? 'no disponible'}`,
       `Run ID: ${input.run.id}`,
       `Generado: ${dateLabel(input.generatedAt)}`,
       `Turniting: ${input.turnitingVersion}`,
+      `Versión del renderer: ${REPORT_RENDERER_VERSION}`,
     ];
     lines.forEach((line) => {
       this.ensureSpace(doc, 18);

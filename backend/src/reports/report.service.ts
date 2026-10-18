@@ -43,12 +43,49 @@ export interface ReportArtifactMetadata {
   type: ReportType;
   status: ReportArtifactStatus;
   filename: string;
+  documentName?: string;
+  runLabel?: string;
   contentHash: string | null;
+  sizeBytes: number | null;
+  failureReason: string | null;
+  generationVersion: string;
   generatedAt: Date;
   expiresAt: Date;
   deletedAt: Date | null;
+  reused?: boolean;
   downloadEndpoint?: string;
 }
+
+export interface ReportListQuery {
+  documentId?: string;
+  type?: ReportType;
+  status?: ReportArtifactStatus;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ReportCleanupMetrics {
+  expiredCount: number;
+  deletedFiles: number;
+  missingFiles: number;
+  failedDeletes: number;
+}
+
+export interface ReportArtifactDetail extends ReportArtifactMetadata {
+  documentName: string;
+  run: {
+    id: string;
+    analyzerMode: string;
+    analyzerVersion: string;
+    modelNames: string[];
+    thresholdProfile: string;
+    threshold: number | null;
+    paragraphMode: string | null;
+    globalScore: number | null;
+  } | null;
+}
+
+const GENERIC_FAILURE_REASON = 'No se pudo generar el PDF. Intenta de nuevo.';
 
 @Injectable()
 export class ReportService {
@@ -79,6 +116,7 @@ export class ReportService {
   async generateAI(
     documentId: string,
     analysisRunId: string,
+    regeneratedFromId?: string,
   ): Promise<ReportArtifactMetadata> {
     const run = await this.prisma.analysisRun.findUnique({
       where: { id: analysisRunId },
@@ -152,7 +190,15 @@ export class ReportService {
     );
 
     const reusable = await this.findReusable(fingerprint, generatedAt);
-    if (reusable) return this.toMetadata(reusable);
+    if (reusable) {
+      await this.prisma.reportAuditEvent.create({
+        data: {
+          reportArtifactId: reusable.id,
+          type: ReportAuditEventType.REPORT_REUSED,
+        },
+      });
+      return this.toMetadata(reusable, { reused: true });
+    }
 
     const reportId = randomUUID();
     const storageKey = `${reportId}.pdf`;
@@ -171,12 +217,29 @@ export class ReportService {
       const winner = await this.prisma.reportArtifact.findFirst({
         where: { activeFingerprint: fingerprint },
       });
-      if (winner) return this.toMetadata(winner);
+      if (winner) {
+        await this.prisma.reportAuditEvent.create({
+          data: {
+            reportArtifactId: winner.id,
+            type: ReportAuditEventType.REPORT_REUSED,
+          },
+        });
+        return this.toMetadata(winner, { reused: true });
+      }
       throw new ConflictException(
         'Ya se está generando este reporte. Actualiza el estado en unos instantes.',
       );
     }
 
+    if (regeneratedFromId) {
+      await this.prisma.reportAuditEvent.create({
+        data: {
+          reportArtifactId: artifact.id,
+          type: ReportAuditEventType.REPORT_REGENERATED,
+          metadata: { previousReportId: regeneratedFromId },
+        },
+      });
+    }
     this.scheduleGeneration(reportId, storageKey, input);
     return this.toMetadata(artifact);
   }
@@ -203,7 +266,13 @@ export class ReportService {
 
   async listForDocument(
     documentId: string,
-  ): Promise<{ items: ReportArtifactMetadata[] }> {
+    query: ReportListQuery = {},
+  ): Promise<{
+    items: ReportArtifactMetadata[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }> {
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
       select: { id: true },
@@ -213,19 +282,136 @@ export class ReportService {
         code: 'DOCUMENT_NOT_FOUND',
         message: 'No existe ese documento.',
       });
-    await this.cleanupExpired(new Date(), documentId);
-    const rows = await this.prisma.reportArtifact.findMany({
-      where: { documentId },
-      orderBy: { generatedAt: 'desc' },
-      take: 50,
-    });
-    return { items: rows.map((row) => this.toMetadata(row)) };
+    return this.list({ ...query, documentId });
   }
 
-  async get(reportId: string): Promise<ReportArtifactMetadata> {
+  async list(query: ReportListQuery = {}): Promise<{
+    items: ReportArtifactMetadata[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }> {
+    const page = Math.max(1, Math.floor(query.page ?? 1));
+    const pageSize = Math.min(100, Math.max(1, Math.floor(query.pageSize ?? 20)));
+    const now = new Date();
+    await this.cleanupExpired(now, query.documentId);
+    const where: Prisma.ReportArtifactWhereInput = {
+      ...(query.documentId ? { documentId: query.documentId } : {}),
+      ...(query.type ? { type: query.type } : {}),
+      ...(query.status ? { status: query.status } : {}),
+    };
+    const [rows, total] = await Promise.all([
+      this.prisma.reportArtifact.findMany({
+        where,
+        include: {
+          document: { select: { originalName: true } },
+          analysisRun: {
+            select: {
+              id: true,
+              analyzerMode: true,
+              paragraphMode: true,
+              documentScore: true,
+            },
+          },
+        },
+        orderBy: { generatedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.reportArtifact.count({ where }),
+    ]);
+    const refreshedRows = await Promise.all(
+      rows.map((row) => this.refreshState(row, now)),
+    );
+    if (
+      query.status &&
+      refreshedRows.some((row, index) => row.status !== rows[index].status)
+    ) {
+      return this.list(query);
+    }
+    return {
+      items: refreshedRows.map((row, index) => ({
+        ...this.toMetadata(row),
+        documentName:
+          rows[index].document?.originalName ??
+          `Documento ${row.documentId.slice(0, 8)}`,
+        runLabel: rows[index].analysisRun
+          ? `${rows[index].analysisRun.id.slice(0, 8)} · ${rows[index].analysisRun.analyzerMode}`
+          : row.analysisRunId?.slice(0, 8) ?? '—',
+      })),
+      total,
+      page,
+      pageSize,
+    };
+  }
+
+  async get(reportId: string): Promise<ReportArtifactDetail> {
     const artifact = await this.findArtifact(reportId);
     const current = await this.refreshState(artifact, new Date());
-    return this.toMetadata(current);
+    const [document, run] = await Promise.all([
+      this.prisma.document.findUnique({
+        where: { id: current.documentId },
+        select: { originalName: true },
+      }),
+      current.analysisRunId
+        ? this.prisma.analysisRun.findUnique({
+            where: { id: current.analysisRunId },
+            select: {
+              id: true,
+              analyzerMode: true,
+              analyzerVersion: true,
+              thresholdProfile: true,
+              threshold: true,
+              paragraphMode: true,
+              documentScore: true,
+              modelResults: { select: { modelName: true } },
+            },
+          })
+        : Promise.resolve(null),
+    ]);
+    return {
+      ...this.toMetadata(current),
+      documentName: document?.originalName ?? 'Documento no disponible',
+      run: run
+        ? {
+            id: run.id,
+            analyzerMode: run.analyzerMode,
+            analyzerVersion: run.analyzerVersion,
+            modelNames: [...new Set(run.modelResults.map((item) => item.modelName))],
+            thresholdProfile: run.thresholdProfile,
+            threshold: run.threshold,
+            paragraphMode: run.paragraphMode,
+            globalScore: run.documentScore,
+          }
+        : null,
+    };
+  }
+
+  async regenerate(reportId: string): Promise<ReportArtifactMetadata> {
+    const artifact = await this.findArtifact(reportId);
+    const current = await this.refreshState(artifact, new Date());
+    if (current.type !== ReportType.AI_REPORT || !current.analysisRunId) {
+      throw new ConflictException({
+        code: 'REPORT_REGENERATION_UNAVAILABLE',
+        message: 'Solo se pueden regenerar reportes de IA con su corrida original.',
+      });
+    }
+    if (
+      current.status !== ReportArtifactStatus.EXPIRED &&
+      current.status !== ReportArtifactStatus.DELETED &&
+      current.status !== ReportArtifactStatus.FAILED &&
+      current.status !== ReportArtifactStatus.ERROR
+    ) {
+      throw new ConflictException({
+        code: 'REPORT_REGENERATION_UNAVAILABLE',
+        message: 'El reporte todavía no requiere regeneración.',
+      });
+    }
+    return this.generateAI(
+      current.documentId,
+      current.analysisRunId,
+      current.id,
+    );
   }
 
   async download(
@@ -293,7 +479,10 @@ export class ReportService {
     });
   }
 
-  async cleanupExpired(now = new Date(), documentId?: string): Promise<number> {
+  async cleanupExpired(
+    now = new Date(),
+    documentId?: string,
+  ): Promise<ReportCleanupMetrics> {
     const artifacts = await this.prisma.reportArtifact.findMany({
       where: {
         expiresAt: { lte: now },
@@ -302,10 +491,23 @@ export class ReportService {
       },
       orderBy: { expiresAt: 'asc' },
     });
-    let expired = 0;
+    const metrics: ReportCleanupMetrics = {
+      expiredCount: 0,
+      deletedFiles: 0,
+      missingFiles: 0,
+      failedDeletes: 0,
+    };
     for (const artifact of artifacts) {
+      let fileDeleted: boolean;
       try {
-        await this.storage.delete(artifact.storageKey);
+        fileDeleted = await this.storage.delete(artifact.storageKey);
+        if (fileDeleted) metrics.deletedFiles += 1;
+        else metrics.missingFiles += 1;
+      } catch {
+        metrics.failedDeletes += 1;
+        continue;
+      }
+      try {
         const count = await this.prisma.$transaction(async (tx) => {
           const changed = await tx.reportArtifact.updateMany({
             where: {
@@ -329,12 +531,11 @@ export class ReportService {
           }
           return changed.count;
         });
-        expired += count;
+        metrics.expiredCount += count;
       } catch {
         this.logger.warn(
           JSON.stringify({
-            event: 'report_cleanup_failed',
-            reportId: artifact.id,
+            event: 'report_cleanup_metadata_failed',
           }),
         );
       }
@@ -351,7 +552,7 @@ export class ReportService {
     for (const artifact of staleArtifacts) {
       await this.markStaleGeneration(artifact.id, artifact.storageKey);
     }
-    return expired;
+    return metrics;
   }
 
   private async buildAIInput(
@@ -550,6 +751,8 @@ export class ReportService {
           data: {
             status: ReportArtifactStatus.AVAILABLE,
             contentHash: sha256(buffer),
+            sizeBytes: buffer.length,
+            failureReason: null,
           },
         });
         if (changed.count === 0) {
@@ -564,10 +767,24 @@ export class ReportService {
       });
     } catch {
       await this.storage.delete(storageKey).catch(() => false);
-      await this.prisma.reportArtifact
-        .updateMany({
-          where: { id: reportId, status: ReportArtifactStatus.GENERATING },
-          data: { status: ReportArtifactStatus.ERROR, activeFingerprint: null },
+      await this.prisma
+        .$transaction(async (tx) => {
+          const changed = await tx.reportArtifact.updateMany({
+            where: { id: reportId, status: ReportArtifactStatus.GENERATING },
+            data: {
+              status: ReportArtifactStatus.FAILED,
+              activeFingerprint: null,
+              failureReason: GENERIC_FAILURE_REASON,
+            },
+          });
+          if (changed.count > 0) {
+            await tx.reportAuditEvent.create({
+              data: {
+                reportArtifactId: reportId,
+                type: ReportAuditEventType.REPORT_FAILED,
+              },
+            });
+          }
         })
         .catch(() => undefined);
       this.logger.error(
@@ -611,21 +828,47 @@ export class ReportService {
     storageKey: string,
   ): Promise<void> {
     await this.storage.delete(storageKey).catch(() => false);
-    await this.prisma.reportArtifact.updateMany({
-      where: { id: reportId, status: ReportArtifactStatus.GENERATING },
-      data: { status: ReportArtifactStatus.ERROR, activeFingerprint: null },
+    await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.reportArtifact.updateMany({
+        where: { id: reportId, status: ReportArtifactStatus.GENERATING },
+        data: {
+          status: ReportArtifactStatus.FAILED,
+          activeFingerprint: null,
+          failureReason: GENERIC_FAILURE_REASON,
+        },
+      });
+      if (changed.count > 0) {
+        await tx.reportAuditEvent.create({
+          data: {
+            reportArtifactId: reportId,
+            type: ReportAuditEventType.REPORT_FAILED,
+          },
+        });
+      }
     });
   }
 
   private async markMissing(reportId: string): Promise<void> {
-    await this.prisma.reportArtifact.updateMany({
+    const changed = await this.prisma.reportArtifact.updateMany({
       where: {
         id: reportId,
         status: ReportArtifactStatus.AVAILABLE,
         deletedAt: null,
       },
-      data: { status: ReportArtifactStatus.ERROR, activeFingerprint: null },
+      data: {
+        status: ReportArtifactStatus.FAILED,
+        activeFingerprint: null,
+        failureReason: GENERIC_FAILURE_REASON,
+      },
     });
+    if (changed.count > 0) {
+      await this.prisma.reportAuditEvent.create({
+        data: {
+          reportArtifactId: reportId,
+          type: ReportAuditEventType.REPORT_FAILED,
+        },
+      });
+    }
   }
 
   private filename(
@@ -647,10 +890,17 @@ export class ReportService {
     status: ReportArtifactStatus;
     filename: string;
     contentHash: string | null;
+    sizeBytes?: number | null;
+    failureReason?: string | null;
+    generationVersion?: string;
     generatedAt: Date;
     expiresAt: Date;
     deletedAt: Date | null;
-  }): ReportArtifactMetadata {
+  }, options: { reused?: boolean } = {}): ReportArtifactMetadata {
+    const status =
+      artifact.status === ReportArtifactStatus.ERROR
+        ? ReportArtifactStatus.FAILED
+        : artifact.status;
     return {
       id: artifact.id,
       documentId: artifact.documentId,
@@ -658,13 +908,21 @@ export class ReportService {
       analysisRunId: artifact.analysisRunId,
       similarityRunId: artifact.similarityRunId,
       type: artifact.type,
-      status: artifact.status,
+      status,
       filename: artifact.filename,
       contentHash: artifact.contentHash,
+      sizeBytes: artifact.sizeBytes ?? null,
+      failureReason:
+        artifact.failureReason ??
+        (artifact.status === ReportArtifactStatus.ERROR
+          ? GENERIC_FAILURE_REASON
+          : null),
+      generationVersion: artifact.generationVersion ?? REPORT_RENDERER_VERSION,
       generatedAt: artifact.generatedAt,
       expiresAt: artifact.expiresAt,
       deletedAt: artifact.deletedAt,
-      ...(artifact.status === ReportArtifactStatus.AVAILABLE
+      ...(options.reused ? { reused: true } : {}),
+      ...(status === ReportArtifactStatus.AVAILABLE
         ? { downloadEndpoint: `/api/reports/${artifact.id}/download` }
         : {}),
     };

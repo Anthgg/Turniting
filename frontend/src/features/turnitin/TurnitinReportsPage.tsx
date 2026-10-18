@@ -67,7 +67,10 @@ export function TurnitinReportsPage() {
           <h1>Reportes Turnitin</h1>
           <p className="page-subtitle">Interpreta los datos visibles de reportes de escritura con IA y similitud.</p>
         </div>
-        <Link className="button button-quiet" to="/documents">Ver documentos</Link>
+        <div className="page-heading-actions">
+          <Link className="button button-quiet" to="/reports">Reportes Turniting</Link>
+          <Link className="button button-quiet" to="/documents">Ver documentos</Link>
+        </div>
       </div>
 
       <section className="document-panel turnitin-upload-panel" aria-labelledby="turnitin-upload-title">

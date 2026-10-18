@@ -621,15 +621,19 @@ enum ReportArtifactStatus {
   GENERATING
   AVAILABLE
   ERROR
+  FAILED
   EXPIRED
   DELETED
 }
 
 enum ReportAuditEventType {
   REPORT_GENERATED
+  REPORT_REUSED
   REPORT_DOWNLOADED
+  REPORT_REGENERATED
   REPORT_EXPIRED
   REPORT_DELETED
+  REPORT_FAILED
 }
 
 enum AnalyzerMode {
@@ -696,6 +700,8 @@ model ReportArtifact {
   fingerprint       String               @db.Char(64)
   activeFingerprint String?              @unique @db.VarChar(64)
   contentHash       String?              @db.Char(64)
+  sizeBytes         Int?
+  failureReason     String?              @db.Text
   generatedAt       DateTime             @default(now()) @db.Timestamptz(6)
   expiresAt         DateTime             @db.Timestamptz(6)
   deletedAt         DateTime?            @db.Timestamptz(6)
@@ -708,6 +714,7 @@ model ReportArtifact {
   auditEvents       ReportAuditEvent[]
 
   @@index([documentId, generatedAt])
+  @@index([generatedAt])
   @@index([expiresAt, deletedAt])
   @@index([analysisRunId])
   @@index([similarityRunId])

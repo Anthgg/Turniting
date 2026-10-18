@@ -15,6 +15,7 @@ import { DatasetDetailPage } from './features/datasets/DatasetDetailPage'
 import { DatasetsPage } from './features/datasets/DatasetsPage'
 import { TurnitinReportDetailPage } from './features/turnitin/TurnitinReportDetailPage'
 import { TurnitinReportsPage } from './features/turnitin/TurnitinReportsPage'
+import { ReportsPage } from './features/reports/ReportsPage'
 import { MAX_UPLOAD_MB } from './features/documents/upload-limits'
 
 const serviceEndpoints: Record<HealthService, string> = {
@@ -57,6 +58,8 @@ export function WorkspaceLayout() {
     ? 'Inicio'
     : isDocumentsListRoute
       ? 'Documentos'
+      : location.pathname.startsWith('/reports')
+        ? 'Reportes Turniting'
       : location.pathname.startsWith('/turnitin-reports')
         ? 'Reportes Turnitin'
       : location.pathname.startsWith('/datasets')
@@ -180,10 +183,10 @@ export function WorkspaceLayout() {
           </NavLink>
 
           <NavLink
-            to="/turnitin-reports"
+            to="/reports"
             className={({ isActive }) => `dock-item${isActive ? ' is-active' : ''}`}
-            aria-label="Reportes Turnitin"
-            data-tooltip="Reportes Turnitin"
+            aria-label="Reportes Turniting"
+            data-tooltip="Reportes Turniting"
           >
             <span className="dock-icon"><Icon name="layers" size={18} /></span>
             <span className="dock-label">Reportes</span>
@@ -396,6 +399,7 @@ export default function App() {
         <Route index element={<DashboardPage />} />
         <Route path="documents" element={<DocumentListPage />} />
         <Route path="documents/:id" element={<DocumentDetailPage />} />
+        <Route path="reports" element={<ReportsPage />} />
         <Route path="turnitin-reports" element={<TurnitinReportsPage />} />
         <Route path="turnitin-reports/:id" element={<TurnitinReportDetailPage />} />
         <Route path="datasets" element={<DatasetsPage />} />

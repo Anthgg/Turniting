@@ -83,7 +83,7 @@ describe('F006.2.4 Top Bar + Floating Bottom Dock Layout', () => {
     expect(html).toContain('data-tooltip="Documentos"')
     expect(html).toContain('data-tooltip="Análisis IA"')
     expect(html).toContain('data-tooltip="Comparar versiones"')
-    expect(html).toContain('data-tooltip="Reportes Turnitin"')
+    expect(html).toContain('data-tooltip="Reportes Turniting"')
     expect(html).toContain('data-tooltip="Modelos"')
     expect(html).toContain('data-tooltip="Datasets"')
   })

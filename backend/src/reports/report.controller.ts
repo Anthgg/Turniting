@@ -7,12 +7,14 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   StreamableFile,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   GenerateAIReportDto,
   GenerateSimilarityReportDto,
+  ListReportsDto,
 } from './report.dto.js';
 import { ReportService } from './report.service.js';
 
@@ -46,13 +48,26 @@ export class ReportController {
   }
 
   @Get('documents/:documentId/reports')
-  listForDocument(@Param('documentId', ParseUUIDPipe) documentId: string) {
-    return this.reports.listForDocument(documentId);
+  listForDocument(
+    @Param('documentId', ParseUUIDPipe) documentId: string,
+    @Query() query: ListReportsDto,
+  ) {
+    return this.reports.listForDocument(documentId, query);
+  }
+
+  @Get('reports')
+  list(@Query() query: ListReportsDto) {
+    return this.reports.list(query);
   }
 
   @Get('reports/:reportId')
   get(@Param('reportId', ParseUUIDPipe) reportId: string) {
     return this.reports.get(reportId);
+  }
+
+  @Post('reports/:reportId/regenerate')
+  regenerate(@Param('reportId', ParseUUIDPipe) reportId: string) {
+    return this.reports.regenerate(reportId);
   }
 
   @Get('reports/:reportId/download')

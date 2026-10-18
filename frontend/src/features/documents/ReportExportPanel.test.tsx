@@ -39,7 +39,7 @@ function analysisResult(status: "COMPLETED" | "RUNNING" = "COMPLETED") {
 }
 
 function artifact(
-  status: "GENERATING" | "AVAILABLE" | "EXPIRED" = "AVAILABLE",
+  status: "GENERATING" | "AVAILABLE" | "FAILED" | "EXPIRED" | "DELETED" = "AVAILABLE",
 ) {
   return {
     id: REPORT_ID,
@@ -51,6 +51,9 @@ function artifact(
     status,
     filename: "turniting_ai_66b2f3c5_2026-10-18.pdf",
     contentHash: "b".repeat(64),
+    sizeBytes: 1024 * 486,
+    failureReason: status === "FAILED" ? "No se pudo generar el PDF. Intenta de nuevo." : null,
+    generationVersion: "f0091-report-renderer-v2",
     generatedAt: "2026-10-18T12:00:00.000Z",
     expiresAt: "2026-10-19T12:00:00.000Z",
     deletedAt: null,
@@ -64,7 +67,7 @@ function renderPanel({
   downloadPending = false,
 }: {
   runStatus?: "COMPLETED" | "RUNNING";
-  reportStatus?: "GENERATING" | "AVAILABLE" | "EXPIRED";
+  reportStatus?: "GENERATING" | "AVAILABLE" | "FAILED" | "EXPIRED" | "DELETED";
   generatePending?: boolean;
   downloadPending?: boolean;
 } = {}) {
@@ -90,10 +93,12 @@ function renderPanel({
       error: null,
       mutate: vi.fn(),
     });
+  queryMocks.useMutation
+    .mockReturnValueOnce({ isPending: false, isError: false, mutate: vi.fn() })
+    .mockReturnValueOnce({ isPending: false, isError: false, mutate: vi.fn() });
   return renderToStaticMarkup(
     createElement(ReportExportPanel, {
       documentId: DOCUMENT_ID,
-      documentVersionId: VERSION_ID,
       canExport: true,
     }),
   );
@@ -122,6 +127,9 @@ describe("ReportExportPanel", () => {
     expect(html).toContain("Disponible por 24 h");
     expect(html).toContain("Expira:");
     expect(html).toContain("Descargar PDF");
+    expect(html).toContain("Detalles");
+    expect(html).toContain("Eliminar");
+    expect(html).toContain("486 KB");
   });
 
   it("shows the generation state while the report is being prepared", () => {
@@ -139,6 +147,7 @@ describe("ReportExportPanel", () => {
 
     expect(html).toContain("Regenerar reporte IA");
     expect(html).toContain("Expirado");
+    expect(html).toContain("Regenerar");
 
     queryMocks.useQuery.mockReset();
     queryMocks.useMutation.mockReset();
@@ -147,6 +156,14 @@ describe("ReportExportPanel", () => {
       downloadPending: true,
     });
     expect(downloadHtml).toContain("Descargando…");
+  });
+
+  it("shows a sanitized retry state for failed report generation", () => {
+    const html = renderPanel({ reportStatus: "FAILED" });
+
+    expect(html).toContain("Error al generar");
+    expect(html).toContain("No se pudo generar el PDF. Intenta de nuevo.");
+    expect(html).toContain("Reintentar reporte IA");
   });
 
   it("does not enable export while there is no completed run", () => {

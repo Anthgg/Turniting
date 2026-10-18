@@ -4,11 +4,14 @@ import { ApiRequestError } from "../../api/client";
 import { analysisQueryKeys, listDocumentAnalyses } from "../../api/analysis";
 import {
   downloadReport,
+  deleteReport,
   generateAIReport,
   listDocumentReports,
+  regenerateReport,
   reportQueryKeys,
   type ReportArtifact,
 } from "../../api/reports";
+import { ReportDetailPanel } from "../reports/ReportDetailPanel";
 
 function expiryLabel(value: string): string {
   const date = new Date(value);
@@ -19,12 +22,22 @@ function expiryLabel(value: string): string {
   }).format(date);
 }
 
+function expiryHint(report: ReportArtifact) {
+  if (report.status !== "AVAILABLE") return null;
+  const remaining = new Date(report.expiresAt).getTime() - Date.now();
+  return remaining > 0 && remaining < 2 * 60 * 60 * 1000
+    ? "Menos de 2 h"
+    : null;
+}
+
 function reportStatusLabel(report: ReportArtifact): string {
   switch (report.status) {
     case "GENERATING":
       return "Generando…";
     case "AVAILABLE":
       return "Disponible";
+    case "FAILED":
+      return "Error al generar";
     case "EXPIRED":
       return "Expirado";
     case "ERROR":
@@ -36,15 +49,15 @@ function reportStatusLabel(report: ReportArtifact): string {
 
 export function ReportExportPanel({
   documentId,
-  documentVersionId,
   canExport,
 }: {
   documentId: string;
-  documentVersionId: string | null;
   canExport: boolean;
 }) {
   const queryClient = useQueryClient();
   const [selectedRunId, setSelectedRunId] = useState("");
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const analyses = useQuery({
     queryKey: analysisQueryKeys.documentAnalyses(documentId),
     queryFn: () => listDocumentAnalyses(documentId),
@@ -72,7 +85,14 @@ export function ReportExportPanel({
 
   const generate = useMutation({
     mutationFn: (runId: string) => generateAIReport(documentId, runId),
-    onSuccess: async () => {
+    onSuccess: async (report) => {
+      setMessage(
+        report.reused && report.status === "GENERATING"
+          ? "Ya se está generando un reporte para esta corrida."
+          : report.reused
+            ? "Ya existe un reporte vigente para esta corrida."
+            : "El reporte IA comenzó a generarse.",
+      );
       await queryClient.invalidateQueries({
         queryKey: reportQueryKeys.document(documentId),
       });
@@ -84,15 +104,34 @@ export function ReportExportPanel({
     },
   });
   const download = useMutation({ mutationFn: downloadReport });
+  const remove = useMutation({
+    mutationFn: deleteReport,
+    onSuccess: async () => {
+      setMessage("El archivo PDF se eliminó. El análisis sigue disponible.");
+      await queryClient.invalidateQueries({ queryKey: reportQueryKeys.all });
+    },
+  });
+  const regenerate = useMutation({
+    mutationFn: regenerateReport,
+    onSuccess: async (report) => {
+      setMessage(
+        report.reused && report.status === "GENERATING"
+          ? "Ya se está generando un reporte para esta corrida."
+          : report.reused
+            ? "Ya existe un reporte vigente para esta corrida."
+            : "La regeneración del reporte IA comenzó.",
+      );
+      await queryClient.invalidateQueries({ queryKey: reportQueryKeys.all });
+    },
+  });
 
-  const currentReports = (reports.data?.items ?? []).filter(
-    (report) =>
-      !documentVersionId || report.documentVersionId === documentVersionId,
-  );
+  const currentReports = reports.data?.items ?? [];
   const aiReports = currentReports.filter(
     (report) => report.type === "AI_REPORT",
   );
-  const latestAIReport = aiReports[0];
+  const selectedAIReport = aiReports.find(
+    (report) => report.analysisRunId === selectedRun?.id,
+  );
   const availableSimilarity = currentReports.find(
     (report) =>
       report.type === "SIMILARITY_REPORT" &&
@@ -100,9 +139,9 @@ export function ReportExportPanel({
       report.similarityRunId,
   );
   const generateLabel =
-    latestAIReport?.status === "EXPIRED" || latestAIReport?.status === "DELETED"
+    selectedAIReport?.status === "EXPIRED" || selectedAIReport?.status === "DELETED"
       ? "Regenerar reporte IA"
-      : latestAIReport?.status === "ERROR"
+      : selectedAIReport?.status === "ERROR" || selectedAIReport?.status === "FAILED"
         ? "Reintentar reporte IA"
         : "Generar reporte IA";
   const errorMessage = (error: unknown) =>
@@ -158,13 +197,13 @@ export function ReportExportPanel({
               !canExport ||
               !selectedRun ||
               generate.isPending ||
-              latestAIReport?.status === "GENERATING"
+              selectedAIReport?.status === "GENERATING"
             }
             aria-busy={
-              generate.isPending || latestAIReport?.status === "GENERATING"
+              generate.isPending || selectedAIReport?.status === "GENERATING"
             }
           >
-            {generate.isPending || latestAIReport?.status === "GENERATING"
+            {generate.isPending || selectedAIReport?.status === "GENERATING"
               ? "Generando…"
               : generateLabel}
           </button>
@@ -210,6 +249,7 @@ export function ReportExportPanel({
           extraído.
         </p>
       )}
+      {message && <p className="report-export-note" role="status">{message}</p>}
       {canExport && analyses.isPending && (
         <p className="report-export-note" role="status">
           Buscando análisis completados…
@@ -244,6 +284,8 @@ export function ReportExportPanel({
           No se pudo descargar el PDF: {errorMessage(download.error)}
         </p>
       )}
+      {remove.isError && <p className="report-export-error" role="alert">No se pudo eliminar el PDF del reporte.</p>}
+      {regenerate.isError && <p className="report-export-error" role="alert">No se pudo regenerar el reporte. La corrida original debe seguir disponible.</p>}
 
       {aiReports.length > 0 && (
         <ul
@@ -263,6 +305,7 @@ export function ReportExportPanel({
                   <small>
                     Disponible por 24 h · Expira:{" "}
                     {expiryLabel(report.expiresAt)}
+                    {expiryHint(report) && <span className="report-expiry-hint"> · {expiryHint(report)}</span>}
                   </small>
                 )}
                 {report.status === "EXPIRED" && (
@@ -270,26 +313,22 @@ export function ReportExportPanel({
                     El PDF expiró; el análisis se conserva y puedes regenerarlo.
                   </small>
                 )}
+                {report.status === "FAILED" || report.status === "ERROR" ? (
+                  <small>{report.failureReason ?? "No se pudo generar el PDF. Intenta de nuevo."}</small>
+                ) : null}
+                <small>{report.sizeBytes == null ? "Tamaño no disponible" : `PDF · ${(report.sizeBytes / 1024).toFixed(report.sizeBytes < 1024 * 1024 ? 0 : 1)} ${report.sizeBytes < 1024 * 1024 ? "KB" : "MB"}`}</small>
               </div>
-              {report.status === "AVAILABLE" && (
-                <button
-                  className="button button-quiet"
-                  type="button"
-                  onClick={() => download.mutate(report)}
-                  disabled={download.isPending}
-                  aria-busy={
-                    download.isPending && download.variables?.id === report.id
-                  }
-                >
-                  {download.isPending && download.variables?.id === report.id
-                    ? "Descargando…"
-                    : "Descargar PDF"}
-                </button>
-              )}
+              <div className="report-row-actions">
+                <button className="button button-quiet" type="button" onClick={() => setSelectedReportId(report.id)}>Detalles</button>
+                {report.status === "AVAILABLE" && <button className="button button-quiet" type="button" onClick={() => download.mutate(report)} disabled={download.isPending} aria-busy={download.isPending && download.variables?.id === report.id}>{download.isPending && download.variables?.id === report.id ? "Descargando…" : "Descargar PDF"}</button>}
+                {["EXPIRED", "DELETED", "FAILED", "ERROR"].includes(report.status) && <button className="button button-quiet" type="button" onClick={() => regenerate.mutate(report.id)} disabled={regenerate.isPending}>Regenerar</button>}
+                {report.status !== "DELETED" && <button className="button button-quiet button-danger-quiet" type="button" onClick={() => { if (window.confirm("Se eliminará el archivo PDF. El análisis seguirá disponible.")) remove.mutate(report.id); }} disabled={remove.isPending || report.status === "GENERATING"}>Eliminar</button>}
+              </div>
             </li>
           ))}
         </ul>
       )}
+      {selectedReportId && <ReportDetailPanel reportId={selectedReportId} onClose={() => setSelectedReportId(null)} />}
     </section>
   );
 }

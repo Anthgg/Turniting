@@ -4,7 +4,10 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { ReportService } from './report.service.js';
+import {
+  ReportService,
+  type ReportCleanupMetrics,
+} from './report.service.js';
 
 export const REPORT_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 
@@ -26,14 +29,29 @@ export class ReportCleanup implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer);
   }
 
-  async run(now = new Date()): Promise<number> {
-    if (this.running) return 0;
+  async run(now = new Date()): Promise<ReportCleanupMetrics> {
+    if (this.running)
+      return {
+        expiredCount: 0,
+        deletedFiles: 0,
+        missingFiles: 0,
+        failedDeletes: 0,
+      };
     this.running = true;
     try {
-      return await this.reports.cleanupExpired(now);
+      const metrics = await this.reports.cleanupExpired(now);
+      this.logger.log(
+        JSON.stringify({ event: 'report_cleanup_completed', ...metrics }),
+      );
+      return metrics;
     } catch {
       this.logger.warn(JSON.stringify({ event: 'report_cleanup_run_failed' }));
-      return 0;
+      return {
+        expiredCount: 0,
+        deletedFiles: 0,
+        missingFiles: 0,
+        failedDeletes: 0,
+      };
     } finally {
       this.running = false;
     }
