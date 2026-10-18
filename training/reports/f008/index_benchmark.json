@@ -1,0 +1,22 @@
+{
+  "vectors": 1500000,
+  "dim": 1024,
+  "embedding_passages_per_sec": 1027.5081194254535,
+  "exact_gpu_fp16": {
+    "memory_gb": 3.072,
+    "query_ms": 15.738744735717773
+  },
+  "IVF4096_PQ64": {
+    "build_s": 248.06503415107727,
+    "query_ms": 0.34117794036865234,
+    "recall@10_vs_exact": 0.5527,
+    "disk_gb": 0.12585874
+  },
+  "HNSW32": {
+    "build_s": 199.81188368797302,
+    "query_ms": 0.06094193458557129,
+    "recall@10_vs_exact": 0.929,
+    "disk_gb": 6.552216162
+  },
+  "gpu": "NVIDIA A100-SXM4-80GB"
+}

@@ -1,0 +1,16 @@
+{
+  "passages": 1697445,
+  "perf": {
+    "bge_m3": {
+      "passages": 1697445,
+      "seconds": 1113.6,
+      "passages_per_sec": 1524.3
+    },
+    "e5": {
+      "passages": 1697445,
+      "seconds": 1151.0,
+      "passages_per_sec": 1474.7
+    }
+  },
+  "seconds": 2564.9
+}

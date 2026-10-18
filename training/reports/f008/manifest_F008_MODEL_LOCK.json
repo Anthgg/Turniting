@@ -1,0 +1,17 @@
+{
+  "name": "F008_MODEL_LOCK",
+  "LOCKED": true,
+  "lockedAt": "2026-10-18T17:20:41Z",
+  "retriever": "BM25",
+  "dense_model": "BAAI/bge-m3",
+  "sparse": "BM25 (k1 1.2, b 0.75) + BGE-M3 lexical weights",
+  "reranker": "BAAI/bge-reranker-v2-m3",
+  "alignment": {
+    "tau_doc": 0.2,
+    "tau_sem": 0.85,
+    "tau_rr": 0.4
+  },
+  "chunking": "paragraph-aware ~200 words (150-400 tokens), sentence boundaries, original offsets",
+  "holdout_manifest_sha256": "75569f4827ae7ceedbdc69d29e1d845dc7be7e6fb55e937add699fb0e3294419",
+  "fine_tuned": false
+}

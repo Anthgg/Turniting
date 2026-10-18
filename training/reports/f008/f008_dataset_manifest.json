@@ -1,0 +1,63 @@
+{
+  "created_at": "2026-10-18T16:30:22Z",
+  "datasets": {
+    "pan2011_pan_pc_11": {
+      "status": "DOWNLOADED",
+      "license": "CC-BY-4.0",
+      "suspicious_docs": 15846,
+      "source_docs": 11093,
+      "plagiarism_cases": 61064,
+      "obfuscation": {
+        "none": 22170,
+        "low": 19779,
+        "high": 19115
+      },
+      "seconds": 430.8
+    },
+    "miracl_es": {
+      "status": "DOWNLOADED",
+      "license": "Apache-2.0",
+      "passages": 1500000,
+      "articles": 103326,
+      "shards": 3,
+      "seconds": 30.5
+    },
+    "mmarco_es": {
+      "status": "DOWNLOADED",
+      "license": "Apache-2.0 (mMARCO) / MS MARCO terms",
+      "queries": 2000,
+      "passages_kept": 190258,
+      "bm25_depth": 100,
+      "seconds": 66.0
+    },
+    "pawsx_es": {
+      "status": "DOWNLOADED",
+      "source": "huggingface google-research-datasets/paws-x (official Google org)",
+      "license": "PAWS-X: free use with attribution",
+      "pairs": 53401,
+      "by_split": {
+        "translated_train": 49401,
+        "test_2k": 2000,
+        "dev_2k": 2000
+      },
+      "paraphrase_share": 0.4416209434280257,
+      "seconds": 6.5
+    },
+    "pan2025_generative_plagiarism": {
+      "status": "PENDING_ACCESS",
+      "source": "Zenodo record 14969012 (restricted)",
+      "license": "restricted"
+    },
+    "pan2026_generative_plagiarism": {
+      "status": "PENDING_ACCESS",
+      "source": "Zenodo record 20590774 (restricted) + TIRA protocol (pan-webis-de/pan-code, clef26)",
+      "license": "restricted"
+    }
+  },
+  "models": {
+    "bge_m3": "BAAI/bge-m3 (MIT)",
+    "bge_reranker_v2_m3": "BAAI/bge-reranker-v2-m3 (Apache-2.0)",
+    "e5": "intfloat/multilingual-e5-large-instruct (MIT)",
+    "code": "FlagOpen/FlagEmbedding (MIT)"
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "set": "F008_VALIDATION",
+  "grid": [
+    {
+      "char_precision": 0.5772092777255659,
+      "char_recall": 0.2620763799861826,
+      "char_f1": 0.36048016932206384,
+      "iou_mean": 0.3611497672258919,
+      "same_topic_fpr": 0.0,
+      "boilerplate_fpr": 0.0,
+      "random_fpr": 0.0,
+      "paraphrase_precision": 0.5238095238095238,
+      "paraphrase_hits": 11,
+      "paws_negative_hits": 10,
+      "config": {
+        "tau_doc": 0.2,
+        "tau_sem": 0.78,
+        "tau_rr": 0.4
+      },
+      "objective": 0.12238493122682575
+    },
+    {
+      "char_precision": 0.5796461625328347,
+      "char_recall": 0.26169769426577455,
+      "char_f1": 0.3605946914548101,
+      "iou_mean": 0.3618966485605626,
+      "same_topic_fpr": 0.0,
+      "boilerplate_fpr": 0.0,
+      "random_fpr": 0.0,
+      "paraphrase_precision": 0.5238095238095238,
+      "paraphrase_hits": 11,
+      "paws_negative_hits": 10,
+      "config": {
+        "tau_doc": 0.2,
+        "tau_sem": 0.78,
+        "tau_rr": 0.7
+      },
+      "objective": 0.12249945335957202
+    },
+    {
+      "char_precision": 0.5930501637561487,
+      "char_recall": 0.2599021697768156,
+      "char_f1": 0.36141532952559047,
+      "iou_mean": 0.368027919729865,
+      "same_topic_fpr": 0.0,
+      "boilerplate_fpr": 0.0,
+      "random_fpr": 0.0,
+      "paraphrase_precision": 0.55,
+      "paraphrase_hits": 11,
+      "paws_negative_hits": 9,
+      "config": {
+        "tau_doc": 0.2,
+        "tau_sem": 0.85,
+        "tau_rr": 0.4
+      },
+      "objective": 0.1364153295255905
+    },
+    {
+      "char_precision": 0.5930509481919229,
+      "char_recall": 0.25990032252939893,
+      "char_f1": 0.3614136891574095,
+      "iou_mean": 0.36802415821021106,
+      "same_topic_fpr": 0.0,
+      "boilerplate_fpr": 0.0,
+      "random_fpr": 0.0,
+      "paraphrase_precision": 0.55,
+      "paraphrase_hits": 11,
+      "paws_negative_hits": 9,
+      "config": {
+        "tau_doc": 0.2,
+        "tau_sem": 0.85,
+        "tau_rr": 0.7
+      },
+      "objective": 0.13641368915740953
+    },
+    {
+      "char_precision": 0.5814781981239048,
+      "char_recall": 0.26050437243463515,
+      "char_f1": 0.35981175474025695,
+      "iou_mean": 0.3627272744031721,
+      "same_topic_fpr": 0.0,
+      "boilerplate_fpr": 0.0,
+      "random_fpr": 0.0,
+      "paraphrase_precision": 0.5,
+      "paraphrase_hits": 9,
+      "paws_negative_hits": 9,
+      "config": {
+        "tau_doc": 0.4,
+        "tau_sem": 0.78,
+        "tau_rr": 0.4
+      },
+      "objective": 0.10981175474025695
+    },
+    {
+      "char_precision": 0.5833374745316304,
+      "char_recall": 0.2602069656005586,
+      "char_f1": 0.3598825786705024,
+      "iou_mean": 0.36347543769841084,
+      "same_topic_fpr": 0.0,
+      "boilerplate_fpr": 0.0,
+      "random_fpr": 0.0,
+      "paraphrase_precision": 0.5,
+      "paraphrase_hits": 9,
+      "paws_negative_hits": 9,
+      "config": {
+        "tau_doc": 0.4,
+        "tau_sem": 0.78,
+        "tau_rr": 0.7
+      },
+      "objective": 0.10988257867050238
+    },
+    {
+      "char_precision": 0.5953081673272885,
+      "char_recall": 0.2585703043894293,
+      "char_f1": 0.36054080089841567,
+      "iou_mean": 0.36653155754595235,
+      "same_topic_fpr": 0.0,
+      "boilerplate_fpr": 0.0,
+      "random_fpr": 0.0,
+      "paraphrase_precision": 0.5,
+      "paraphrase_hits": 9,
+      "paws_negative_hits": 9,
+      "config": {
+        "tau_doc": 0.4,
+        "tau_sem": 0.85,
+        "tau_rr": 0.4
+      },
+      "objective": 0.11054080089841567
+    },
+    {
+      "char_precision": 0.5953089780121635,
+      "char_recall": 0.2585684571420127,
+      "char_f1": 0.3605391538180189,
+      "iou_mean": 0.3665277960262984,
+      "same_topic_fpr": 0.0,
+      "boilerplate_fpr": 0.0,
+      "random_fpr": 0.0,
+      "paraphrase_precision": 0.5,
+      "paraphrase_hits": 9,
+      "paws_negative_hits": 9,
+      "config": {
+        "tau_doc": 0.4,
+        "tau_sem": 0.85,
+        "tau_rr": 0.7
+      },
+      "objective": 0.11053915381801888
+    }
+  ],
+  "chosen": {
+    "tau_doc": 0.2,
+    "tau_sem": 0.85,
+    "tau_rr": 0.4
+  },
+  "performance": {
+    "query_passages": 8385,
+    "retrieval_s": 208.44364500045776,
+    "rerank_s": 253.25462746620178,
+    "queries_per_sec": 40.22670012310323,
+    "rerank_pairs_per_sec": 331.08970540406114,
+    "align_s": 385.0102515220642
+  }
+}

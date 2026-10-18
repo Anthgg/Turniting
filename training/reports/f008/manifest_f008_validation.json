@@ -1,0 +1,14 @@
+{
+  "name": "F008_VALIDATION",
+  "created_at": "2026-10-18T08:04:20Z",
+  "seed": 8008,
+  "families": [
+    "PAN-PC-11",
+    "SPANISH_SYNTHETIC (MIRACL-es)",
+    "PAWS-X-es"
+  ],
+  "spanish_corpus_passages": 1477929,
+  "pan_source_docs": 11093,
+  "docs": 1587,
+  "ids_sha256": "f94dc5123bfcce3739a6d613be871555a7a13873d04081581b7c3ab0e1bb9875"
+}
