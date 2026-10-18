@@ -13,6 +13,7 @@ from app.core.config import Settings
 
 V2, V3, BASELINE = "CANDIDATE_MODEL_V2", "CANDIDATE_MODEL_V3", "BEST_BASELINE"
 F006 = "EXPERIMENTAL_F006_MODEL"
+F006_1 = "EXPERIMENTAL_F006_1_MODEL"
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,8 @@ class ModelSpec:
     checkpoint_logical_path: str | None = None
     approx_memory_mb: int = 0
     warnings: tuple[str, ...] = field(default_factory=tuple)
+    active: bool = False
+    candidate: bool = False
 
 
 MODELS: dict[str, ModelSpec] = {
@@ -113,6 +116,37 @@ MODELS: dict[str, ModelSpec] = {
             "SPANISH_VALIDATION_SHIFT",
             "Spanish human false-positive rate is elevated.",
         ),
+    ),
+    F006_1: ModelSpec(
+        name=F006_1,
+        kind="v3_multitask",
+        architecture="microsoft/mdeberta-v3-base + V3 multi-task heads",
+        variant="F006_1_SPANISH_GENERALIZATION_EXPERIMENTAL",
+        dataset="F006_1",
+        status="EXPERIMENTAL",
+        artifact_provider="GOOGLE_DRIVE",
+        artifact_logical_path="MyDrive/turniting/f006_1/models/experimental_f006_1",
+        checkpoint_logical_path="MyDrive/turniting/f006_1/runs/F0061_FULL/best",
+        preprocessing="V3_CANONICALIZED_V1",
+        required_files=(
+            "backbone/config.json",
+            "backbone/model.safetensors",
+            "heads.pt",
+            "v3_config.json",
+            "inference_config.json",
+            "thresholds.json",
+            "calibration.json",
+            "model_manifest.json",
+        ),
+        setting="ai_model_f006_1_path",
+        warnings=(
+            "F006_1_GATES_FAILED: A_overall_human_fpr_le_0.05, D_unseen_generator_fpr_le_0.10, "
+            "E_mixed_recall_ge_0.64, H_span_f1_ge_0.86",
+            "Paragraph stability was not evaluated.",
+            "Experimental registry metadata only; this model is not served by the analyzer API.",
+        ),
+        active=False,
+        candidate=False,
     ),
     BASELINE: ModelSpec(
         name=BASELINE,

@@ -21,7 +21,7 @@ from app.services.analyzer.comparison import align_paragraphs
 from app.services.analyzer.manager import ModelManager, ModelUnavailableError
 from app.services.analyzer.paragraphs import split_paragraphs
 from app.services.analyzer.preprocessing import V2_PREPROCESSING_V1, V3_CANONICALIZED_V1
-from app.services.analyzer.registry import F006, MODELS, V2, V3
+from app.services.analyzer.registry import F006, F006_1, MODELS, V2, V3
 from app.services.analyzer.scoring import (
     CONTEXTUAL,
     STRICT,
@@ -148,10 +148,21 @@ def test_missing_artifacts_are_unavailable_not_errors(tmp_path):
     assert experimental["artifactPresent"] is False
     assert experimental["servable"] is False
     assert "calibration.json" in experimental["missing"]
+    experimental_f006_1 = m.status(F006_1)
+    assert experimental_f006_1["status"] == "EXPERIMENTAL"
+    assert experimental_f006_1["state"] == "UNAVAILABLE"
+    assert experimental_f006_1["available"] is False
+    assert experimental_f006_1["active"] is False
+    assert experimental_f006_1["candidate"] is False
+    assert experimental_f006_1["artifactPresent"] is False
+    assert experimental_f006_1["servable"] is False
+    assert "calibration.json" in experimental_f006_1["missing"]
     with pytest.raises(ModelUnavailableError):
         m.predict(V3, "texto de prueba")
     with pytest.raises(ModelUnavailableError):
         m.predict(F006, "texto sintético de prueba")
+    with pytest.raises(ModelUnavailableError):
+        m.predict(F006_1, "texto sintético en español")
 
 
 def test_manifest_validation_reports_missing_and_invalid(tmp_path):
@@ -280,7 +291,10 @@ def test_contextual_analysis_completes_successfully(manager):
     assert result["documentScore"] is not None
     assert result["scoredParagraphs"] == 2
     assert len(result["segments"]) == 2
-    assert result["contextMetadata"]["tokenLimitPerSide"] == manager.settings.paragraph_context_tokens
+    assert (
+        result["contextMetadata"]["tokenLimitPerSide"]
+        == manager.settings.paragraph_context_tokens
+    )
     assert result["contextMetadata"]["measurement"] == "tokens_per_window"
     assert result["segments"][0]["contextTokensUsed"]
 
@@ -332,7 +346,15 @@ def test_contextual_scores_keep_original_target_offsets_and_hashes():
     text = f"{PARA_A}\n\n{PARA_B}\n\n{PARA_C}"
     paragraphs = split_paragraphs(text)
     results = score_paragraphs(
-        RecordingBackend(), paragraphs, [V3_CANONICALIZED_V1], CONTEXTUAL, 384, 8, 40, 8, 8
+        RecordingBackend(),
+        paragraphs,
+        [V3_CANONICALIZED_V1],
+        CONTEXTUAL,
+        384,
+        8,
+        40,
+        8,
+        8,
     )
 
     assert [result.paragraph.index for result in results] == [0, 1, 2]
@@ -362,14 +384,15 @@ def test_contextual_windows_respect_model_token_budget():
     target_tokens = backend.encode(paragraphs[1].text)[0]
     target_windows = backend.windows[4:8]
     assert len(target_windows) == 4
-    assert [token for window in target_windows for token in window[5:-5]] == target_tokens
+    assert [
+        token for window in target_windows for token in window[5:-5]
+    ] == target_tokens
 
 
 def test_fresh_synthetic_paragraph_inference_is_deterministic_for_five_runs(manager):
     text = f"{PARA_A}\n\n{PARA_B}\n\n{PARA_C}"
     results = [
-        manager.analyze_paragraphs(V3, text, "BALANCED", None, STRICT)
-        for _ in range(5)
+        manager.analyze_paragraphs(V3, text, "BALANCED", None, STRICT) for _ in range(5)
     ]
     scores = [result["documentScore"] for result in results]
     assert all(result["paragraphMode"] == "STRICT_PARAGRAPH" for result in results)
@@ -409,7 +432,9 @@ def test_paragraph_mode_request_defaults_to_strict():
     assert ParagraphAnalysisRequest(text=PARA_A).paragraphMode == "STRICT_PARAGRAPH"
 
 
-def test_transformer_backend_uses_eval_and_inference_mode_for_stable_windows(monkeypatch):
+def test_transformer_backend_uses_eval_and_inference_mode_for_stable_windows(
+    monkeypatch,
+):
     torch = pytest.importorskip("torch")
     from app.services.analyzer.backends import TransformerBackend
 
@@ -573,3 +598,10 @@ def test_api_models_and_unavailable_predict(tmp_path, monkeypatch):
     assert f006["state"] == "UNAVAILABLE"
     assert f006["servable"] is False
     assert "Spanish human false-positive rate is elevated." in f006["warnings"]
+    f006_1 = next(m for m in models.json()["models"] if m["model"] == F006_1)
+    assert f006_1["status"] == "EXPERIMENTAL"
+    assert f006_1["state"] == "UNAVAILABLE"
+    assert f006_1["available"] is False
+    assert f006_1["active"] is False
+    assert f006_1["candidate"] is False
+    assert f006_1["servable"] is False

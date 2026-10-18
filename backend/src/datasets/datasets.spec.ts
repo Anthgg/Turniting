@@ -348,6 +348,59 @@ describe('ModelVersionService', () => {
     expect(JSON.stringify(result)).not.toContain('MyDrive');
   });
 
+  it('imports F006.1 as experimental external metadata without linking a dataset', async () => {
+    const { readFileSync } = await import('node:fs');
+    const registry = JSON.parse(readFileSync(
+      new URL('../../../training/datasets/manifests/model_registry_f006_1.json', import.meta.url),
+      'utf8',
+    ));
+    vi.spyOn(trainingFiles, 'readJson').mockResolvedValue(registry);
+    prisma.modelVersion.findUnique.mockResolvedValueOnce({
+      id: 'id-EXPERIMENTAL_F006_1_MODEL',
+      name: 'EXPERIMENTAL_F006_1_MODEL',
+      status: ModelStatus.EXPERIMENTAL,
+      datasetVersionId: null,
+      artifactPath: 'MyDrive/turniting/f006_1/models/experimental_f006_1',
+      artifacts: [{ sizeBytes: 2048n, path: 'MyDrive/turniting/f006_1/models/experimental_f006_1' }],
+    });
+
+    const result = await service.importF0061Registry();
+    const upsert = prisma.modelVersion.upsert.mock.calls[0][0];
+    expect(result).toMatchObject({
+      registered: 1,
+      datasetVersion: 'F006_1_EXTERNAL',
+      datasetLinked: false,
+      model: {
+        status: ModelStatus.EXPERIMENTAL,
+        datasetVersionId: null,
+        artifactPath: null,
+        artifacts: [{ path: null, sizeBytes: 2048 }],
+      },
+    });
+    expect(upsert.create).toMatchObject({
+      name: 'EXPERIMENTAL_F006_1_MODEL',
+      status: ModelStatus.EXPERIMENTAL,
+      modelType: 'TRANSFORMER',
+      datasetVersionId: null,
+      artifactProvider: 'GOOGLE_DRIVE',
+      artifactPath: 'MyDrive/turniting/f006_1/models/experimental_f006_1',
+      metadata: {
+        active: false,
+        candidate: false,
+        datasetVersionId: null,
+        sourceCommit: '714cdafe39977002ee9b84791a4bd8dca05cc57a',
+        gatesPassed: 7,
+        gatesTotal: 11,
+      },
+    });
+    expect(prisma.datasetVersion.findUnique).not.toHaveBeenCalled();
+    expect(prisma.datasetArtifact.create.mock.calls[0][0].data).toMatchObject({
+      storageProvider: 'GOOGLE_DRIVE',
+      external: true,
+      metadata: { downloaded: false },
+    });
+  });
+
   it('blocks F006 promotion even with an explicit review when Spanish FPR fails', async () => {
     prisma.modelVersion.findUnique.mockResolvedValueOnce({
       id: 'id-f006', name: 'EXPERIMENTAL_F006_MODEL', status: ModelStatus.EXPERIMENTAL,

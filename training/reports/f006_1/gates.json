@@ -1,0 +1,17 @@
+{
+  "gates": {
+    "A_overall_human_fpr_le_0.05": false,
+    "B_spanish_human_fpr_le_0.08": true,
+    "C_academic_human_fpr_le_0.05": true,
+    "D_unseen_generator_fpr_le_0.10": false,
+    "E_mixed_recall_ge_0.64": false,
+    "F_ai_edited_f1_ge_0.81": true,
+    "G_ood_f1_ge_0.90_or_drop_le_0.04": true,
+    "H_span_f1_ge_0.86": false,
+    "I_zero_width_homoglyph_no_severe_regression": true,
+    "J_leakage_0": true,
+    "K_holdout_not_used_for_tuning": true
+  },
+  "passed": false,
+  "status": "EXPERIMENTAL"
+}

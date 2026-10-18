@@ -1,0 +1,136 @@
+{
+  "modelRegistrySchemaVersion": 1,
+  "datasetVersion": "F006_1_EXTERNAL",
+  "models": [
+    {
+      "name": "EXPERIMENTAL_F006_1_MODEL",
+      "architecture": "microsoft/mdeberta-v3-base + V3 multi-task heads",
+      "variant": "F006_1_SPANISH_GENERALIZATION_EXPERIMENTAL",
+      "modelType": "TRANSFORMER",
+      "status": "EXPERIMENTAL",
+      "trainingEnvironment": "Google Colab",
+      "commercialEligibility": "RESEARCH_ONLY",
+      "gitCommit": "714cdafe39977002ee9b84791a4bd8dca05cc57a",
+      "artifact": {
+        "provider": "GOOGLE_DRIVE",
+        "path": "MyDrive/turniting/f006_1/models/experimental_f006_1",
+        "external": true,
+        "note": "Logical source reference only. Weights are not installed locally and were not downloaded."
+      },
+      "metrics": {
+        "evaluationSet": "F006_1_FINAL_HOLDOUT",
+        "macroF1": 0.8913183115501333,
+        "overallHumanFpr": 0.05545454545454546,
+        "overallHumanFprCi95": [0.051330669224617376, 0.05988881615946885],
+        "spanishF1": 0.9192178110962022,
+        "spanishHumanFpr": 0.05490909090909091,
+        "spanishHumanFprCi95": [0.049193331328846165, 0.06124618422697943],
+        "spanishRecall": 0.8916,
+        "spanishEce": 0.0097,
+        "academicF1": 0.928611936781685,
+        "academicHumanFpr": 0.016331658291457288,
+        "mixedRecall": 0.63,
+        "aiEditedF1": 0.9237804308497959,
+        "oodF1": 0.9419886297714353,
+        "unseenGeneratorF1": 0.8768449328449328,
+        "unseenGeneratorHumanFpr": 0.1075,
+        "unseenDomainF1": 0.8394262163464112,
+        "unseenDomainHumanFpr": 0.06,
+        "adversarialRecall": 0.8725,
+        "zeroWidthF1": 0.88,
+        "homoglyphF1": 0.879,
+        "spanTokenF1": 0.826
+      },
+      "thresholds": {
+        "global": 0.6443,
+        "spanish": 0.6443
+      },
+      "calibration": {
+        "option": "ES_ISO",
+        "global": "isotonic",
+        "spanish": "isotonic"
+      },
+      "limitations": [
+        "Overall human FPR gate failed: 0.055 > 0.05.",
+        "Unseen-generator FPR gate failed: 0.107 > 0.10.",
+        "Mixed recall gate failed: 0.630 < 0.64.",
+        "Span F1 gate failed: 0.826 < 0.86.",
+        "Paragraph stability was not evaluated.",
+        "The final holdout has already been observed and must not be reused for tuning."
+      ],
+      "metadata": {
+        "id": "EXPERIMENTAL_F006_1_MODEL",
+        "version": "F006.1",
+        "active": false,
+        "candidate": false,
+        "parentModel": "CANDIDATE_MODEL_V3",
+        "sourceTrainingParent": "B1_v3",
+        "sourceBranch": "exp/f006-1-spanish-generalization",
+        "sourceCommit": "714cdafe39977002ee9b84791a4bd8dca05cc57a",
+        "trainingCommit": "52c71d7ee9bedf5e6afc55b48499039db4d74497",
+        "trainingPhase": "F006.1",
+        "datasetVersionId": null,
+        "datasetName": "F006_1_FINAL_HOLDOUT",
+        "datasetManifestHashes": {
+          "holdout": "cd9717a894e9da82cbc5491e4ee9aab993df90edc7dc2bba735730d1234cfbcb",
+          "validation": "493cd53fdcc12d37fdd834fb3976fff73c07711c3932f3f4a0a87fbfe082a55c",
+          "trainExtra": "7634d2891c3833230194c28d9583222eb5a7f9d92dbb36a8e1faa55eba393979"
+        },
+        "artifactAvailableLocally": false,
+        "modelSha256": "c451a0062321189f026a1cc3779f50aa1b398a580d4cedfb9365a9486c835a90",
+        "artifactChecksumValidated": false,
+        "validationMetrics": {
+          "evaluationSet": "F006_1_VALIDATION",
+          "calibrationOption": "ES_ISO",
+          "selectedCheckpointStep": 2400,
+          "macroF1": 0.9109,
+          "overallHumanFpr": 0.0478,
+          "spanishMacroF1": 0.9155,
+          "spanishHumanFpr": 0.0442,
+          "spanishEce": 0.0064,
+          "selectionCheckpoint": {
+            "threshold": 0.9707,
+            "overallHumanFpr": 0.0648,
+            "spanishHumanFpr": 0.0627,
+            "academicHumanFpr": 0.0274,
+            "unseenGeneratorHumanFpr": 0.0387
+          }
+        },
+        "calibrationProfile": {
+          "global": "GLOBAL_ISO",
+          "spanish": "ES_ISO",
+          "method": "isotonic"
+        },
+        "gatesPassed": 7,
+        "gatesTotal": 11,
+        "failedGates": [
+          "A_overall_human_fpr_le_0.05",
+          "D_unseen_generator_fpr_le_0.10",
+          "E_mixed_recall_ge_0.64",
+          "H_span_f1_ge_0.86"
+        ],
+        "officialGates": {
+          "A_overall_human_fpr_le_0.05": false,
+          "B_spanish_human_fpr_le_0.08": true,
+          "C_academic_human_fpr_le_0.05": true,
+          "D_unseen_generator_fpr_le_0.10": false,
+          "E_mixed_recall_ge_0.64": false,
+          "F_ai_edited_f1_ge_0.81": true,
+          "G_ood_f1_ge_0.90_or_drop_le_0.04": true,
+          "H_span_f1_ge_0.86": false,
+          "I_zero_width_homoglyph_no_severe_regression": true,
+          "J_leakage_0": true,
+          "K_holdout_not_used_for_tuning": true
+        },
+        "paragraphStability": "NOT_EVALUATED",
+        "strictSupported": "UNVERIFIED_ARTIFACT_UNAVAILABLE",
+        "contextualSupported": "UNVERIFIED_ARTIFACT_UNAVAILABLE",
+        "languageSelection": "UNVERIFIED_NO_LOCAL_LANGUAGE_DETECTOR",
+        "limitations": [
+          "No candidate promotion or active model exists.",
+          "The final holdout has already been observed and must not be reused for tuning."
+        ]
+      }
+    }
+  ]
+}

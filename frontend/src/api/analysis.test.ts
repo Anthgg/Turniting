@@ -1,0 +1,140 @@
+import { describe, expect, it } from 'vitest';
+import { analyzerModelSchema } from './analysis';
+
+const model = {
+  name: 'EXPERIMENTAL_F006_1_MODEL',
+  id: null,
+  registeredInDatabase: false,
+  registeredInRegistry: true,
+  status: 'EXPERIMENTAL',
+  architecture: 'microsoft/mdeberta-v3-base + V3 multi-task heads',
+  variant: 'F006_1_SPANISH_GENERALIZATION_EXPERIMENTAL',
+  dataset: 'F006_1',
+  availability: 'UNAVAILABLE',
+  available: false,
+  active: false,
+  candidate: false,
+  artifactPresent: false,
+  artifactValid: false,
+  missing: ['calibration.json'],
+  servable: false,
+  thresholdProfiles: [],
+  thresholdSource: 'F006_1_MODEL_LOCK',
+  preprocessing: ['V3_CANONICALIZED_V1'],
+  warnings: [],
+  metrics: {
+    evaluationSet: 'F006_1_FINAL_HOLDOUT',
+    operatingPoint: 'F006_1_LOCKED_ES_ISO_THRESHOLD',
+    macroF1: 0.8913183115501333,
+    overallHumanFpr: 0.05545454545454546,
+    overallHumanFprCi95: [0.051330669224617376, 0.05988881615946885],
+    spanishF1: 0.9192178110962022,
+    spanishHumanFpr: 0.05490909090909091,
+    spanishHumanFprCi95: [0.049193331328846165, 0.06124618422697943],
+    spanishRecall: 0.8916,
+    spanishEce: 0.0097,
+    academicF1: 0.928611936781685,
+    academicHumanFpr: 0.016331658291457288,
+    unseenGeneratorHumanFpr: 0.1075,
+    oodHumanFpr: 0.044,
+    unseenDomainHumanFpr: 0.06,
+    unseenDomainF1: 0.8394262163464112,
+    mixedRecall: 0.63,
+    aiEditedF1: 0.9237804308497959,
+    oodF1: 0.9419886297714353,
+    unseenGeneratorF1: 0.8768449328449328,
+    adversarialRecall: 0.8725,
+    zeroWidthF1: 0.88,
+    homoglyphF1: 0.879,
+    spanTokenF1: 0.826,
+  },
+  researchMetadata: {
+    sourceBranch: 'exp/f006-1-spanish-generalization',
+    sourceCommit: '714cdafe39977002ee9b84791a4bd8dca05cc57a',
+    trainingCommit: '52c71d7ee9bedf5e6afc55b48499039db4d74497',
+    trainingPhase: 'F006.1',
+    parentModel: 'CANDIDATE_MODEL_V3',
+    sourceTrainingParent: 'B1_v3',
+    datasetName: 'F006_1_FINAL_HOLDOUT',
+    datasetManifestHashes: { holdout: 'h'.repeat(64), validation: 'v'.repeat(64), trainExtra: 't'.repeat(64) },
+    datasetVersionId: null,
+    artifactAvailableLocally: false,
+    modelSha256: 'c451a0062321189f026a1cc3779f50aa1b398a580d4cedfb9365a9486c835a90',
+    artifactChecksumValidated: false,
+    validationMetrics: {
+      evaluationSet: 'F006_1_VALIDATION',
+      calibrationOption: 'ES_ISO',
+      selectedCheckpointStep: 2400,
+      macroF1: 0.9109,
+      overallHumanFpr: 0.0478,
+      spanishMacroF1: 0.9155,
+      spanishHumanFpr: 0.0442,
+      spanishEce: 0.0064,
+      selectionCheckpoint: {
+        threshold: 0.9707,
+        overallHumanFpr: 0.0648,
+        spanishHumanFpr: 0.0627,
+        academicHumanFpr: 0.0274,
+        unseenGeneratorHumanFpr: 0.0387,
+      },
+    },
+    calibration: {
+      global: 'GLOBAL_ISO',
+      spanish: 'ES_ISO',
+      method: 'isotonic',
+      globalThreshold: 0.6443,
+      spanishThreshold: 0.6443,
+      spanishEce: 0.0097,
+    },
+    gatesPassed: 7,
+    gatesTotal: 11,
+    failedGates: [
+      'A_overall_human_fpr_le_0.05',
+      'D_unseen_generator_fpr_le_0.10',
+      'E_mixed_recall_ge_0.64',
+      'H_span_f1_ge_0.86',
+    ],
+    paragraphStability: 'NOT_EVALUATED',
+    strictSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE',
+    contextualSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE',
+    languageSelection: 'UNVERIFIED_NO_LOCAL_LANGUAGE_DETECTOR',
+    active: false,
+    candidate: false,
+    limitations: ['Paragraph stability was not evaluated.'],
+  },
+};
+
+describe('F006.1 model API metadata', () => {
+  it('parses the unavailable experimental model without storage paths', () => {
+    const parsed = analyzerModelSchema.parse(model);
+    expect(parsed).toMatchObject({
+      name: 'EXPERIMENTAL_F006_1_MODEL',
+      status: 'EXPERIMENTAL',
+      availability: 'UNAVAILABLE',
+      available: false,
+      active: false,
+      candidate: false,
+      researchMetadata: { gatesPassed: 7, gatesTotal: 11, paragraphStability: 'NOT_EVALUATED' },
+    });
+    expect(JSON.stringify(parsed)).not.toContain('MyDrive');
+  });
+
+  it('accepts an available response when a mocked service reports valid artifacts', () => {
+    const parsed = analyzerModelSchema.parse({
+      ...model,
+      availability: 'AVAILABLE',
+      available: true,
+      artifactPresent: true,
+      artifactValid: true,
+      servable: true,
+    });
+    expect(parsed).toMatchObject({
+      available: true,
+      artifactPresent: true,
+      artifactValid: true,
+      servable: true,
+      active: false,
+      candidate: false,
+    });
+  });
+});

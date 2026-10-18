@@ -458,6 +458,11 @@ export function AnalysisPanel({
                   : ANALYZER_LABEL[item]}
               </option>
             ))}
+            {models.data?.items.some((item) => item.name === "EXPERIMENTAL_F006_1_MODEL") && (
+              <option value="" disabled>
+                EXPERIMENTAL_F006_1_MODEL · No disponible localmente
+              </option>
+            )}
           </select>
         </label>
 

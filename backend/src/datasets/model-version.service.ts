@@ -23,6 +23,7 @@ export const DEFAULT_MODEL_REGISTRY = 'datasets/manifests/model_registry.json';
 /** F005: CANDIDATE_MODEL_V3 (TURNITING_DATASET_V2) metadata, metrics and structural warnings. */
 export const ANALYZER_MODEL_REGISTRY = 'datasets/manifests/model_registry_v3.json';
 export const F006_MODEL_REGISTRY = 'datasets/manifests/model_registry_f006.json';
+export const F006_1_MODEL_REGISTRY = 'datasets/manifests/model_registry_f006_1.json';
 const F006_GATE_REPORT = 'reports/f006/gates.json';
 
 /**
@@ -82,6 +83,26 @@ export class ModelVersionService {
       models.push(await this.upsert(entry, dataset?.id ?? null, `training/${path}`));
     }
     return { registered: models.length, datasetVersion: registry.datasetVersion, datasetLinked: Boolean(dataset), models };
+  }
+
+  async importF0061Registry() {
+    const registry = validateModelRegistry(await this.files.readJson(F006_1_MODEL_REGISTRY));
+    const issues = new ManifestIssues(F006_1_MODEL_REGISTRY);
+    issues.require(registry.models.length === 1, 'must contain exactly one model');
+    const entry = registry.models[0];
+    issues.require(entry?.name === 'EXPERIMENTAL_F006_1_MODEL', 'name must be EXPERIMENTAL_F006_1_MODEL');
+    issues.require(entry?.status === ModelStatus.EXPERIMENTAL, 'status must remain EXPERIMENTAL');
+    issues.require(entry?.metadata?.active === false, 'active must remain false');
+    issues.require(entry?.metadata?.candidate === false, 'candidate must remain false');
+    issues.require(entry?.metadata?.datasetVersionId === null, 'datasetVersionId must remain null');
+    issues.require(entry?.metadata?.sourceCommit === '714cdafe39977002ee9b84791a4bd8dca05cc57a',
+      'sourceCommit must identify the authoritative F006.1 report commit');
+    issues.throwIfAny();
+
+    // The exact F006.1 dataset is external and is not reconstructed locally. Do not infer
+    // a DatasetVersion foreign key from a label such as F006_1.
+    const model = await this.upsert(entry, null, `training/${F006_1_MODEL_REGISTRY}`);
+    return { registered: 1, datasetVersion: registry.datasetVersion, datasetLinked: false, model };
   }
 
   async importF006Registry() {

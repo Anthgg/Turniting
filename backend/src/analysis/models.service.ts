@@ -6,11 +6,12 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { ACTIVE_ACCEPTANCE_LIMITS, MODEL_CATALOG, numericGateResults } from './model-catalog.js';
 
 const ANALYZER_MODELS = [
-  'BEST_BASELINE',
-  'CANDIDATE_MODEL_V2',
-  'CANDIDATE_MODEL_V3',
   'ENSEMBLE_V2_V3',
+  'CANDIDATE_MODEL_V3',
+  'CANDIDATE_MODEL_V2',
+  'EXPERIMENTAL_F006_1_MODEL',
   'EXPERIMENTAL_F006_MODEL',
+  'BEST_BASELINE',
 ];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -75,6 +76,9 @@ export class AnalyzerModelsService {
         dataset: st?.dataset ?? defaults.dataset,
         artifactProvider: db?.artifactProvider ?? st?.artifactProvider ?? defaults.artifactProvider,
         availability,
+        available: st?.available ?? false,
+        active: st?.active ?? defaults.researchMetadata?.active ?? false,
+        candidate: st?.candidate ?? (defaults.status === 'CANDIDATE'),
         artifactPresent,
         artifactValid,
         missing,
@@ -89,6 +93,7 @@ export class AnalyzerModelsService {
         activeGateResults: numericGateResults(defaults.metrics),
         officialGateResults: defaults.officialGates,
         promotionEvidence: defaults.promotionEvidence,
+        researchMetadata: defaults.researchMetadata,
         promotionEligible: false,
         promotionReviewRequired: true,
       };
@@ -112,6 +117,7 @@ export class AnalyzerModelsService {
     });
     if (!model) throw new NotFoundException('Model not registered');
     const metadata = (model.metadata ?? {}) as Prisma.JsonObject;
+    const researchMetadata = MODEL_CATALOG[model.name]?.researchMetadata;
     return {
       id: model.id,
       name: model.name,
@@ -122,6 +128,14 @@ export class AnalyzerModelsService {
       calibration: model.calibration,
       limitations: model.limitations,
       warnings: metadata.warnings ?? [],
+      sourceCommit: metadata.sourceCommit ?? researchMetadata?.sourceCommit ?? null,
+      trainingPhase: metadata.trainingPhase ?? researchMetadata?.trainingPhase ?? null,
+      gatesPassed: metadata.gatesPassed ?? researchMetadata?.gatesPassed ?? null,
+      gatesTotal: metadata.gatesTotal ?? researchMetadata?.gatesTotal ?? null,
+      failedGates: metadata.failedGates ?? researchMetadata?.failedGates ?? [],
+      active: metadata.active ?? researchMetadata?.active ?? false,
+      candidate: metadata.candidate ?? researchMetadata?.candidate ?? false,
+      researchMetadata: researchMetadata ?? null,
     };
   }
 

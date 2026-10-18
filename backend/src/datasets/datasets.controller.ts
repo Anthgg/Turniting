@@ -110,4 +110,10 @@ export class ModelVersionsController {
   importF006Registry() {
     return this.models.importF006Registry();
   }
+
+  @Post('import-f006-1-registry')
+  @ApiOperation({ summary: 'Register F006.1 experimental metadata without linking an unregistered dataset or downloading model weights' })
+  importF0061Registry() {
+    return this.models.importF0061Registry();
+  }
 }

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnalyzerUnavailableException, type AiService } from '../ai/ai.service.js';
 import type { ModelVersionService } from '../datasets/model-version.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
-import { AnalysisService, displayPercent, driftStats, sha256 } from './analysis.service.js';
+import { AnalysisService, buildAnalysisCacheKey, displayPercent, driftStats, sha256 } from './analysis.service.js';
 import { AnalyzerModelsService } from './models.service.js';
 
 const DOC = '7d0c1b2a-3e4f-4a5b-8c6d-7e8f9a0b1c2d';
@@ -59,6 +59,24 @@ describe('AnalysisService', () => {
     prisma.modelVersion.findUnique.mockResolvedValue({ id: 'mv3' });
   });
 
+  it('separates analysis cache entries by model identity, calibration profile, paragraph mode, and text version', () => {
+    const base = {
+      modelId: 'CANDIDATE_MODEL_V3',
+      modelVersion: 'v3-1',
+      preprocessingVersion: 'V3_CANONICALIZED_V1',
+      calibrationProfile: 'BALANCED',
+      paragraphMode: 'STRICT_PARAGRAPH',
+      textVersionHash: sha256('synthetic input'),
+      granularity: 'PARAGRAPH',
+      analyzerVersion: 'test',
+    };
+    const key = buildAnalysisCacheKey(base);
+    expect(buildAnalysisCacheKey({ ...base, modelId: 'EXPERIMENTAL_F006_1_MODEL' })).not.toBe(key);
+    expect(buildAnalysisCacheKey({ ...base, calibrationProfile: 'LOW_FALSE_POSITIVE' })).not.toBe(key);
+    expect(buildAnalysisCacheKey({ ...base, paragraphMode: 'CONTEXTUAL_PARAGRAPH' })).not.toBe(key);
+    expect(buildAnalysisCacheKey({ ...base, textVersionHash: sha256('different synthetic input') })).not.toBe(key);
+  });
+
   it('stores scores and offsets only (no text) and never logs document content', async () => {
     ai.analyzeParagraphs.mockResolvedValue(aiResult());
     const logs: string[] = [];
@@ -81,7 +99,11 @@ describe('AnalysisService', () => {
       byParagraph: { '0': { V3_CANONICALIZED_V1: { before: 0, after: 7 } }, '1': {} },
     });
     expect(JSON.stringify(completed.metadata.paragraphContext)).not.toContain(SECRET_TEXT);
-    expect(prisma.analysisModelResult.create.mock.calls[0][0].data).toMatchObject({ rawScore: 0.31, calibratedScore: 0.42 });
+    expect(prisma.analysisModelResult.create.mock.calls[0][0].data).toMatchObject({
+      modelName: 'CANDIDATE_MODEL_V3',
+      rawScore: 0.31,
+      calibratedScore: 0.42,
+    });
     expect(completed.documentScore).toBe(prisma.analysisModelResult.create.mock.calls[0][0].data.calibratedScore);
   });
 
@@ -324,6 +346,7 @@ describe('AnalysisService', () => {
     });
     expect(prisma.analysisModelResult.create.mock.calls[0][0].data).toMatchObject({
       analysisRunId: RUN,
+      modelName: 'CANDIDATE_MODEL_V3',
       rawScore: 0.31,
       calibratedScore: 0.42,
       threshold: 0.59,
@@ -452,6 +475,48 @@ describe('AnalyzerModelsService', () => {
     });
     expect(f006?.warnings).toContain('Spanish human false-positive rate is elevated.');
     expect(f006?.officialGateResults?.D_spanish_strong).toBe(false);
+    const f0061 = out.items.find((m) => m.name === 'EXPERIMENTAL_F006_1_MODEL');
+    expect(f0061).toMatchObject({
+      registeredInRegistry: true,
+      status: 'EXPERIMENTAL',
+      availability: 'UNAVAILABLE',
+      available: false,
+      active: false,
+      candidate: false,
+      artifactPresent: false,
+      servable: false,
+      metrics: {
+        evaluationSet: 'F006_1_FINAL_HOLDOUT',
+        macroF1: 0.8913183115501333,
+        spanishF1: 0.9192178110962022,
+        spanishHumanFpr: 0.05490909090909091,
+        mixedRecall: 0.63,
+        spanTokenF1: 0.826,
+      },
+      researchMetadata: {
+        gatesPassed: 7,
+        gatesTotal: 11,
+        failedGates: [
+          'A_overall_human_fpr_le_0.05',
+          'D_unseen_generator_fpr_le_0.10',
+          'E_mixed_recall_ge_0.64',
+          'H_span_f1_ge_0.86',
+        ],
+        calibration: { global: 'GLOBAL_ISO', spanish: 'ES_ISO', globalThreshold: 0.6443, spanishThreshold: 0.6443 },
+        paragraphStability: 'NOT_EVALUATED',
+      },
+    });
+    expect(JSON.stringify(f0061)).not.toContain('MyDrive');
+    ai.listAnalyzerModels.mockResolvedValueOnce({ models: [{
+      model: 'EXPERIMENTAL_F006_1_MODEL', status: 'EXPERIMENTAL', state: 'AVAILABLE',
+      available: true, active: false, candidate: false, artifactPresent: true, artifactValid: true, servable: true,
+      variant: 'f0061-test', modelVersion: 'f0061-test', preprocessing: ['V3_CANONICALIZED_V1'],
+      thresholdProfiles: [], warnings: [],
+    }] });
+    const mockedAvailable = await svc.list();
+    expect(mockedAvailable.items.find((m) => m.name === 'EXPERIMENTAL_F006_1_MODEL')).toMatchObject({
+      status: 'EXPERIMENTAL', available: true, active: false, candidate: false, servable: true,
+    });
     expect(JSON.stringify(out)).not.toContain('MyDrive');
     ai.listAnalyzerModels.mockRejectedValueOnce(new Error('down'));
     const down = await svc.list();

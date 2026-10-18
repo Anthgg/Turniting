@@ -147,6 +147,9 @@ export type AiAnalyzerModelStatus = {
   registered: boolean;
   status: string;
   state: 'UNAVAILABLE' | 'AVAILABLE' | 'LOADING' | 'READY' | 'ERROR';
+  available: boolean;
+  active: boolean;
+  candidate: boolean;
   artifactPresent: boolean;
   artifactValid: boolean;
   missing: string[];

@@ -1,13 +1,20 @@
 export type ModelHoldoutMetrics = {
-  evaluationSet: 'F006_FINAL_HOLDOUT';
-  operatingPoint: 'BALANCED';
+  evaluationSet: 'F006_FINAL_HOLDOUT' | 'F006_1_FINAL_HOLDOUT';
+  operatingPoint: 'BALANCED' | 'F006_1_LOCKED_ES_ISO_THRESHOLD';
   macroF1: number;
   overallHumanFpr: number;
+  overallHumanFprCi95?: [number, number];
+  spanishF1?: number;
   spanishHumanFpr: number;
+  spanishHumanFprCi95?: [number, number];
+  spanishRecall?: number;
+  spanishEce?: number;
   academicHumanFpr: number;
+  academicF1?: number;
   unseenGeneratorHumanFpr: number;
   oodHumanFpr: number;
   unseenDomainHumanFpr: number;
+  unseenDomainF1?: number;
   mixedRecall: number;
   aiEditedF1: number;
   oodF1: number;
@@ -26,6 +33,56 @@ export type PromotionEvidence = {
   holdoutNeverTuned: boolean | null;
 };
 
+export type ResearchModelMetadata = {
+  sourceBranch: string;
+  sourceCommit: string;
+  trainingCommit: string;
+  trainingPhase: string;
+  parentModel: string;
+  sourceTrainingParent: string;
+  datasetName: string;
+  datasetManifestHashes: Record<string, string>;
+  datasetVersionId: string | null;
+  artifactAvailableLocally: boolean;
+  modelSha256: string;
+  artifactChecksumValidated: boolean;
+  validationMetrics: {
+    evaluationSet: string;
+    calibrationOption: string;
+    selectedCheckpointStep: number;
+    macroF1: number;
+    overallHumanFpr: number;
+    spanishMacroF1: number;
+    spanishHumanFpr: number;
+    spanishEce: number;
+    selectionCheckpoint: {
+      threshold: number;
+      overallHumanFpr: number;
+      spanishHumanFpr: number;
+      academicHumanFpr: number;
+      unseenGeneratorHumanFpr: number;
+    };
+  };
+  calibration: {
+    global: string;
+    spanish: string;
+    method: string;
+    globalThreshold: number;
+    spanishThreshold: number;
+    spanishEce: number;
+  };
+  gatesPassed: number;
+  gatesTotal: number;
+  failedGates: string[];
+  paragraphStability: 'NOT_EVALUATED';
+  strictSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE';
+  contextualSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE';
+  languageSelection: 'UNVERIFIED_NO_LOCAL_LANGUAGE_DETECTOR';
+  active: boolean;
+  candidate: boolean;
+  limitations: string[];
+};
+
 export type ModelCatalogEntry = {
   status: 'CANDIDATE' | 'EXPERIMENTAL';
   architecture: string;
@@ -40,6 +97,7 @@ export type ModelCatalogEntry = {
   warnings: string[];
   officialGates: Record<string, boolean> | null;
   promotionEvidence: PromotionEvidence;
+  researchMetadata?: ResearchModelMetadata;
 };
 
 const F006_HOLDOUT = 'F006_FINAL_HOLDOUT' as const;
@@ -233,6 +291,136 @@ export const MODEL_CATALOG: Record<string, ModelCatalogEntry> = {
       paragraphStability: null,
       noLeakage: true,
       holdoutNeverTuned: true,
+    },
+  },
+  EXPERIMENTAL_F006_1_MODEL: {
+    status: 'EXPERIMENTAL',
+    architecture: 'microsoft/mdeberta-v3-base + V3 multi-task heads',
+    variant: 'F006_1_SPANISH_GENERALIZATION_EXPERIMENTAL',
+    dataset: 'F006_1',
+    artifactProvider: 'GOOGLE_DRIVE',
+    thresholdProfiles: [],
+    thresholdSource: 'F006_1_MODEL_LOCK',
+    preprocessing: ['V3_CANONICALIZED_V1'],
+    metrics: {
+      evaluationSet: 'F006_1_FINAL_HOLDOUT',
+      operatingPoint: 'F006_1_LOCKED_ES_ISO_THRESHOLD',
+      macroF1: 0.8913183115501333,
+      overallHumanFpr: 0.05545454545454546,
+      overallHumanFprCi95: [0.051330669224617376, 0.05988881615946885],
+      spanishF1: 0.9192178110962022,
+      spanishHumanFpr: 0.05490909090909091,
+      spanishHumanFprCi95: [0.049193331328846165, 0.06124618422697943],
+      spanishRecall: 0.8916,
+      spanishEce: 0.0097,
+      academicHumanFpr: 0.016331658291457288,
+      academicF1: 0.928611936781685,
+      unseenGeneratorHumanFpr: 0.1075,
+      oodHumanFpr: 0.044,
+      unseenDomainHumanFpr: 0.06,
+      unseenDomainF1: 0.8394262163464112,
+      mixedRecall: 0.63,
+      aiEditedF1: 0.9237804308497959,
+      oodF1: 0.9419886297714353,
+      unseenGeneratorF1: 0.8768449328449328,
+      adversarialRecall: 0.8725,
+      zeroWidthF1: 0.88,
+      homoglyphF1: 0.879,
+      spanTokenF1: 0.826,
+    },
+    strengths: ['Mejor F1 global y español del holdout F006.1; este resultado no recomienda activación.'],
+    warnings: [
+      'No disponible localmente: los pesos F006.1 no están instalados.',
+      'Gates fallidos: A overall FPR, D unseen-generator FPR, E mixed recall, H span F1.',
+      'La estabilidad por párrafo no fue evaluada.',
+      'El holdout final ya fue observado y no se reutiliza para tuning.',
+    ],
+    officialGates: {
+      A_overall_human_fpr_le_0_05: false,
+      B_spanish_human_fpr_le_0_08: true,
+      C_academic_human_fpr_le_0_05: true,
+      D_unseen_generator_fpr_le_0_10: false,
+      E_mixed_recall_ge_0_64: false,
+      F_ai_edited_f1_ge_0_81: true,
+      G_ood_f1_ge_0_90_or_drop_le_0_04: true,
+      H_span_f1_ge_0_86: false,
+      I_zero_width_homoglyph_no_severe_regression: true,
+      J_leakage_0: true,
+      K_holdout_not_used_for_tuning: true,
+    },
+    promotionEvidence: {
+      mixedAiEdited: false,
+      robustness: true,
+      paragraphStability: null,
+      noLeakage: true,
+      holdoutNeverTuned: true,
+    },
+    researchMetadata: {
+      sourceBranch: 'exp/f006-1-spanish-generalization',
+      sourceCommit: '714cdafe39977002ee9b84791a4bd8dca05cc57a',
+      trainingCommit: '52c71d7ee9bedf5e6afc55b48499039db4d74497',
+      trainingPhase: 'F006.1',
+      parentModel: 'CANDIDATE_MODEL_V3',
+      sourceTrainingParent: 'B1_v3',
+      datasetName: 'F006_1_FINAL_HOLDOUT',
+      datasetManifestHashes: {
+        holdout: 'cd9717a894e9da82cbc5491e4ee9aab993df90edc7dc2bba735730d1234cfbcb',
+        validation: '493cd53fdcc12d37fdd834fb3976fff73c07711c3932f3f4a0a87fbfe082a55c',
+        trainExtra: '7634d2891c3833230194c28d9583222eb5a7f9d92dbb36a8e1faa55eba393979',
+      },
+      datasetVersionId: null,
+      artifactAvailableLocally: false,
+      modelSha256: 'c451a0062321189f026a1cc3779f50aa1b398a580d4cedfb9365a9486c835a90',
+      artifactChecksumValidated: false,
+      validationMetrics: {
+        evaluationSet: 'F006_1_VALIDATION',
+        calibrationOption: 'ES_ISO',
+        selectedCheckpointStep: 2400,
+        macroF1: 0.9109,
+        overallHumanFpr: 0.0478,
+        spanishMacroF1: 0.9155,
+        spanishHumanFpr: 0.0442,
+        spanishEce: 0.0064,
+        selectionCheckpoint: {
+          threshold: 0.9707,
+          overallHumanFpr: 0.0648,
+          spanishHumanFpr: 0.0627,
+          academicHumanFpr: 0.0274,
+          unseenGeneratorHumanFpr: 0.0387,
+        },
+      },
+      calibration: {
+        global: 'GLOBAL_ISO',
+        spanish: 'ES_ISO',
+        method: 'isotonic',
+        globalThreshold: 0.6443,
+        spanishThreshold: 0.6443,
+        spanishEce: 0.0097,
+      },
+      gatesPassed: 7,
+      gatesTotal: 11,
+      failedGates: [
+        'A_overall_human_fpr_le_0.05',
+        'D_unseen_generator_fpr_le_0.10',
+        'E_mixed_recall_ge_0.64',
+        'H_span_f1_ge_0.86',
+      ],
+      paragraphStability: 'NOT_EVALUATED',
+      strictSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE',
+      contextualSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE',
+      languageSelection: 'UNVERIFIED_NO_LOCAL_LANGUAGE_DETECTOR',
+      active: false,
+      candidate: false,
+      limitations: [
+        'No pasa el gate de FPR humano global (0.055 > 0.05).',
+        'No pasa el gate de FPR de generador no visto (0.107 > 0.10).',
+        'No pasa el gate de recall mixto (0.630 < 0.64).',
+        'No pasa el gate de span F1 (0.826 < 0.86).',
+        'Estabilidad por párrafo no evaluada.',
+        'No hay promoción de candidato ni modelo activo.',
+        'La selección de idioma entre GLOBAL_ISO y ES_ISO no está conectada ni validada en serving local.',
+        'El holdout final no se reutiliza para tuning.',
+      ],
     },
   },
 };

@@ -22,6 +22,32 @@ export function sha256(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
+export type AnalysisCacheKeyInput = {
+  modelId: string;
+  modelVersion: string;
+  preprocessingVersion: string;
+  calibrationProfile: string;
+  paragraphMode: string;
+  textVersionHash: string;
+  customThreshold?: number;
+  granularity: string;
+  analyzerVersion: string;
+};
+
+export function buildAnalysisCacheKey(input: AnalysisCacheKeyInput): string {
+  return sha256([
+    input.modelId,
+    input.modelVersion,
+    input.preprocessingVersion,
+    input.calibrationProfile,
+    input.paragraphMode,
+    input.textVersionHash,
+    input.customThreshold ?? '',
+    input.granularity,
+    input.analyzerVersion,
+  ].join('\0'));
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -105,16 +131,15 @@ export class AnalysisService {
     const started = Date.now();
     const cacheIdentity = await this.cacheIdentity(dto.analyzer);
     if (cacheIdentity) {
-      const cacheKey = sha256([
-        textHash,
-        cacheIdentity.modelVersion,
-        cacheIdentity.preprocessingVersion,
-        dto.thresholdProfile,
-        dto.customThreshold ?? '',
-        dto.granularity,
-        dto.paragraphMode,
-        ANALYZER_VERSION,
-      ].join('\0'));
+      const cacheKey = buildAnalysisCacheKey({
+        ...cacheIdentity,
+        calibrationProfile: dto.thresholdProfile,
+        paragraphMode: dto.paragraphMode,
+        textVersionHash: textHash,
+        customThreshold: dto.customThreshold,
+        granularity: dto.granularity,
+        analyzerVersion: ANALYZER_VERSION,
+      });
       const candidates = await this.prisma.analysisRun.findMany({
         where: {
           documentVersionId: version.id,
@@ -280,8 +305,15 @@ export class AnalysisService {
                   ])),
                 },
               } : {}),
-              cacheKey: cacheIdentity ? sha256([textHash, cacheIdentity.modelVersion, cacheIdentity.preprocessingVersion,
-                dto.thresholdProfile, dto.customThreshold ?? '', dto.granularity, dto.paragraphMode, ANALYZER_VERSION].join('\0')) : null } as Prisma.InputJsonValue,
+              cacheKey: cacheIdentity ? buildAnalysisCacheKey({
+                ...cacheIdentity,
+                calibrationProfile: dto.thresholdProfile,
+                paragraphMode: dto.paragraphMode,
+                textVersionHash: textHash,
+                customThreshold: dto.customThreshold,
+                granularity: dto.granularity,
+                analyzerVersion: ANALYZER_VERSION,
+              }) : null } as Prisma.InputJsonValue,
           },
         }),
       ]);
@@ -314,6 +346,7 @@ export class AnalysisService {
       const versions = available.map((model) => model.modelVersion ?? model.variant);
       const preprocessing = available.map((model) => model.preprocessing.join('+'));
       return {
+        modelId: MODEL_FOR_MODE[analyzer],
         modelVersion: versions.join(analyzer === 'ENSEMBLE' ? '+' : ''),
         preprocessingVersion: preprocessing.join(analyzer === 'ENSEMBLE' ? '|' : ''),
       };

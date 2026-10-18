@@ -143,15 +143,16 @@ class ModelManager:
             "registered": True,
             "status": st.spec.status,
             "state": st.state,
+            "available": st.state in (AVAILABLE, READY),
+            "active": st.spec.active,
+            "candidate": st.spec.candidate or st.spec.status == "CANDIDATE",
             "artifactPresent": bool(st.check and st.check.present),
             "artifactValid": bool(st.check and st.check.valid),
             "missing": list(st.check.missing) if st.check else [],
             "error": st.error,
             "architecture": st.spec.architecture,
             "variant": st.spec.variant,
-            "modelVersion": (
-                st.check.manifest.get("variant") if st.check else None
-            )
+            "modelVersion": (st.check.manifest.get("variant") if st.check else None)
             or st.spec.variant,
             "dataset": st.spec.dataset,
             "artifactProvider": st.spec.artifact_provider,
