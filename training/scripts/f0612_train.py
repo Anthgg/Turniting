@@ -258,8 +258,10 @@ def train(a) -> int:
 
     torch.manual_seed(a.seed)
     random.seed(a.seed)
-    device = torch.device("cuda")
-    run_dir = D / "runs" / a.run
+    device = torch.device("cpu" if a.smoke else "cuda")
+    if a.smoke:  # CPU end-to-end check of the whole train/eval path on a handful of units (writes under /content/f0612_smoke)
+        a.windows, a.val_cap, a.batch = 48, 6, 8
+    run_dir = (Path("/content/f0612_smoke") if a.smoke else D / "runs") / a.run
     run_dir.mkdir(parents=True, exist_ok=True)
     parent = PARENTS.get(a.parent, Path(a.parent))
     tok = AutoTokenizer.from_pretrained(parent / "backbone")
@@ -277,9 +279,10 @@ def train(a) -> int:
     model = load_model(parent, a.scheme).to(device)
     if a.grad_ckpt:
         model.backbone.gradient_checkpointing_enable()
-    dl = torch.utils.data.DataLoader(DS(items), batch_size=a.batch, shuffle=True, collate_fn=collate(tok.pad_token_id), num_workers=4, pin_memory=True)
+    dl = torch.utils.data.DataLoader(DS(items), batch_size=a.batch, shuffle=True, collate_fn=collate(tok.pad_token_id), num_workers=0 if a.smoke else 4,
+                                     pin_memory=not a.smoke)
     total = len(dl) * a.epochs
-    opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=0.01, fused=True)
+    opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=0.01, fused=device.type == "cuda")
     sched = get_linear_schedule_with_warmup(opt, int(0.06 * total), total)
     bce = nn.BCEWithLogitsLoss(reduction="none")
     cw = torch.tensor([1.0, a.pos_weight, a.pos_weight], device=device)
@@ -303,12 +306,15 @@ def train(a) -> int:
         return (wt * l_).sum() / wt.sum()
 
     # parent references (validation) once per parent
-    pref = D / "runs" / f"PARENT_{a.parent}_validation.json"
+    pref = (run_dir.parent if a.smoke else D / "runs") / f"PARENT_{a.parent}_validation.json"
+    pframe = None
+    if a.smoke:
+        pframe = pd.read_parquet(T / "f006_1_1/datasets/f006_1_1_validation.parquet", columns=["id", "label", "language", "text_original"]).sample(120, random_state=1)
     if not pref.exists():  # parent as-is (binary head C), same validation units
         pm = load_model(parent, "binary").to(device)
         pp, ppara = token_probs(pm, vitems, "binary", device)
         cfg, rep, _ = choose_postproc(vitems, va, pp, ppara)
-        para = paragraph_check(pm, tok, device)
+        para = paragraph_check(pm, tok, device, pframe)
         pmet = para_metrics(para["logits"], para["labels"], para["spanish"])
         write_json(pref, {"postproc": cfg, "span": rep, "objective": span_objective(rep), "paragraph": pmet})
         del pm
@@ -321,7 +327,7 @@ def train(a) -> int:
     for ep in range(a.epochs):
         for b in dl:
             ids, mask = b["input_ids"].to(device, non_blocking=True), b["attention_mask"].to(device, non_blocking=True)
-            with torch.autocast("cuda", dtype=torch.bfloat16):
+            with torch.autocast("cuda", dtype=torch.bfloat16, enabled=device.type == "cuda"):
                 out = model(ids, mask)
             la = bce(out["a"].float(), b["a"].to(device)).mean()
             lc = tok_loss(out["c"].float(), b["c"].to(device))
@@ -334,10 +340,10 @@ def train(a) -> int:
             step += 1
             if step % 100 == 0:
                 log(f"  step {step}/{total} loss a={la.item():.4f} c={lc.item():.4f} {step * a.batch / (time.time() - t0):.0f} win/s "
-                    f"mem={torch.cuda.max_memory_allocated() / 1e9:.1f}GB")
+                    f"mem={(torch.cuda.max_memory_allocated() / 1e9) if device.type == 'cuda' else 0:.1f}GB")
     probs, para = token_probs(model, vitems, a.scheme, device)
     cfg, rep, grid = choose_postproc(vitems, va, probs, para)
-    pc_ = paragraph_check(model, tok, device)
+    pc_ = paragraph_check(model, tok, device, pframe)
     pnew = para_metrics(pc_["logits"], pc_["labels"], pc_["spanish"], recall_target=parent_ref["paragraph"]["recall"])
     pp = parent_ref["paragraph"]
     regression = {"macro_f1_pp": 100 * (pp["macro_f1"] - pnew["macro_f1"]), "human_fpr_pp": 100 * (pnew["human_fpr"] - pp["human_fpr"]),
@@ -349,8 +355,9 @@ def train(a) -> int:
            "paragraph": pnew, "paragraph_parent": pp, "paragraph_regression": regression, "paragraph_regression_ok": reg_ok,
            "parent_span": parent_ref["span"]["span_units"], "grid": grid, "seconds": round(time.time() - t0, 1)}
     write_json(run_dir / "result.json", res)
-    model.save(LOCAL / a.run, tok, {"span_scheme": a.scheme, "postproc": cfg, "parent": a.parent})
-    shutil.copytree(LOCAL / a.run, run_dir / "model", dirs_exist_ok=True)
+    if not a.smoke:
+        model.save(LOCAL / a.run, tok, {"span_scheme": a.scheme, "postproc": cfg, "parent": a.parent})
+        shutil.copytree(LOCAL / a.run, run_dir / "model", dirs_exist_ok=True)
     s = rep["span_units"]
     log(f"  {a.run}: score {score:.4f} charF1 {s['char_f1']:.3f} spanF1 {s['span_overlap_f1']:.3f} tokF1 {s['token_f1']:.3f} "
         f"humanFH {rep['all']['false_highlight'].get('human', {}).get('false_highlight_rate', 0):.3f} reg {json.dumps({k: round(v, 2) for k, v in regression.items()})} cfg {cfg}")
@@ -554,6 +561,7 @@ def main() -> int:
     t.add_argument("--batch", type=int, default=64)
     t.add_argument("--val-cap", type=int, default=0)
     t.add_argument("--grad-ckpt", action="store_true")
+    t.add_argument("--smoke", action="store_true")
     t.add_argument("--seed", type=int, default=61206)
     sub.add_parser("summary")
     lk = sub.add_parser("lock")
