@@ -227,7 +227,7 @@ def main() -> int:
 
     vtexts, htexts = texts(val), texts(hold)
     # ------------------------------------------------ leakage gates
-    for _ in range(4):
+    for _ in range(20):  # LSH bucketing is order-sensitive: iterate until a pass finds nothing
         drop = near_dup_members(pd.concat([vtexts, htexts]), train_new.rename(columns={"text": "text_original"}))
         if not drop:
             break
