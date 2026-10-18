@@ -55,7 +55,7 @@ def result(run_name):
 def train(name, **kw):
     if result(name):
         return result(name)
-    args = {"parent": "F006_1_1", "scheme": "binary", "alpha": 0.4, "beta": 0.6, "tok-loss": "weighted", "pos-weight": 2.0, "windows": ABL_WINDOWS, "replay-frac": 0.25}
+    args = {"parent": "F006_1_1", "scheme": "binary", "alpha": 0.4, "beta": 0.6, "tok-loss": "weighted", "pos-weight": 2.0, "windows": ABL_WINDOWS, "replay-frac": 0.25, "batch": int(__import__("os").environ.get("F0612_BATCH", "64"))}
     args.update({k.replace("_", "-"): v for k, v in kw.items()})
     cmd = PY + ["scripts/f0612_train.py", "train", "--run", name]
     for k, v in args.items():
