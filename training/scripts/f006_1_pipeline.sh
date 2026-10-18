@@ -51,7 +51,7 @@ if ! step a_esw; then ts a_esw
   done_ a_esw; fi
 BE=$(S --runs $BH B9_${PT}_es2.0 B9_${PT}_es3.0); ES=$(S --runs $BE --field es_w)
 S --summary | tee $LOG/ablation_summary.log
-ELIG=$(python -c "import json;d=json.load(open('$D/reports/ablations.json'));print(int(any(r['selection']['eligible'] for r in d['runs'])))")
+ELIG=$(python scripts/f006_1_gatecheck.py)
 if [ "$ELIG" != "1" ]; then echo "=== NO ABLATION PASSED THE VALIDATION GATES (Spanish FPR<=0.08, overall<=0.05): no full run"; exit 0; fi
 
 # Stage B
