@@ -1,0 +1,13 @@
+{
+  "name": "F006_1_2_HOLDOUT_LOCK",
+  "LOCKED": true,
+  "lockedAt": "2026-10-18T12:04:19Z",
+  "source_commit": "943d30941678dad6b259f202db7dfa75246b8e89",
+  "holdout_file_sha256": "80af426e576a571161925e251349e53c7de06b6cb15b7d4858ff160640aadbac",
+  "validation_file_sha256": "929cb44a98070d538ec0abcd210f71b62748beacdc6eb3e82b46095eb0c80b69",
+  "train_file_sha256": "2fc47db33dba32232481e190533776e3ba73ed0d78d02dcd9e28b64ac4a4ad13",
+  "holdout_unit_ids_sha256": "cbed103fe34b946635c6056f7cf0ba2bed8889d345691cb629f8daad72265ffb",
+  "holdout_group_ids_sha256": "a1d5bff0fe26fc257d218722519dbab920ae5c8ea453e0a4a1627fb982a48b2e",
+  "split_hash": "c049b1c0cb606e12ced8d4a31ebfed0ff8ce59cafe97d0ec0b12e80a8ea4fcfd",
+  "rule": "never used for training / selection / thresholds / abstention; evaluated ONCE after F006_1_2_MODEL_LOCK"
+}

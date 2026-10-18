@@ -1,0 +1,246 @@
+{
+  "tokenizer": "microsoft/mdeberta-v3-base",
+  "cases": [
+    {
+      "case": "acentos",
+      "gold": [
+        [
+          61,
+          101
+        ]
+      ],
+      "rebuilt": [
+        [
+          61,
+          101
+        ]
+      ],
+      "round_trip_ok": true,
+      "context_target_only_ok": true,
+      "gold_text": [
+        "Esta oración fue generada por un modelo."
+      ],
+      "rebuilt_text": [
+        "Esta oración fue generada por un modelo."
+      ]
+    },
+    {
+      "case": "ene",
+      "gold": [
+        [
+          29,
+          78
+        ]
+      ],
+      "rebuilt": [
+        [
+          29,
+          78
+        ]
+      ],
+      "round_trip_ok": true,
+      "context_target_only_ok": true,
+      "gold_text": [
+        "La compañía señaló avances importantes en el año."
+      ],
+      "rebuilt_text": [
+        "La compañía señaló avances importantes en el año."
+      ]
+    },
+    {
+      "case": "comillas",
+      "gold": [
+        [
+          34,
+          88
+        ]
+      ],
+      "rebuilt": [
+        [
+          34,
+          88
+        ]
+      ],
+      "round_trip_ok": true,
+      "context_target_only_ok": true,
+      "gold_text": [
+        "El texto entre comillas ‘simples’ también cuenta aquí."
+      ],
+      "rebuilt_text": [
+        "El texto entre comillas ‘simples’ también cuenta aquí."
+      ]
+    },
+    {
+      "case": "decomposed_unicode",
+      "gold": [
+        [
+          17,
+          73
+        ]
+      ],
+      "rebuilt": [
+        [
+          17,
+          73
+        ]
+      ],
+      "round_trip_ok": true,
+      "context_target_only_ok": true,
+      "gold_text": [
+        "Una frase con acentos descompuestos: educación y niño."
+      ],
+      "rebuilt_text": [
+        "Una frase con acentos descompuestos: educación y niño."
+      ]
+    },
+    {
+      "case": "saltos",
+      "gold": [
+        [
+          22,
+          64
+        ]
+      ],
+      "rebuilt": [
+        [
+          22,
+          64
+        ]
+      ],
+      "round_trip_ok": true,
+      "context_target_only_ok": true,
+      "gold_text": [
+        "Segunda línea generada por IA con detalle."
+      ],
+      "rebuilt_text": [
+        "Segunda línea generada por IA con detalle."
+      ]
+    },
+    {
+      "case": "puntuacion",
+      "gold": [
+        [
+          18,
+          89
+        ]
+      ],
+      "rebuilt": [
+        [
+          18,
+          89
+        ]
+      ],
+      "round_trip_ok": true,
+      "context_target_only_ok": true,
+      "gold_text": [
+        "Sin embargo, el análisis (véase la tabla 2) mostró diferencias; claras."
+      ],
+      "rebuilt_text": [
+        "Sin embargo, el análisis (véase la tabla 2) mostró diferencias; claras."
+      ]
+    },
+    {
+      "case": "emoji",
+      "gold": [
+        [
+          27,
+          74
+        ]
+      ],
+      "rebuilt": [
+        [
+          27,
+          74
+        ]
+      ],
+      "round_trip_ok": true,
+      "context_target_only_ok": true,
+      "gold_text": [
+        "Esta parte incluye un emoji 🚀 dentro del tramo."
+      ],
+      "rebuilt_text": [
+        "Esta parte incluye un emoji 🚀 dentro del tramo."
+      ]
+    },
+    {
+      "case": "zero_width",
+      "gold": [
+        [
+          22,
+          59
+        ]
+      ],
+      "rebuilt": [
+        [
+          22,
+          59
+        ]
+      ],
+      "round_trip_ok": true,
+      "context_target_only_ok": true,
+      "gold_text": [
+        "Tramo con zero​width inser​tado aquí."
+      ],
+      "rebuilt_text": [
+        "Tramo con zero​width inser​tado aquí."
+      ]
+    },
+    {
+      "case": "homoglyph",
+      "gold": [
+        [
+          14,
+          52
+        ]
+      ],
+      "rebuilt": [
+        [
+          14,
+          52
+        ]
+      ],
+      "round_trip_ok": true,
+      "context_target_only_ok": true,
+      "gold_text": [
+        "Trаmo con homóglіfos cirílicos dentro."
+      ],
+      "rebuilt_text": [
+        "Trаmo con homóglіfos cirílicos dentro."
+      ]
+    },
+    {
+      "case": "multiple",
+      "gold": [
+        [
+          12,
+          30
+        ],
+        [
+          44,
+          68
+        ]
+      ],
+      "rebuilt": [
+        [
+          12,
+          30
+        ],
+        [
+          44,
+          68
+        ]
+      ],
+      "round_trip_ok": true,
+      "context_target_only_ok": true,
+      "gold_text": [
+        "Dos generado aquí.",
+        "Cuatro generado también."
+      ],
+      "rebuilt_text": [
+        "Dos generado aquí.",
+        "Cuatro generado también."
+      ]
+    }
+  ],
+  "OFFSETS_VALIDATED": true
+}

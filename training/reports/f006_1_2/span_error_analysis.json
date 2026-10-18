@@ -1,0 +1,72 @@
+{
+  "false_positive_human_units": 780,
+  "missed_ai_spans": 7585,
+  "boundary": {
+    "start_mae": 165.30065179833517,
+    "end_mae": 167.04378043034396,
+    "span_length_error": 150.99499733174488
+  },
+  "reference_false_highlight": {
+    "false_highlight_rate": 0.0,
+    "units_with_any_span": 0.0,
+    "units": 1000
+  },
+  "metadata_false_highlight": {
+    "false_highlight_rate": 0.0,
+    "units_with_any_span": 0.0,
+    "units": 1000
+  },
+  "boilerplate_false_highlight": {
+    "false_highlight_rate": 0.009630564182194616,
+    "units_with_any_span": 0.028211586901763223,
+    "units": 1985
+  },
+  "mixed_by_ai_fraction": {
+    "ai_frac_0_10": {
+      "span_overlap_precision": 0.7728731942215088,
+      "span_overlap_recall": 0.7075679647318148,
+      "iou_mean": 0.6938030269082415
+    },
+    "ai_frac_10_25": {
+      "span_overlap_precision": 0.617693522906793,
+      "span_overlap_recall": 0.6755939524838013,
+      "iou_mean": 0.7144505093076841
+    },
+    "ai_frac_25_50": {
+      "span_overlap_precision": 0.5792809642560266,
+      "span_overlap_recall": 0.5006735518634935,
+      "iou_mean": 0.6846600524478956
+    },
+    "ai_frac_50_75": {
+      "span_overlap_precision": 0.6212841854934602,
+      "span_overlap_recall": 0.41170908517847293,
+      "iou_mean": 0.7516494683088882
+    },
+    "ai_frac_75_100": {
+      "span_overlap_precision": 0.6115078047160412,
+      "span_overlap_recall": 0.2565844481605351,
+      "iou_mean": 0.9080092423429412
+    }
+  },
+  "span_length_recall": {
+    "1-5": 0.3111954459203036,
+    "6-15": 0.7442034405385191,
+    "16-40": 0.8341549058005268,
+    "41-100": 0.8794111371879667,
+    ">100": 0.9279569892473118,
+    "counts": {
+      "1-5": 527,
+      "6-15": 4011,
+      "16-40": 29618,
+      "41-100": 23435,
+      ">100": 930
+    }
+  },
+  "paragraph_span_relation": {
+    "para_pos_no_span": 0.07071229863492269,
+    "para_pos_span": 0.5972374975739148,
+    "para_neg_no_span": 0.33150029113023227,
+    "para_neg_strong_span": 6.469560716827328e-05,
+    "para_neg_strong_span_count": 2
+  }
+}

@@ -1,0 +1,310 @@
+{
+  "name": "F006_1_2_DATASET_MANIFEST",
+  "created_at": "2026-10-18T12:04:19Z",
+  "seed": 61206,
+  "source_commit": "943d30941678dad6b259f202db7dfa75246b8e89",
+  "normalization": "NFC per unit with char map; whitespace / line breaks / zero-width / homoglyphs preserved; spans re-projected",
+  "unit": "paragraph-sized target (blank-line blocks, short blocks merged, >1800 chars cut at sentence ends)",
+  "sources": {
+    "opai_bench": "V2 exact AI spans (EN)",
+    "het_ai_spans": "Heterogeneous AI Spans (single canonical view, V2 import)",
+    "es_splice": "Spanish human paragraphs + Spanish AI sentences, same side, exact spans by construction",
+    "human_es": "COWSL2H, academic abstracts ES, SciELO, SBW (F006.1.1 normalised)",
+    "human_v2": "V2 human rows (EN/ES, academic x3)",
+    "synthetic_reference / synthetic_metadata": "fake names / DOIs, target = no span"
+  },
+  "not_used": {
+    "AIUD-SPAN v2": "BLOCKED_ACCESS (gated, no token with access)",
+    "SemEval-2024 Task 8 C": "UNAVAILABLE (repo needs credentials)",
+    "GRADTEX": "no exact span offsets in the release (MIXED completions without boundary) -> not a span source",
+    "Beemo": "edits without char-level alignment -> not a span source",
+    "CEDEL2": "MANUAL_ACCESS_REQUIRED"
+  },
+  "unseen_generator_families_holdout": [],
+  "train": {
+    "units": 135993,
+    "groups": 28872,
+    "by_kind": {
+      "SPAN": 67010,
+      "HUMAN": 29984,
+      "ES_SPLICE": 25000,
+      "HARD_NEG": 7999,
+      "METADATA": 3000,
+      "REFERENCE": 3000
+    },
+    "by_subset": {
+      "span": 67010,
+      "es_splice": 25000,
+      "human_es": 18639,
+      "human_v2": 11345,
+      "boilerplate": 7999,
+      "metadata": 3000,
+      "reference": 3000
+    },
+    "by_language": {
+      "en": 79761,
+      "es": 56232
+    },
+    "by_domain": {
+      "academic": 92330,
+      "news": 23881,
+      "general": 13724,
+      "gutenberg_selected": 1635,
+      "jmlr_pre2015": 1402,
+      "essay": 940,
+      "literary": 508,
+      "forum": 460,
+      "web": 361,
+      "wiki": 208,
+      "qa": 154,
+      "wikitext2_raw": 130,
+      "howto": 86,
+      "legal": 56,
+      "unknown": 32,
+      "novel": 25,
+      "webtext": 21,
+      "seo": 17,
+      "poetry": 8,
+      "social": 7,
+      "creative": 6,
+      "summary": 2
+    },
+    "span_units": 86859,
+    "gold_spans": 316368,
+    "by_dataset": {
+      "opai_bench": 63499,
+      "scielo_es": 31293,
+      "spanish_billion_words": 13724,
+      "academic_arxiv_gpt_gemini": 6947,
+      "academic_abstracts_es": 4833,
+      "het_ai_spans": 3511,
+      "synthetic_metadata": 3000,
+      "synthetic_reference": 3000,
+      "mgtbench2_academic": 2781,
+      "cowsl2h": 940,
+      "semeval2024_task8": 556,
+      "mage": 499,
+      "openllmtext": 361,
+      "hc3": 248,
+      "nigerian_academic": 153,
+      "detectrl_x": 150,
+      "autextification2023": 127,
+      "coling2025_mgt_en": 107,
+      "iberautextification": 88,
+      "raid": 49,
+      "turingbench": 35,
+      "seqxgpt": 32,
+      "txd22": 19,
+      "ghostbuster_essay": 13,
+      "m4": 10,
+      "beemo": 10,
+      "outfox": 7,
+      "gradtex": 1
+    },
+    "generators": {
+      "gemini": 35254,
+      "gpt": 25121,
+      "none": 24882,
+      "claude": 1482,
+      "human": 118,
+      "qwen": 2
+    }
+  },
+  "validation": {
+    "units": 25581,
+    "groups": 4787,
+    "by_kind": {
+      "SPAN": 11797,
+      "HUMAN": 5879,
+      "ES_SPLICE": 4882,
+      "HARD_NEG": 1423,
+      "METADATA": 800,
+      "REFERENCE": 800
+    },
+    "by_subset": {
+      "span": 11797,
+      "es_splice": 4882,
+      "human_es": 3877,
+      "human_v2": 2002,
+      "boilerplate": 1423,
+      "metadata": 800,
+      "reference": 800
+    },
+    "by_language": {
+      "en": 14095,
+      "es": 11486
+    },
+    "by_domain": {
+      "academic": 17385,
+      "news": 4118,
+      "general": 3306,
+      "jmlr_pre2015": 205,
+      "essay": 170,
+      "gutenberg_selected": 84,
+      "forum": 80,
+      "web": 61,
+      "wiki": 43,
+      "qa": 33,
+      "literary": 27,
+      "wikitext2_raw": 20,
+      "howto": 18,
+      "legal": 10,
+      "novel": 8,
+      "unknown": 5,
+      "seo": 4,
+      "webtext": 2,
+      "summary": 2
+    },
+    "span_units": 15879,
+    "gold_spans": 58242,
+    "by_dataset": {
+      "opai_bench": 11488,
+      "scielo_es": 6409,
+      "spanish_billion_words": 3306,
+      "academic_arxiv_gpt_gemini": 1232,
+      "synthetic_metadata": 800,
+      "synthetic_reference": 800,
+      "mgtbench2_academic": 480,
+      "het_ai_spans": 309,
+      "cowsl2h": 170,
+      "academic_abstracts_es": 140,
+      "semeval2024_task8": 103,
+      "mage": 96,
+      "openllmtext": 61,
+      "hc3": 47,
+      "detectrl_x": 28,
+      "autextification2023": 27,
+      "nigerian_academic": 25,
+      "iberautextification": 17,
+      "coling2025_mgt_en": 17,
+      "turingbench": 5,
+      "seqxgpt": 5,
+      "txd22": 5,
+      "beemo": 4,
+      "m4": 3,
+      "ghostbuster_essay": 2,
+      "raid": 1,
+      "outfox": 1
+    },
+    "generators": {
+      "gemini": 6215,
+      "none": 4856,
+      "gpt": 4671,
+      "claude": 111,
+      "human": 26
+    }
+  },
+  "holdout": {
+    "units": 30914,
+    "groups": 5454,
+    "by_kind": {
+      "SPAN": 14000,
+      "HUMAN": 6988,
+      "ES_SPLICE": 5941,
+      "HARD_NEG": 1985,
+      "METADATA": 1000,
+      "REFERENCE": 1000
+    },
+    "by_subset": {
+      "unseen_domain": 7324,
+      "span": 6676,
+      "es_splice": 5941,
+      "human_es": 4647,
+      "human_v2": 2341,
+      "boilerplate": 1985,
+      "reference": 1000,
+      "metadata": 1000
+    },
+    "by_language": {
+      "en": 16633,
+      "es": 14281
+    },
+    "by_domain": {
+      "academic": 17836,
+      "reports": 7324,
+      "general": 4027,
+      "reviews": 387,
+      "news": 316,
+      "literary": 229,
+      "unknown": 176,
+      "forum": 175,
+      "web": 120,
+      "qa": 81,
+      "howto": 65,
+      "wiki": 49,
+      "essay": 28,
+      "chat": 26,
+      "seo": 24,
+      "webtext": 23,
+      "novel": 23,
+      "legal": 4,
+      "outfox": 1
+    },
+    "span_units": 19275,
+    "gold_spans": 58521,
+    "by_dataset": {
+      "opai_bench": 14000,
+      "scielo_es": 8343,
+      "spanish_billion_words": 4027,
+      "synthetic_metadata": 1000,
+      "synthetic_reference": 1000,
+      "mage": 874,
+      "mgtbench2_academic": 349,
+      "academic_arxiv_gpt_gemini": 290,
+      "autextification2023": 264,
+      "semeval2024_task8": 235,
+      "detectrl_x": 165,
+      "openllmtext": 120,
+      "iberautextification": 110,
+      "gradtex": 37,
+      "academic_abstracts_es": 37,
+      "coling2025_mgt_en": 35,
+      "cowsl2h": 28
+    },
+    "generators": {
+      "gemini": 7793,
+      "none": 5887,
+      "gpt": 5484,
+      "qwen": 57,
+      "human": 54
+    }
+  },
+  "leakage": {
+    "exact": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "near_duplicate": {
+      "eval_train": 0,
+      "validation_holdout": 0
+    },
+    "group": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "document": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "lineage": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "parent_child": {
+      "holdout_train": 0
+    },
+    "participant": {
+      "cowsl2h_students": 0
+    },
+    "prompt": {
+      "note": "Beemo prompt groups are not used in F006.1.2 (no exact spans); 0 by construction",
+      "holdout_train": 0
+    },
+    "previous_holdouts_in_holdout": 0,
+    "result": "PASS"
+  }
+}

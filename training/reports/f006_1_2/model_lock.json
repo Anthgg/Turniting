@@ -1,0 +1,102 @@
+{
+  "name": "F006_1_2_MODEL_LOCK",
+  "LOCKED": true,
+  "lockedAt": "2026-10-18T20:32:48Z",
+  "run": "SFULL",
+  "checkpoint_sha256": {
+    "heads.pt": "516573a6378ad905dc4b6effb78b3278b7c87d05520caa100eaff0842414ae72",
+    "model.safetensors": "56b0c5a896abc6d769f535b8c0a6665ed620a489c22c59a7e668251799cacfd0"
+  },
+  "parent": "F006_1",
+  "best_ablation": "S6_focal",
+  "training_config": {
+    "cmd": "train",
+    "run": "SFULL",
+    "parent": "F006_1",
+    "scheme": "bio",
+    "alpha": 0.4,
+    "beta": 0.6,
+    "tok_loss": "focal",
+    "pos_weight": 2.0,
+    "windows": 320000,
+    "replay_frac": 0.25,
+    "span_up": 2.0,
+    "lr": 1.5e-05,
+    "epochs": 1,
+    "batch": 64,
+    "val_cap": 0,
+    "grad_ckpt": false,
+    "smoke": false,
+    "seed": 61206
+  },
+  "loss_weights": {
+    "alpha": 0.4,
+    "beta": 0.6,
+    "token_loss": "focal",
+    "pos_weight": 2.0
+  },
+  "label_scheme": "bio",
+  "token_threshold": 0.65,
+  "span_abstain_threshold": 0.7,
+  "postproc": {
+    "tau": 0.65,
+    "gap": 0,
+    "min_tokens": 6,
+    "abstain": 0.7
+  },
+  "preprocessing": "NFC with char map; target paragraph only; tokenizer offset_mapping; max 512 tokens",
+  "tokenizer": "mDeBERTa-v3 (parent backbone)",
+  "seed": 61206,
+  "dataset_manifest_sha256": "2a0a8d67691b00a09561941aa5f226ad1c06b11e45afb475f0cb47659bfd15bb",
+  "holdout_lock_sha256": "d93754dcdefac6732fe64effb3872367f6c16fad9f51ebc94e37890c9fff18ff",
+  "split_hashes": {
+    "holdout_file_sha256": "80af426e576a571161925e251349e53c7de06b6cb15b7d4858ff160640aadbac",
+    "validation_file_sha256": "929cb44a98070d538ec0abcd210f71b62748beacdc6eb3e82b46095eb0c80b69",
+    "train_file_sha256": "2fc47db33dba32232481e190533776e3ba73ed0d78d02dcd9e28b64ac4a4ad13",
+    "holdout_unit_ids_sha256": "cbed103fe34b946635c6056f7cf0ba2bed8889d345691cb629f8daad72265ffb",
+    "holdout_group_ids_sha256": "a1d5bff0fe26fc257d218722519dbab920ae5c8ea453e0a4a1627fb982a48b2e",
+    "split_hash": "c049b1c0cb606e12ced8d4a31ebfed0ff8ce59cafe97d0ec0b12e80a8ea4fcfd"
+  },
+  "source_commit": "31803242a1adafba7817783fd393282b9728380e",
+  "validation": {
+    "span_units": {
+      "units": 15879,
+      "token_precision": 0.9023684947941899,
+      "token_recall": 0.9001110826283859,
+      "token_f1": 0.9012383751280911,
+      "token_fpr": 0.10672220094337027,
+      "char_precision": 0.9180356298620093,
+      "char_recall": 0.8808227005534075,
+      "char_f1": 0.8990442538213271,
+      "span_exact_precision": 0.47631855156127,
+      "span_exact_recall": 0.2493389650080698,
+      "span_exact_f1": 0.32733010255832307,
+      "span_overlap_precision": 0.7310745211230648,
+      "span_overlap_recall": 0.3826963359774733,
+      "span_overlap_f1": 0.5024005409669784,
+      "iou_mean": 0.8151975322226566,
+      "boundary_start_mae": 136.93523004845233,
+      "boundary_end_mae": 137.45200816882232,
+      "span_count_error": 1.8496126960136028,
+      "span_length_error": 112.4049841783994,
+      "gold_spans": 58242,
+      "false_highlight": {
+        "span": {
+          "false_highlight_rate": 0.08856215367558008,
+          "units_with_any_span": 0.9471629195793186,
+          "units": 15879
+        },
+        "all_human_chars": {
+          "false_highlight_rate": 0.08856215367558008,
+          "units_with_any_span": 0.0,
+          "units": 0
+        }
+      }
+    },
+    "paragraph_regression": {
+      "macro_f1_pp": 0.583345401278057,
+      "human_fpr_pp": 1.4469816866380276,
+      "spanish_fpr_pp": 1.4315281131424635
+    }
+  }
+}

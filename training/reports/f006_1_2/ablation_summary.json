@@ -1,0 +1,315 @@
+{
+  "set": "F006_1_2_SPAN_VALIDATION",
+  "runs": [
+    {
+      "run": "S1_p0611",
+      "parent": "F006_1_1",
+      "scheme": "binary",
+      "alpha": 0.4,
+      "beta": 0.6,
+      "tok_loss": "weighted",
+      "pos_weight": 2.0,
+      "windows": 120000,
+      "score": 0.37101760662728367,
+      "char_f1": 0.9009367529565573,
+      "span_overlap_f1": 0.47610569511692036,
+      "token_f1": 0.8987814489070732,
+      "iou": 0.8293574313682374,
+      "human_fh": 0.01482406796212677,
+      "reference_fh": 0.0,
+      "metadata_fh": 0.0,
+      "regression": {
+        "macro_f1_pp": 1.3840048818731354,
+        "human_fpr_pp": 3.120054261813249,
+        "spanish_fpr_pp": 6.071058985857193
+      },
+      "regression_ok": false,
+      "postproc": {
+        "tau": 0.65,
+        "gap": 0,
+        "min_tokens": 6,
+        "abstain": 0.7
+      },
+      "full": false
+    },
+    {
+      "run": "S2_p061",
+      "parent": "F006_1",
+      "scheme": "binary",
+      "alpha": 0.4,
+      "beta": 0.6,
+      "tok_loss": "weighted",
+      "pos_weight": 2.0,
+      "windows": 120000,
+      "score": 0.6510613079511465,
+      "char_f1": 0.9000521354854761,
+      "span_overlap_f1": 0.4702386804303894,
+      "token_f1": 0.8977993415834834,
+      "iou": 0.827707536907824,
+      "human_fh": 0.0157239998492224,
+      "reference_fh": 0.0,
+      "metadata_fh": 0.0,
+      "regression": {
+        "macro_f1_pp": 0.7935761603868219,
+        "human_fpr_pp": 1.876554374858693,
+        "spanish_fpr_pp": 1.655743359779234
+      },
+      "regression_ok": false,
+      "postproc": {
+        "tau": 0.65,
+        "gap": 0,
+        "min_tokens": 6,
+        "abstain": 0.7
+      },
+      "full": false
+    },
+    {
+      "run": "S3_bio",
+      "parent": "F006_1",
+      "scheme": "bio",
+      "alpha": 0.4,
+      "beta": 0.6,
+      "tok_loss": "weighted",
+      "pos_weight": 2.0,
+      "windows": 120000,
+      "score": 0.6792121150718033,
+      "char_f1": 0.89917128133152,
+      "span_overlap_f1": 0.4375241480565644,
+      "token_f1": 0.8964979687723769,
+      "iou": 0.8254124871332507,
+      "human_fh": 0.014263210353161464,
+      "reference_fh": 0.0,
+      "metadata_fh": 0.0,
+      "regression": {
+        "macro_f1_pp": 0.6149051331142297,
+        "human_fpr_pp": 1.4017635089305904,
+        "spanish_fpr_pp": 1.2935494998275268
+      },
+      "regression_ok": false,
+      "postproc": {
+        "tau": 0.65,
+        "gap": 0,
+        "min_tokens": 6,
+        "abstain": 0.7
+      },
+      "full": false
+    },
+    {
+      "run": "S4_a50",
+      "parent": "F006_1",
+      "scheme": "bio",
+      "alpha": 0.5,
+      "beta": 0.5,
+      "tok_loss": "weighted",
+      "pos_weight": 2.0,
+      "windows": 120000,
+      "score": 0.6627068965973976,
+      "char_f1": 0.8974484163538017,
+      "span_overlap_f1": 0.453600174026539,
+      "token_f1": 0.894908066948256,
+      "iou": 0.8222301374878965,
+      "human_fh": 0.015356347956130731,
+      "reference_fh": 0.0,
+      "metadata_fh": 0.0,
+      "regression": {
+        "macro_f1_pp": 0.6685721279513612,
+        "human_fpr_pp": 1.5298816791016654,
+        "spanish_fpr_pp": 1.6040013797861339
+      },
+      "regression_ok": false,
+      "postproc": {
+        "tau": 0.65,
+        "gap": 0,
+        "min_tokens": 6,
+        "abstain": 0.7
+      },
+      "full": false
+    },
+    {
+      "run": "S5_a30",
+      "parent": "F006_1",
+      "scheme": "bio",
+      "alpha": 0.3,
+      "beta": 0.7,
+      "tok_loss": "weighted",
+      "pos_weight": 2.0,
+      "windows": 120000,
+      "score": 0.6489278409980911,
+      "char_f1": 0.8998360990197594,
+      "span_overlap_f1": 0.45248481925597916,
+      "token_f1": 0.8975660618413538,
+      "iou": 0.8271544064199052,
+      "human_fh": 0.014580193959603876,
+      "reference_fh": 0.0,
+      "metadata_fh": 0.0,
+      "regression": {
+        "macro_f1_pp": 0.6917628908608253,
+        "human_fpr_pp": 1.5675634938578646,
+        "spanish_fpr_pp": 1.8627112797516387
+      },
+      "regression_ok": false,
+      "postproc": {
+        "tau": 0.65,
+        "gap": 0,
+        "min_tokens": 6,
+        "abstain": 0.7
+      },
+      "full": false
+    },
+    {
+      "run": "S6_focal",
+      "parent": "F006_1",
+      "scheme": "bio",
+      "alpha": 0.4,
+      "beta": 0.6,
+      "tok_loss": "focal",
+      "pos_weight": 2.0,
+      "windows": 120000,
+      "score": 0.6985522320232773,
+      "char_f1": 0.8923040536687115,
+      "span_overlap_f1": 0.4959756411548063,
+      "token_f1": 0.8946697342067329,
+      "iou": 0.7985943406925794,
+      "human_fh": 0.0064119051188118725,
+      "reference_fh": 0.0,
+      "metadata_fh": 0.0,
+      "regression": {
+        "macro_f1_pp": 0.5377251356917134,
+        "human_fpr_pp": 1.2133544351495966,
+        "spanish_fpr_pp": 1.5005174197999307
+      },
+      "regression_ok": false,
+      "postproc": {
+        "tau": 0.65,
+        "gap": 0,
+        "min_tokens": 6,
+        "abstain": 0.7
+      },
+      "full": false
+    },
+    {
+      "run": "S7_pw4",
+      "parent": "F006_1",
+      "scheme": "bio",
+      "alpha": 0.4,
+      "beta": 0.6,
+      "tok_loss": "weighted",
+      "pos_weight": 4.0,
+      "windows": 120000,
+      "score": 0.6095284588988128,
+      "char_f1": 0.8887740039689543,
+      "span_overlap_f1": 0.3870175399421662,
+      "token_f1": 0.8837359820214743,
+      "iou": 0.8209831955199729,
+      "human_fh": 0.022707281944470012,
+      "reference_fh": 0.0,
+      "metadata_fh": 0.0,
+      "regression": {
+        "macro_f1_pp": 0.7795573883608853,
+        "human_fpr_pp": 1.8087271082975358,
+        "spanish_fpr_pp": 1.74197999310107
+      },
+      "regression_ok": false,
+      "postproc": {
+        "tau": 0.65,
+        "gap": 0,
+        "min_tokens": 6,
+        "abstain": 0.7
+      },
+      "full": false
+    },
+    {
+      "run": "S8_replay40",
+      "parent": "F006_1",
+      "scheme": "bio",
+      "alpha": 0.4,
+      "beta": 0.6,
+      "tok_loss": "focal",
+      "pos_weight": 2.0,
+      "windows": 120000,
+      "score": 0.6002614565288082,
+      "char_f1": 0.8926738819271045,
+      "span_overlap_f1": 0.4877961435589825,
+      "token_f1": 0.8945060402469738,
+      "iou": 0.7984249574473674,
+      "human_fh": 0.008990552731397594,
+      "reference_fh": 0.0,
+      "metadata_fh": 0.0,
+      "regression": {
+        "macro_f1_pp": 0.8442142963871913,
+        "human_fpr_pp": 2.012208907981008,
+        "spanish_fpr_pp": 2.6043463263194204
+      },
+      "regression_ok": false,
+      "postproc": {
+        "tau": 0.65,
+        "gap": 0,
+        "min_tokens": 6,
+        "abstain": 0.7
+      },
+      "full": false
+    },
+    {
+      "run": "SFULL",
+      "parent": "F006_1",
+      "scheme": "bio",
+      "alpha": 0.4,
+      "beta": 0.6,
+      "tok_loss": "focal",
+      "pos_weight": 2.0,
+      "windows": 320000,
+      "score": 0.696900102951916,
+      "char_f1": 0.8990442538213271,
+      "span_overlap_f1": 0.5024005409669784,
+      "token_f1": 0.9012383751280911,
+      "iou": 0.8151975322226566,
+      "human_fh": 0.007771708687156641,
+      "reference_fh": 0.0,
+      "metadata_fh": 0.0,
+      "regression": {
+        "macro_f1_pp": 0.583345401278057,
+        "human_fpr_pp": 1.4469816866380276,
+        "spanish_fpr_pp": 1.4315281131424635
+      },
+      "regression_ok": false,
+      "postproc": {
+        "tau": 0.65,
+        "gap": 0,
+        "min_tokens": 6,
+        "abstain": 0.7
+      },
+      "full": true
+    }
+  ],
+  "best_ablation": {
+    "run": "S6_focal",
+    "parent": "F006_1",
+    "scheme": "bio",
+    "alpha": 0.4,
+    "beta": 0.6,
+    "tok_loss": "focal",
+    "pos_weight": 2.0,
+    "windows": 120000,
+    "score": 0.6985522320232773,
+    "char_f1": 0.8923040536687115,
+    "span_overlap_f1": 0.4959756411548063,
+    "token_f1": 0.8946697342067329,
+    "iou": 0.7985943406925794,
+    "human_fh": 0.0064119051188118725,
+    "reference_fh": 0.0,
+    "metadata_fh": 0.0,
+    "regression": {
+      "macro_f1_pp": 0.5377251356917134,
+      "human_fpr_pp": 1.2133544351495966,
+      "spanish_fpr_pp": 1.5005174197999307
+    },
+    "regression_ok": false,
+    "postproc": {
+      "tau": 0.65,
+      "gap": 0,
+      "min_tokens": 6,
+      "abstain": 0.7
+    },
+    "full": false
+  }
+}

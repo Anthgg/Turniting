@@ -1,0 +1,38 @@
+{
+  "exact": {
+    "validation_train": 0,
+    "holdout_train": 0,
+    "validation_holdout": 0
+  },
+  "near_duplicate": {
+    "eval_train": 0,
+    "validation_holdout": 0
+  },
+  "group": {
+    "validation_train": 0,
+    "holdout_train": 0,
+    "validation_holdout": 0
+  },
+  "document": {
+    "validation_train": 0,
+    "holdout_train": 0,
+    "validation_holdout": 0
+  },
+  "lineage": {
+    "validation_train": 0,
+    "holdout_train": 0,
+    "validation_holdout": 0
+  },
+  "parent_child": {
+    "holdout_train": 0
+  },
+  "participant": {
+    "cowsl2h_students": 0
+  },
+  "prompt": {
+    "note": "Beemo prompt groups are not used in F006.1.2 (no exact spans); 0 by construction",
+    "holdout_train": 0
+  },
+  "previous_holdouts_in_holdout": 0,
+  "result": "PASS"
+}
