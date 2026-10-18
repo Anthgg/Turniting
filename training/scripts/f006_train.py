@@ -35,7 +35,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from f006_lib import evaluate_scores, log, write_json  # noqa: E402
+from f006_lib import evaluate_scores, log, set_score, write_json  # noqa: E402
 from turniting_train import adapters_v2 as A  # noqa: E402
 from turniting_train.canon import attack_homoglyph, attack_whitespace, attack_zero_width  # noqa: E402
 from turniting_train.common import CONFIG_DIR, git_commit, hardware_info, library_versions, load_yaml, set_seed, utc_now  # noqa: E402
@@ -88,6 +88,31 @@ def sampler_weights(meta: pd.DataFrame, hard: np.ndarray, sp: dict, a) -> tuple[
         m_w = norm(m_w, ~human, 1 - a.human_share)
     base = m_w + norm(w0, human & ~hard, a.human_share * (1 - a.hard_ratio)) + norm(wh, hard, a.human_share * a.hard_ratio)
     comp = {"base": 1.0}
+    es = (meta["language"].astype(str) == "es").values
+    es_hard = meta["es_hard"].values.astype(bool) if "es_hard" in meta else np.zeros(len(meta), bool)
+    if a.es_mix:
+        fh, fn, fg = a.es_mix
+        hsh = a.human_share
+        g_h = human & ~es
+        base = (m_w + norm(wh, es_hard & human, hsh * fh) + norm(w0, es & human & ~es_hard, hsh * fn)
+                + norm(w0, g_h & ~hard, hsh * fg * (1 - a.hard_ratio)) + norm(wh, g_h & hard, hsh * fg * a.hard_ratio))
+        comp = {"base": 1.0, "human_component": {"spanish_hard": fh, "spanish_normal": fn, "global": fg}}
+    if a.stage == "full" and a.mixture == "f006_1":
+        aca = (meta["domain"].astype(str) == "academic").values
+        edit = meta["fine_label"].isin(EDIT_LABELS).values
+        edit_ds = meta["dataset"].isin(meta.loc[edit, "dataset"].unique()).values
+        multi = ~meta["language"].astype(str).isin(["en", "es"]).values
+        pi = {"global_replay": 0.35, "spanish_human": 0.25, "spanish_machine": 0.15, "academic": 0.10, "generalization_multilingual": 0.05,
+              "adversarial_unicode": 0.05, "mixed_edited_global": 0.05}
+        fh = a.es_mix[0] / max(a.es_mix[0] + a.es_mix[1], 1e-9) if a.es_mix else a.hard_ratio
+        total = base * pi["global_replay"]
+        total += norm(wh, es_hard & human, pi["spanish_human"] * fh) + norm(w0, es & human & ~es_hard, pi["spanish_human"] * (1 - fh))
+        total += norm(w0, es & ~human, pi["spanish_machine"])
+        total += norm(w0, aca & human, pi["academic"] / 2) + norm(w0, aca & ~human, pi["academic"] / 2)
+        total += norm(w0, multi & human, pi["generalization_multilingual"] / 2) + norm(w0, multi & ~human, pi["generalization_multilingual"] / 2)
+        total += norm(w0, adv, pi["adversarial_unicode"])
+        total += norm(w0, edit, pi["mixed_edited_global"] / 2) + norm(w0, edit_ds & human, pi["mixed_edited_global"] / 2)
+        return total, pi
     if a.stage == "full" and a.emphasis:
         es = (meta["language"].astype(str) == "es").values
         aca = (meta["domain"].astype(str) == "academic").values
@@ -231,7 +256,8 @@ def _tok_docs(docs: list[dict]):
 
 
 def cache_key(a) -> str:
-    keys = ["windows", "human_share", "hard_ratio", "es_w", "aca_w", "para_frac", "stage", "emphasis", "hard_pool", "seed"]
+    keys = ["windows", "human_share", "hard_ratio", "es_w", "aca_w", "para_frac", "stage", "emphasis", "hard_pool", "seed",
+            "es_mix", "es_hard_pool", "train_extra", "mixture"]
     s = json.dumps({k: getattr(a, k) for k in keys}, sort_keys=True, default=str)
     return hashlib.sha256(s.encode()).hexdigest()[:12]
 
@@ -243,7 +269,13 @@ def build_cache(a, cfg, tok_path, cache: Path) -> dict:
     t0 = time.time()
     master = Path(a.master)
     meta = read_split(master, "train", META)
+    extra = None
+    if a.train_extra:
+        extra = pd.read_parquet(a.train_extra)
+        meta = pd.concat([meta, extra[META]], ignore_index=True)
     meta = meta[meta["fine_label"].isin(list(FINE_TO_B))].reset_index(drop=True)
+    if a.es_hard_pool:
+        meta["es_hard"] = meta["id"].isin(set(pd.read_parquet(a.es_hard_pool, columns=["id"])["id"])).values
     pool = pd.read_parquet(a.hard_pool, columns=["id"]) if a.hard_pool else pd.DataFrame({"id": []})
     hard = meta["id"].isin(set(pool["id"])).values & (meta["fine_label"] == A.HUMAN).values
     w, comp = sampler_weights(meta, hard, cfg["sampling"], a)
@@ -251,8 +283,12 @@ def build_cache(a, cfg, tok_path, cache: Path) -> dict:
     docs = weighted_sample(meta, w, n_docs, a.seed).sample(frac=1.0, random_state=a.seed)
     docs = docs.assign(hard_human=docs["id"].isin(set(pool["id"])))
     log(f"sampled {len(docs):,} docs ({int(docs['hard_human'].sum()):,} hard humans) from {len(meta):,} train rows")
-    texts = read_split(master, "train", ["id", "text_original", "text_normalized", "fine_label", "span_labels"],
-                       ids=docs["id"].tolist()).set_index("id").loc[docs["id"]].reset_index()
+    tcols = ["id", "text_original", "text_normalized", "fine_label", "span_labels"]
+    in_extra = docs["id"].isin(set(extra["id"])) if extra is not None else pd.Series(False, index=docs.index)
+    parts = [read_split(master, "train", tcols, ids=docs.loc[~in_extra, "id"].tolist())]
+    if extra is not None and in_extra.any():
+        parts.append(extra.loc[extra["id"].isin(set(docs.loc[in_extra, "id"])), tcols])
+    texts = pd.concat(parts, ignore_index=True).drop_duplicates("id").set_index("id").loc[docs["id"]].reset_index()
     recs = texts.to_dict("records")
     del texts
     q = a.para_frac * WINDOWS_PER_DOC / (1 - a.para_frac + a.para_frac * WINDOWS_PER_DOC)
@@ -351,6 +387,11 @@ def main() -> int:
     ap.add_argument("--init", default="/content/drive/MyDrive/turniting/v3/checkpoints/20261017_0604_v3_es_acad/best")
     ap.add_argument("--icfg-from", default="/content/drive/MyDrive/turniting/v3/models/spanish_academic/inference_config.json")
     ap.add_argument("--hard-pool", default="/content/drive/MyDrive/turniting/f006/datasets/hard_human_pool_v1.parquet")
+    ap.add_argument("--es-hard-pool", default=None)
+    ap.add_argument("--es-mix", default=None, help="Spanish-hard,Spanish-normal,global shares of the human component, e.g. 0.4,0.3,0.3")
+    ap.add_argument("--train-extra", default=None)
+    ap.add_argument("--mixture", default="f006", choices=["f006", "f006_1"])
+    ap.add_argument("--score", default="f006", choices=["f006", "f006_1"])
     ap.add_argument("--master", default="/content/f006work/master_v2")
     ap.add_argument("--val", default="/content/drive/MyDrive/turniting/f006/datasets/f006_validation.parquet")
     ap.add_argument("--drive", default="/content/drive/MyDrive/turniting/f006")
@@ -360,6 +401,8 @@ def main() -> int:
     ap.add_argument("--max-steps", type=int)
     ap.add_argument("--val-cap", type=int, help="smoke tests only")
     a = ap.parse_args()
+    a.es_mix = tuple(float(x) for x in a.es_mix.split(",")) if a.es_mix else None
+    set_score(a.score)
     cfg = load_yaml(CONFIG_DIR / "v3.yaml")["train"]
     sel = json.loads(Path("/content/drive/MyDrive/turniting/v3/manifests/weight_selection.json").read_text()) \
         if Path("/content/drive/MyDrive/turniting/v3/manifests/weight_selection.json").exists() else {}
@@ -420,7 +463,8 @@ def main() -> int:
 
     # step-0 reference: the V3 init on F006 validation (same code path, no training)
     if not history:
-        ref = Path(a.drive) / "runs" / f"V3_INIT_validation{'_cap' if a.val_cap else ''}.json"
+        tag = "V3_INIT" if "v3" in str(a.init) else "INIT_" + hashlib.sha256(str(a.init).encode()).hexdigest()[:8]
+        ref = Path(a.drive) / "runs" / f"{tag}_validation{'_cap' if a.val_cap else ''}.json"
         if ref.exists():
             ev0 = json.loads(ref.read_text())
         else:
@@ -528,7 +572,8 @@ def main() -> int:
     write_json(run_dir / "run.json", {
         "run": a.run, "stage": a.stage, "timestamp": utc_now(), "gitCommit": git_commit(), "init": a.init,
         "config": {k: getattr(a, k) for k in ("windows", "human_share", "hard_ratio", "es_w", "aca_w", "para_frac", "emphasis",
-                                               "loss", "human_weight", "focal_gamma", "lr", "epochs", "seed", "hard_pool")},
+                                               "loss", "human_weight", "focal_gamma", "lr", "epochs", "seed", "hard_pool",
+                                               "es_mix", "es_hard_pool", "train_extra", "mixture", "score")},
         "sampleAudit": {k: v for k, v in audit.items() if k != "by_dataset"}, "microBatch": micro, "accumulation": accum,
         "stepsPerEpoch": steps_per_epoch, "totalSteps": total, "stoppedAtStep": step, "trainSeconds": round(train_s, 1),
         "throughputWindowsPerSec": round(seen / max(train_s, 1), 1), "gpuMonitor": mon.summary(),

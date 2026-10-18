@@ -186,6 +186,8 @@ def subset_masks(frame: pd.DataFrame) -> dict[str, np.ndarray]:
         "adversarial": pr == "adversarial",
         "span": pr == "span",
     }
+    m["spanish_academic"] = m["spanish"] & aca
+    m["spanish_non_academic"] = m["spanish"] & ~aca
     if "hard_human" in frame:
         m["hard_human"] = frame["hard_human"].fillna(False).values.astype(bool) & human
     return m
@@ -212,8 +214,31 @@ def subset_report(frame: pd.DataFrame, p: np.ndarray, thr: float, ci: bool = Fal
     return out
 
 
+SCORE_MODE = {"mode": "f006"}
+F0061_WEIGHTS = {"general_macro_f1": 0.10, "spanish_macro_f1": 0.20, "spanish_recall": 0.10, "academic_macro_f1": 0.10,
+                 "mixed_recall": 0.10, "ai_edited_macro_f1": 0.10, "ood_macro_f1": 0.10, "unseen_generator_recall": 0.10,
+                 "adversarial_recall": 0.10}
+F0061_PENALTIES = [("spanish_fpr", 0.05, 4.0), ("fpr_all_humans", 0.05, 2.0), ("academic_fpr", 0.05, 2.0),
+                   ("unseen_generator_fpr", 0.10, 2.0), ("ood_fpr", 0.10, 1.0), ("unseen_domain_fpr", 0.10, 1.0)]
+
+
+def set_score(mode: str) -> None:
+    """'f006' (F006_SELECTION_SCORE) or 'f006_1' (F006_1_SELECTION_SCORE, fixed before any F006.1 training):
+
+    F006_1_SELECTION_SCORE at the same operating point (general-human FPR <= 0.04):
+      + 0.10 macroF1 general + 0.20 macroF1 Spanish + 0.10 recall Spanish + 0.10 macroF1 academic + 0.10 recall mixed
+      + 0.10 macroF1 AI-edited + 0.10 macroF1 OOD + 0.10 recall unseen-generator proxy + 0.10 recall adversarial
+      - 4*max(0, FPR_spanish - 0.05) - 2*max(0, FPR_all - 0.05) - 2*max(0, FPR_academic - 0.05)
+      - 2*max(0, FPR_unseen_generator - 0.10) - 1*max(0, FPR_ood - 0.10) - 1*max(0, FPR_unseen_domain - 0.10)
+      eligible only if FPR_all <= 0.05 and FPR_spanish <= 0.08.
+    """
+    SCORE_MODE["mode"] = mode
+
+
 def selection_score(rep: dict) -> dict:
-    """F006_SELECTION_SCORE from a subset_report (see module docstring)."""
+    """F006_SELECTION_SCORE (or F006_1_SELECTION_SCORE after set_score('f006_1')) from a subset_report."""
+    if SCORE_MODE["mode"] == "f006_1":
+        return _score_f0061(rep)
     def g(sub, key):
         v = rep.get(sub, {}).get(key)
         return None if v is None else float(v)
@@ -231,6 +256,25 @@ def selection_score(rep: dict) -> dict:
     pen = sum(w * max(0.0, fprs[k] - lim) for k, lim, w in PENALTIES if fprs.get(k) is not None)
     eligible = fprs["fpr_all_humans"] is not None and fprs["fpr_all_humans"] <= 0.05
     return {"score": pos - pen, "positive": pos, "penalty": pen, "eligible": bool(eligible), "terms": terms, "fprs": fprs}
+
+
+def _score_f0061(rep: dict) -> dict:
+    def g(sub, key):
+        v = rep.get(sub, {}).get(key)
+        return None if v is None else float(v)
+
+    terms = {"general_macro_f1": g("general", "macro_f1"), "spanish_macro_f1": g("spanish", "macro_f1"), "spanish_recall": g("spanish", "recall"),
+             "academic_macro_f1": g("academic", "macro_f1"), "mixed_recall": g("mixed", "recall"), "ai_edited_macro_f1": g("ai_edited", "macro_f1"),
+             "ood_macro_f1": g("ood", "macro_f1"), "unseen_generator_recall": g("unseen_generator", "recall"), "adversarial_recall": g("adversarial", "recall")}
+    fprs = {"fpr_all_humans": g("all", "fpr"), "spanish_fpr": g("spanish", "fpr"), "academic_fpr": g("academic", "fpr"),
+            "unseen_generator_fpr": g("unseen_generator", "fpr"), "ood_fpr": g("ood", "fpr"), "unseen_domain_fpr": g("unseen_domain", "fpr")}
+    avail = {k: v for k, v in terms.items() if v is not None}
+    wsum = sum(F0061_WEIGHTS[k] for k in avail) or 1.0
+    pos = sum(F0061_WEIGHTS[k] * v for k, v in avail.items()) / wsum
+    pen = sum(w * max(0.0, fprs[k] - lim) for k, lim, w in F0061_PENALTIES if fprs.get(k) is not None)
+    eligible = (fprs["fpr_all_humans"] is not None and fprs["fpr_all_humans"] <= 0.05
+                and fprs["spanish_fpr"] is not None and fprs["spanish_fpr"] <= 0.08)
+    return {"score": pos - pen, "positive": pos, "penalty": pen, "eligible": bool(eligible), "terms": terms, "fprs": fprs, "mode": "f006_1"}
 
 
 def evaluate_scores(frame: pd.DataFrame, p: np.ndarray, ci: bool = False) -> dict:
