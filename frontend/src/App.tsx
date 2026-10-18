@@ -44,60 +44,49 @@ function WorkspaceLayout() {
         <div className="sidebar-top">
           <Link className="brand" to="/" aria-label="Turniting, inicio">
             <span className="brand-mark" aria-hidden="true">T</span>
-            <span className="brand-name">Turniting</span>
+            <span className="brand-copy">
+              <span className="brand-name">Turniting</span>
+              <span className="brand-workspace">Área académica</span>
+            </span>
           </Link>
         </div>
 
-        <div className="workspace-switcher" aria-label="Espacio de trabajo actual">
-          <span className="workspace-avatar" aria-hidden="true">A</span>
-          <span className="workspace-copy">
-            <span className="workspace-label">Espacio de trabajo</span>
-            <span className="workspace-name">Área académica</span>
-          </span>
-          <Icon name="chevrons" size={16} className="workspace-chevron" />
-        </div>
-
         <nav className="sidebar-nav" aria-label="Navegación principal">
-          <p className="nav-caption">MENÚ</p>
           <NavLink to="/" end className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
-            <Icon name="grid" size={19} />
+            <Icon name="grid" size={17} />
             <span>Inicio</span>
           </NavLink>
           <NavLink to="/documents" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
-            <Icon name="file" size={19} />
+            <Icon name="file" size={17} />
             <span>Documentos</span>
           </NavLink>
           <NavLink to="/turnitin-reports" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
-            <Icon name="file" size={19} />
+            <Icon name="file" size={17} />
             <span>Reportes Turnitin</span>
           </NavLink>
           <NavLink to="/datasets" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
-            <Icon name="database" size={19} />
+            <Icon name="database" size={17} />
             <span>Datasets</span>
           </NavLink>
           <NavLink to="/models" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
-            <Icon name="brain" size={19} />
+            <Icon name="brain" size={17} />
             <span>Modelos</span>
           </NavLink>
           <NavLink to="/analysis/compare" className={({ isActive }) => `nav-item${isActive ? ' is-active' : ''}`}>
-            <Icon name="spark" size={19} />
+            <Icon name="spark" size={17} />
             <span>Comparar versiones</span>
           </NavLink>
           <span className="nav-item is-disabled" aria-disabled="true" aria-label="Historial, próxima fase">
-            <Icon name="clock" size={19} />
+            <Icon name="clock" size={17} />
             <span>Historial</span>
           </span>
         </nav>
 
         <div className="sidebar-bottom">
-          <div className="phase-card">
-            <span className="phase-icon"><Icon name="spark" size={17} /></span>
-            <span className="phase-copy">
-              <span>Fase actual</span>
-            <strong>F005 · Analizador local</strong>
-            </span>
+          <div className="phase-summary">
+            <span className="phase-label">Fase actual</span>
+            <strong className="phase-value">F006.2 · Research UI</strong>
           </div>
-          <p className="sidebar-footnote">Un espacio para análisis académico responsable.</p>
         </div>
       </aside>
 
@@ -105,15 +94,15 @@ function WorkspaceLayout() {
         <header className="topbar">
           <div className="breadcrumbs" aria-label="Ubicación actual">
             <Link to="/">Espacio de trabajo</Link>
-            <Icon name="chevron-right" size={14} />
+            <Icon name="chevron-right" size={13} />
             <span className="breadcrumb-current" aria-current="page">{section}</span>
           </div>
           <div className="topbar-meta">
             <span className="environment-dot" aria-hidden="true" />
-            <span>Entorno inicial</span>
+            <span>Entorno local</span>
           </div>
         </header>
-        <main id="main-content"><Outlet /></main>
+        <main id="main-content" className="main-content"><Outlet /></main>
       </div>
     </div>
   )
@@ -149,94 +138,61 @@ function DashboardPage() {
     <div className="dashboard-main">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">TU ESPACIO DE TRABAJO</p>
+          <p className="eyebrow">ESPACIO DE INVESTIGACIÓN</p>
           <h1>Turniting</h1>
-          <p className="page-subtitle">Análisis académico asistido por inteligencia artificial</p>
+          <p className="page-subtitle">Lectura, extracción y análisis local de señal de IA en documentos académicos.</p>
         </div>
-        <button
-          className="button button-quiet refresh-button"
-          type="button"
-          onClick={() => void refreshHealth()}
-          aria-label="Actualizar estado de los servicios"
-          aria-busy={isRefreshing}
-        >
-          <Icon name="refresh" size={17} className={isRefreshing ? 'is-spinning' : undefined} />
-          <span>Actualizar estado</span>
-        </button>
+        <div className="page-heading-actions">
+          <Link className="button button-primary" to="/documents">
+            <Icon name="upload" size={15} />
+            <span>Subir documento</span>
+          </Link>
+          <button
+            className="button button-quiet refresh-button"
+            type="button"
+            onClick={() => void refreshHealth()}
+            aria-label="Actualizar estado de los servicios"
+            aria-busy={isRefreshing}
+          >
+            <Icon name="refresh" size={15} className={isRefreshing ? 'is-spinning' : undefined} />
+            <span>Actualizar estado</span>
+          </button>
+        </div>
       </div>
 
-      <section className="welcome-panel" aria-labelledby="welcome-title">
-        <div className="welcome-content">
-          <span className="welcome-kicker"><span className="welcome-kicker-dot" /> INGESTA DE DOCUMENTOS</span>
-          <h2 id="welcome-title">Una mirada más clara al trabajo académico.</h2>
-          <p>Sube un documento para extraer su texto y consultar su estado de procesamiento.</p>
-          <div className="welcome-actions">
-            <Link className="button button-primary" to="/documents">
-              <Icon name="upload" size={17} />
-              <span>Subir documento</span>
-            </Link>
-            <span className="button-note">PDF, DOCX o TXT · hasta {MAX_UPLOAD_MB} MB</span>
+      <section className="open-section" aria-labelledby="welcome-title">
+        <div className="open-section-row">
+          <div>
+            <h2 id="welcome-title" className="open-section-title">Ingesta y evaluación por párrafos</h2>
+            <p className="open-section-copy">
+              Sube archivos PDF, DOCX o TXT (hasta {MAX_UPLOAD_MB} MB) para extraer su texto e inspeccionar la señal probabilística de modelos locales.
+              Los resultados son experimentales e independientes de Turnitin.
+            </p>
           </div>
-        </div>
-        <div className="welcome-visual" aria-hidden="true">
-          <div className="visual-orbit orbit-one" />
-          <div className="visual-orbit orbit-two" />
-          <div className="visual-spark spark-one" />
-          <div className="visual-spark spark-two" />
-          <div className="visual-document">
-            <div className="visual-doc-top"><span /><span /></div>
-            <div className="visual-doc-title" />
-            <div className="visual-doc-line line-long" />
-            <div className="visual-doc-line" />
-            <div className="visual-highlight"><span /><span /></div>
-            <div className="visual-doc-line line-short" />
-            <div className="visual-doc-line line-long" />
+          <div className="open-section-links">
+            <Link className="button button-quiet" to="/documents">Ir a documentos</Link>
+            <Link className="button button-quiet" to="/analysis/compare">Comparar versiones</Link>
           </div>
-          <div className="visual-badge"><span className="visual-badge-icon"><Icon name="spark" size={13} /></span><span>Lectura con contexto</span></div>
-          <div className="visual-score"><span className="score-ring"><Icon name="check" size={14} /></span><span><strong>Señales</strong><small>con transparencia</small></span></div>
         </div>
       </section>
 
-      <section className="health-section" aria-labelledby="health-title">
+      <section className="health-section open-section" aria-labelledby="health-title">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">ESTADO DEL SISTEMA</p>
             <h2 id="health-title">Servicios conectados</h2>
           </div>
-          <span className="auto-refresh"><span className="live-pulse" /> Actualización automática cada 30 s</span>
+          <span className="auto-refresh"><span className="live-pulse" /> Actualización cada 30 s</span>
         </div>
         <div className="service-grid">
           <ServiceStatusCard title="Backend API" description="API principal de la plataforma" endpoint={serviceEndpoints.backend} icon="server" service="backend" query={backend} />
           <ServiceStatusCard title="Base de datos" description="Conexión con PostgreSQL" endpoint={serviceEndpoints.database} icon="database" service="database" query={database} />
-          <ServiceStatusCard title="Servicio de IA" description="Servicio de análisis especializado" endpoint={serviceEndpoints.ai} icon="brain" service="ai" query={ai} />
+          <ServiceStatusCard title="Servicio de IA" description="Inferencia local de modelos" endpoint={serviceEndpoints.ai} icon="brain" service="ai" query={ai} />
         </div>
       </section>
 
-      <section className="lower-grid" aria-label="Información del análisis">
-        <article className="transparency-card">
-          <span className="transparency-icon"><Icon name="shield-check" size={20} /></span>
-          <div>
-            <p className="eyebrow">TRANSPARENCIA</p>
-            <h2>Un análisis independiente, siempre en contexto.</h2>
-            <p>Turniting ofrece un análisis académico probabilístico e independiente. No es un resultado oficial de Turnitin ni reproduce su algoritmo propietario.</p>
-          </div>
-          <span className="transparency-decoration" aria-hidden="true"><Icon name="spark" size={46} /></span>
-        </article>
-
-        <article className="next-step-card">
-          <div className="next-step-heading">
-            <span className="next-step-icon"><Icon name="spark" size={18} /></span>
-            <span className="next-step-label">LO QUE SIGUE</span>
-          </div>
-          <h2>Análisis con inteligencia artificial</h2>
-          <p>Las señales de escritura y las estimaciones probabilísticas estarán disponibles en una fase posterior.</p>
-          <span className="next-step-status"><span className="next-step-dot" /> Próximamente</span>
-        </article>
-      </section>
-
       <footer className="page-footer">
-        <span>Turniting · Análisis académico responsable</span>
-        <span>Documentos F001 · Reportes Turnitin F002 · OCR selectivo F003 · Datasets F004</span>
+        <span>Turniting · Análisis académico independiente</span>
+        <span>F001 Documentos · F002 Reportes · F003 OCR · F004 Datasets · F005/F006.2 Research UI</span>
       </footer>
     </div>
   )

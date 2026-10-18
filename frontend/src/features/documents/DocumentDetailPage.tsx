@@ -122,37 +122,81 @@ export function DocumentDetailPage() {
 
   return (
     <div className="dashboard-main document-detail-main">
-      <div className="page-heading document-detail-heading">
-        <div>
-          <p className="eyebrow">DETALLE DEL DOCUMENTO</p>
-          <h1>{record?.originalName || (document.isPending ? 'Cargando documento…' : 'Documento')}</h1>
-          <p className="page-subtitle">Metadatos y texto extraído para este archivo.</p>
+      <header className="document-header">
+        <div className="page-heading document-detail-heading">
+          <div className="document-heading-copy">
+            <nav className="document-breadcrumbs" aria-label="Ruta del documento">
+              <Link to="/documents">Documentos</Link>
+              <span aria-hidden="true">/</span>
+              <span>{record ? record.extension.toUpperCase() : 'Detalle'}</span>
+            </nav>
+            <h1>{record?.originalName || (document.isPending ? 'Cargando documento…' : 'Documento')}</h1>
+            {record ? (
+              <p className="document-header-meta">
+                <span className={`document-status-inline ${statusClass(record.status)}`}>{statusLabel(record.status)}</span>
+                <span aria-hidden="true">·</span>
+                <span>{formatBytes(record.sizeBytes)}</span>
+                {record.wordCount !== null && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>{record.wordCount.toLocaleString('es-PE')} palabras</span>
+                  </>
+                )}
+                <span aria-hidden="true">·</span>
+                <span>Actualizado {formatDate(record.updatedAt)}</span>
+              </p>
+            ) : (
+              <p className="page-subtitle">Metadatos y análisis para este archivo.</p>
+            )}
+          </div>
+          <div className="document-detail-actions">
+            <Link className="button button-quiet" to="/documents">
+              <Icon name="arrow-right" size={15} className="back-arrow" />
+              <span>Todos los documentos</span>
+            </Link>
+            {record?.status === 'OCR_REQUIRED' && (
+              <button className="button button-primary" type="button" onClick={() => processOcr.mutate()} disabled={processOcr.isPending} aria-busy={processOcr.isPending}>
+                <Icon name="refresh" size={15} className={processOcr.isPending ? 'is-spinning' : undefined} />
+                <span>{processOcr.isPending ? 'Procesando OCR…' : 'Procesar OCR'}</span>
+              </button>
+            )}
+            {record && canReprocess && (
+              <button className="button button-primary" type="button" onClick={() => reprocess.mutate()} disabled={reprocess.isPending} aria-busy={reprocess.isPending}>
+                <Icon name="refresh" size={15} className={reprocess.isPending ? 'is-spinning' : undefined} />
+                <span>{reprocess.isPending ? 'Reprocesando…' : 'Reprocesar'}</span>
+              </button>
+            )}
+            {record && (
+              <button className="button button-danger-quiet" type="button" onClick={confirmDelete} disabled={remove.isPending}>
+                <span>{remove.isPending ? 'Eliminando…' : 'Eliminar'}</span>
+              </button>
+            )}
+          </div>
         </div>
-        <div className="document-detail-actions">
-          <Link className="button button-quiet" to="/documents">
-            <Icon name="arrow-right" size={16} className="back-arrow" />
-            <span>Todos los documentos</span>
-          </Link>
-          {record?.status === 'OCR_REQUIRED' && (
-            <button className="button button-primary" type="button" onClick={() => processOcr.mutate()} disabled={processOcr.isPending} aria-busy={processOcr.isPending}>
-              <Icon name="refresh" size={16} className={processOcr.isPending ? 'is-spinning' : undefined} />
-              <span>{processOcr.isPending ? 'Procesando OCR…' : 'Procesar OCR'}</span>
-            </button>
-          )}
-          {record && canReprocess && (
-            <button className="button button-primary" type="button" onClick={() => reprocess.mutate()} disabled={reprocess.isPending} aria-busy={reprocess.isPending}>
-              <Icon name="refresh" size={16} className={reprocess.isPending ? 'is-spinning' : undefined} />
-              <span>{reprocess.isPending ? 'Reprocesando…' : 'Reprocesar'}</span>
-            </button>
-          )}
-          {record && (
-            <button className="button button-danger-quiet" type="button" onClick={confirmDelete} disabled={remove.isPending}>
-              <span aria-hidden="true">×</span>
-              <span>{remove.isPending ? 'Eliminando…' : 'Eliminar'}</span>
-            </button>
-          )}
-        </div>
-      </div>
+
+        {record && (
+          <div className="document-nav-bar">
+            <nav className="document-detail-tabs" aria-label="Secciones del documento">
+              <button className={activeTab === 'analysis' ? 'is-active' : ''} type="button" aria-pressed={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')}>
+                Análisis de investigación
+              </button>
+              <button className={activeTab === 'document' ? 'is-active' : ''} type="button" aria-pressed={activeTab === 'document'} onClick={() => setActiveTab('document')}>
+                Documento y extracción
+              </button>
+            </nav>
+            {activeTab === 'analysis' && (
+              <div className="analysis-mode-switch" aria-label="Flujo de análisis">
+                <button className={analysisMode === 'research' ? 'is-active' : ''} type="button" aria-pressed={analysisMode === 'research'} onClick={() => setAnalysisMode('research')}>
+                  Research · experimental
+                </button>
+                <button className={analysisMode === 'f005' ? 'is-active' : ''} type="button" aria-pressed={analysisMode === 'f005'} onClick={() => setAnalysisMode('f005')}>
+                  F005 existente
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </header>
 
       {document.isError && <ApiErrorNotice error={document.error} title="No se pudo cargar el documento" />}
       {reprocess.isError && <ApiErrorNotice error={reprocess.error} title="No se pudo reprocesar el documento" />}
@@ -167,35 +211,18 @@ export function DocumentDetailPage() {
         </div>
       )}
 
-      {record && (
-        <>
-          <nav className="document-detail-tabs" aria-label="Secciones del documento">
-            <button className={activeTab === 'analysis' ? 'is-active' : ''} type="button" aria-pressed={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')}>
-              Análisis de investigación
-            </button>
-            <button className={activeTab === 'document' ? 'is-active' : ''} type="button" aria-pressed={activeTab === 'document'} onClick={() => setActiveTab('document')}>
-              Documento y extracción
-            </button>
-          </nav>
-          {activeTab === 'document' && (
-            <>
-          <section className="document-summary-card" aria-label="Estado del procesamiento">
-            <div className="document-summary-main">
-              <span className="document-large-icon"><Icon name="file" size={22} /></span>
-              <div>
-                <span className={statusClass(record.status)}>{statusLabel(record.status)}</span>
-                <h2>{record.originalName}</h2>
-                <p>{record.extension.toUpperCase()} · {formatBytes(record.sizeBytes)} · Actualizado {formatDate(record.updatedAt)}</p>
-              </div>
-            </div>
-            {isProcessing && <p className="processing-inline" role="status"><span className="state-indicator is-animated" /> El backend está procesando el archivo. Esta vista se actualizará automáticamente.</p>}
-            {record.status === 'EXTRACTED' && <p className="document-success-note"><Icon name="check" size={15} /> {record.ocrStatus === 'COMPLETED' ? 'OCR completado y texto reconstruido.' : 'Extracción de texto completada.'}</p>}
-            {record.status === 'OCR_REQUIRED' && <p className="document-warning-note">Este documento necesita OCR local para recuperar texto de las páginas escaneadas.</p>}
-            {record.status === 'FAILED' && record.extractionError && <p className="document-error-note"><strong>Error de extracción:</strong> {record.extractionError}</p>}
-            {processOcr.isPending && <p className="processing-inline" role="status"><span className="state-indicator is-animated" /> Procesando OCR página por página, sin porcentaje estimado.</p>}
-            {record.ocrStatus === 'PARTIAL' && <p className="document-warning-note">El OCR quedó parcial. Revisa los avisos y las páginas que aún requieren procesamiento.</p>}
-            {record.averageOcrConfidence !== null && <p className="document-success-note">Confianza promedio OCR: {(record.averageOcrConfidence * 100).toFixed(1)} %.</p>}
-          </section>
+      {record && activeTab === 'document' && (
+        <div className="document-extraction-view">
+          {(isProcessing || record.status === 'OCR_REQUIRED' || (record.status === 'FAILED' && record.extractionError) || processOcr.isPending || record.ocrStatus === 'PARTIAL' || record.averageOcrConfidence !== null) && (
+            <section className="document-status-strip" aria-label="Estado del procesamiento">
+              {isProcessing && <p className="processing-inline" role="status"><span className="state-indicator is-animated" /> El backend está procesando el archivo. Esta vista se actualizará automáticamente.</p>}
+              {record.status === 'OCR_REQUIRED' && <p className="document-warning-note">Este documento necesita OCR local para recuperar texto de las páginas escaneadas.</p>}
+              {record.status === 'FAILED' && record.extractionError && <p className="document-error-note"><strong>Error de extracción:</strong> {record.extractionError}</p>}
+              {processOcr.isPending && <p className="processing-inline" role="status"><span className="state-indicator is-animated" /> Procesando OCR página por página, sin porcentaje estimado.</p>}
+              {record.ocrStatus === 'PARTIAL' && <p className="document-warning-note">El OCR quedó parcial. Revisa los avisos y las páginas que aún requieren procesamiento.</p>}
+              {record.averageOcrConfidence !== null && <p className="document-success-note">Confianza promedio OCR: {(record.averageOcrConfidence * 100).toFixed(1)} %.</p>}
+            </section>
+          )}
 
           {record.warnings.length > 0 && (
             <section className="document-warnings" aria-labelledby="document-warnings-title">
@@ -203,6 +230,58 @@ export function DocumentDetailPage() {
               <ul>{record.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul>
             </section>
           )}
+
+          <div className="document-detail-grid">
+            <section className="document-panel metadata-panel" aria-labelledby="metadata-title">
+              <div className="document-panel-heading">
+                <div><p className="eyebrow">INFORMACIÓN DEL ARCHIVO</p><h2 id="metadata-title">Metadatos</h2></div>
+              </div>
+              <dl className="metadata-list">
+                <div><dt>Nombre original</dt><dd>{record.originalName}</dd></div>
+                <div><dt>Estado</dt><dd>{statusLabel(record.status)}{record.ocrStatus === 'COMPLETED' ? ' · OCR completado' : ''}</dd></div>
+                <div><dt>Formato</dt><dd>{record.extension.toUpperCase()} <span className="metadata-secondary">({record.mimeType || 'tipo no indicado'})</span></dd></div>
+                <div><dt>Tamaño</dt><dd>{formatBytes(record.sizeBytes)}</dd></div>
+                <div><dt>Páginas</dt><dd>{record.pageCount ?? (record.extension === 'pdf' ? 'Pendiente' : 'No aplica')}</dd></div>
+                <div><dt>Palabras</dt><dd>{record.wordCount?.toLocaleString('es-PE') ?? 'Pendiente'}</dd></div>
+                <div><dt>Caracteres</dt><dd>{record.characterCount?.toLocaleString('es-PE') ?? 'Pendiente'}</dd></div>
+                <div><dt>Subido</dt><dd><time dateTime={record.createdAt}>{formatDate(record.createdAt)}</time></dd></div>
+                <div className="metadata-hash"><dt>SHA-256</dt><dd title={record.sha256}>{record.sha256}</dd></div>
+                <div><dt>OCR</dt><dd>{record.requiresOcr ? 'Requerido' : 'No requerido'}</dd></div>
+              </dl>
+            </section>
+
+            <section className="document-panel preview-panel" aria-labelledby="preview-title">
+              <div className="document-panel-heading preview-heading">
+                <div><p className="eyebrow">CONTENIDO EXTRAÍDO</p><h2 id="preview-title">Vista previa</h2></div>
+                {record.status === 'EXTRACTED' && (
+                  <button className="button button-quiet" type="button" onClick={() => setShowFullText((value) => !value)} aria-expanded={showFullText}>
+                    {showFullText ? 'Ocultar texto completo' : 'Cargar texto completo'}
+                  </button>
+                )}
+              </div>
+
+              {record.textPreview ? (
+                <div className="document-preview-text">{record.textPreview}</div>
+              ) : (
+                <div className="document-preview-empty">
+                  {record.status === 'EXTRACTED' ? 'El backend no devolvió una vista previa para este documento.' : 'La vista previa aparecerá cuando termine la extracción del texto.'}
+                </div>
+              )}
+
+              {showFullText && (
+                <div className="full-text-region">
+                  {text.isPending && <p className="full-text-status" role="status">Cargando texto completo…</p>}
+                  {text.isError && <ApiErrorNotice error={text.error} title="No se pudo cargar el texto completo" />}
+                  {text.data && (
+                    <>
+                      <p className="full-text-meta">{text.data.wordCount.toLocaleString('es-PE')} palabras · {text.data.characterCount.toLocaleString('es-PE')} caracteres</p>
+                      <div className="document-full-text">{text.data.text || 'No se encontró texto extraído.'}</div>
+                    </>
+                  )}
+                </div>
+              )}
+            </section>
+          </div>
 
           {record.pageCount !== null && record.pageCount > 0 && (
             <section className="document-panel" aria-labelledby="document-pages-title">
@@ -252,81 +331,18 @@ export function DocumentDetailPage() {
             {record.status !== 'EXTRACTED' && <p className="turnitin-caution">La comparación estará disponible cuando la extracción del documento termine.</p>}
             {turnitinReports.data?.items.length === 0 && <p className="turnitin-caution"><Link to="/turnitin-reports">Importa un reporte Turnitin</Link> para vincularlo a este documento.</p>}
           </section>
+        </div>
+      )}
 
-          <div className="document-detail-grid">
-            <section className="document-panel metadata-panel" aria-labelledby="metadata-title">
-              <div className="document-panel-heading">
-                <div><p className="eyebrow">INFORMACIÓN DEL ARCHIVO</p><h2 id="metadata-title">Metadatos</h2></div>
-              </div>
-              <dl className="metadata-list">
-                <div><dt>Nombre original</dt><dd>{record.originalName}</dd></div>
-                <div><dt>Formato</dt><dd>{record.extension.toUpperCase()} <span className="metadata-secondary">({record.mimeType || 'tipo no indicado'})</span></dd></div>
-                <div><dt>Tamaño</dt><dd>{formatBytes(record.sizeBytes)}</dd></div>
-                <div><dt>Páginas</dt><dd>{record.pageCount ?? (record.extension === 'pdf' ? 'Pendiente' : 'No aplica')}</dd></div>
-                <div><dt>Palabras</dt><dd>{record.wordCount?.toLocaleString('es-PE') ?? 'Pendiente'}</dd></div>
-                <div><dt>Caracteres</dt><dd>{record.characterCount?.toLocaleString('es-PE') ?? 'Pendiente'}</dd></div>
-                <div><dt>Subido</dt><dd><time dateTime={record.createdAt}>{formatDate(record.createdAt)}</time></dd></div>
-                <div className="metadata-hash"><dt>SHA-256</dt><dd title={record.sha256}>{record.sha256}</dd></div>
-                <div><dt>OCR</dt><dd>{record.requiresOcr ? 'Requerido' : 'No requerido'}</dd></div>
-              </dl>
-            </section>
-
-            <section className="document-panel preview-panel" aria-labelledby="preview-title">
-              <div className="document-panel-heading preview-heading">
-                <div><p className="eyebrow">CONTENIDO EXTRAÍDO</p><h2 id="preview-title">Vista previa</h2></div>
-                {record.status === 'EXTRACTED' && (
-                  <button className="button button-quiet" type="button" onClick={() => setShowFullText((value) => !value)} aria-expanded={showFullText}>
-                    {showFullText ? 'Ocultar texto completo' : 'Cargar texto completo'}
-                  </button>
-                )}
-              </div>
-
-              {record.textPreview ? (
-                <div className="document-preview-text">{record.textPreview}</div>
-              ) : (
-                <div className="document-preview-empty">
-                  {record.status === 'EXTRACTED' ? 'El backend no devolvió una vista previa para este documento.' : 'La vista previa aparecerá cuando termine la extracción del texto.'}
-                </div>
-              )}
-
-              {showFullText && (
-                <div className="full-text-region">
-                  {text.isPending && <p className="full-text-status" role="status">Cargando texto completo…</p>}
-                  {text.isError && <ApiErrorNotice error={text.error} title="No se pudo cargar el texto completo" />}
-                  {text.data && (
-                    <>
-                      <p className="full-text-meta">{text.data.wordCount.toLocaleString('es-PE')} palabras · {text.data.characterCount.toLocaleString('es-PE')} caracteres</p>
-                      <div className="document-full-text">{text.data.text || 'No se encontró texto extraído.'}</div>
-                    </>
-                  )}
-                </div>
-              )}
-            </section>
-          </div>
-
-            </>
-          )}
-          {activeTab === 'analysis' && (
-            <>
-              <div className="analysis-mode-switch" aria-label="Flujo de análisis">
-                <button className={analysisMode === 'research' ? 'is-active' : ''} type="button" aria-pressed={analysisMode === 'research'} onClick={() => setAnalysisMode('research')}>
-                  Research · experimental
-                </button>
-                <button className={analysisMode === 'f005' ? 'is-active' : ''} type="button" aria-pressed={analysisMode === 'f005'} onClick={() => setAnalysisMode('f005')}>
-                  F005 existente
-                </button>
-              </div>
-              <AnalysisPanel
-                key={`${id}:${analysisMode}`}
-                documentId={id}
-                fileName={record.originalName}
-                hasText={record.status === 'EXTRACTED' && (record.characterCount ?? 0) > 0}
-                researchMode={analysisMode === 'research'}
-                documentWorkflowStatus={documentWorkflowStatus}
-              />
-            </>
-          )}
-        </>
+      {record && activeTab === 'analysis' && (
+        <AnalysisPanel
+          key={`${id}:${analysisMode}`}
+          documentId={id}
+          fileName={record.originalName}
+          hasText={record.status === 'EXTRACTED' && (record.characterCount ?? 0) > 0}
+          researchMode={analysisMode === 'research'}
+          documentWorkflowStatus={documentWorkflowStatus}
+        />
       )}
     </div>
   )

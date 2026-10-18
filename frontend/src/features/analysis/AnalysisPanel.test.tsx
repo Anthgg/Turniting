@@ -195,4 +195,16 @@ describe('AnalysisPanel run provenance and operation errors', () => {
     expect(html).toContain('La respuesta de párrafos no corresponde al análisis seleccionado')
     expect(html).not.toContain('Synthetic run paragraph')
   })
+
+  it('renders the minimal open layout with hero metric, metadata grid, and secondary technical details', () => {
+    const html = renderPanel({ paragraphMode: 'STRICT_PARAGRAPH' })
+
+    expect(html).toContain('analysis-toolbar')
+    expect(html).toContain('analysis-summary-band')
+    expect(html).toContain('analysis-hero-metric')
+    expect(html).toContain('analysis-meta-grid')
+    expect(html).toContain('analysis-paragraph-tech')
+    expect(html).toContain('Detalles técnicos')
+    expect(html).not.toContain('document-panel analysis-panel')
+  })
 })

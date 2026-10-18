@@ -208,59 +208,33 @@ export function AnalysisPanel({
         ? "ERROR"
         : (documentWorkflowStatus ?? (hasText ? "READY" : "PROCESSING"));
 
+  const runLevel = run ? signalLevel(run.documentScore) : null;
+
   return (
     <section
-      className={`document-panel analysis-panel${researchMode ? " research-analysis-panel" : ""}`}
+      className={`analysis-panel${researchMode ? " research-analysis-panel" : ""}`}
       aria-labelledby="analysis-title"
     >
-      <div className="panel-heading">
-        <div>
-          <p className="eyebrow">
-            {researchMode
-              ? "RESEARCH · EXPERIMENTAL · ANÁLISIS LOCAL"
-              : "ANÁLISIS LOCAL · F005"}
-          </p>
+      <div className="analysis-header">
+        <div className="analysis-header-copy">
           <h2 id="analysis-title">Señal de participación de IA</h2>
+          <p className="analysis-disclaimer">
+            Estimación experimental independiente. No es un puntaje de Turnitin ni prueba autoría.
+          </p>
         </div>
         <Link className="button button-quiet" to="/analysis/compare">
           Comparar versiones
         </Link>
       </div>
-      <p className="analysis-disclaimer">
-        Estimación de un modelo de investigación independiente. No es un puntaje
-        de Turnitin, no prueba autoría y no debe usarse por sí sola para tomar
-        decisiones sobre una persona.
-      </p>
-      {researchMode && (
-        <div className="research-analyzer-notices">
-          <p className="analysis-notice research-default-note">
-            Configuración inicial: <strong>ENSEMBLE_V2_V3</strong>, perfil{" "}
-            <strong>BALANCED</strong>, pesos V2/V3 de 0.5/0.5, párrafo estricto
-            y agregación media ponderada por tokens. El puntaje mostrado es la
-            probabilidad calibrada × 100.
-          </p>
-          <p className="analysis-notice research-f006-note" role="status">
-            <strong>F006 experimental: no disponible para inferencia.</strong>{" "}
-            {f006
-              ? availabilityLabel(f006.availability)
-              : "Este artefacto no está habilitado en el registro local."}
-          </p>
-          <p className="analysis-notice">
-            Si el texto está en español, interpreta la señal con cautela: el
-            modelo es experimental y puede equivocarse. Esta advertencia no
-            bloquea el análisis.
-          </p>
-        </div>
-      )}
 
-      <div className="analysis-controls">
-        <label>
+      <div className="analysis-toolbar" role="group" aria-label="Configuración del análisis">
+        <label className="analysis-toolbar-field">
           <span>Analizador</span>
           <select
             value={analyzer}
             onChange={(event) => {
               analyze.reset();
-              setAnalyzer(event.currentTarget.value as AnalyzerName)
+              setAnalyzer(event.currentTarget.value as AnalyzerName);
             }}
           >
             {ANALYZERS.map((item) => (
@@ -272,13 +246,14 @@ export function AnalysisPanel({
             ))}
           </select>
         </label>
-        <label>
-          <span>Perfil de umbral</span>
+
+        <label className="analysis-toolbar-field">
+          <span>Perfil</span>
           <select
             value={profile}
             onChange={(event) => {
               analyze.reset();
-              setProfile(event.currentTarget.value as ThresholdProfileName)
+              setProfile(event.currentTarget.value as ThresholdProfileName);
             }}
           >
             {THRESHOLD_PROFILES.map((item) => (
@@ -288,16 +263,28 @@ export function AnalysisPanel({
             ))}
           </select>
         </label>
-        <div className="analysis-paragraph-mode-field">
+
+        <div className="analysis-toolbar-field analysis-paragraph-mode-field">
           <div className="analysis-paragraph-mode-label">
-            <label htmlFor="analysis-paragraph-mode">Párrafos</label>
+            <label htmlFor="analysis-paragraph-mode">Modo de párrafo</label>
             <details className="analysis-mode-help">
-              <summary aria-label="Información sobre los modos de párrafo" title="Información sobre los modos de párrafo">ⓘ</summary>
+              <summary
+                aria-label="Información sobre los modos de párrafo"
+                title="Información sobre los modos de párrafo"
+              >
+                ⓘ
+              </summary>
               <div className="analysis-mode-help-content" role="note">
-                <strong>Solo el párrafo</strong>
-                <p>Analiza únicamente el párrafo objetivo. Mantiene mayor estabilidad entre versiones y es el modo recomendado.</p>
-                <strong>Con contexto breve</strong>
-                <p>Incluye contexto limitado de los párrafos vecinos. Ayuda con referencias como «este enfoque» o «estos resultados»; la señal puede cambiar si cambia ese contexto.</p>
+                <strong>Solo el párrafo (Recomendado)</strong>
+                <p>
+                  Analiza únicamente el párrafo objetivo. Mantiene mayor
+                  estabilidad al comparar versiones.
+                </p>
+                <strong>Con contexto breve (Experimental)</strong>
+                <p>
+                  Incluye hasta 64 tokens de los párrafos vecinos como
+                  referencia; el puntaje pertenece solo al párrafo objetivo.
+                </p>
               </div>
             </details>
           </div>
@@ -306,7 +293,7 @@ export function AnalysisPanel({
             value={mode}
             onChange={(event) => {
               analyze.reset();
-              setMode(event.currentTarget.value as ParagraphModeName)
+              setMode(event.currentTarget.value as ParagraphModeName);
             }}
           >
             {PARAGRAPH_MODES.map((item) => (
@@ -317,28 +304,11 @@ export function AnalysisPanel({
               </option>
             ))}
           </select>
-          <p className="analysis-mode-description">
-            {mode === "STRICT_PARAGRAPH"
-              ? "Analiza cada párrafo de forma independiente. Recomendado para comparar versiones."
-              : "Añade una pequeña porción de los párrafos vecinos. El porcentaje sigue perteneciendo únicamente al párrafo objetivo."}
-          </p>
         </div>
-        <button
-          className="button button-primary"
-          type="button"
-          disabled={!hasText || analyze.isPending || !usable}
-          onClick={() => analyze.mutate()}
-          aria-busy={analyze.isPending}
-        >
-          <Icon name="spark" size={16} />
-          <span>{analyze.isPending ? "Analizando…" : "Analizar IA"}</span>
-        </button>
-      </div>
 
-      {researchMode && history.length > 0 && (
-        <div className="analysis-history-controls">
-          <label>
-            <span>Historial de análisis</span>
+        {researchMode && history.length > 0 && (
+          <label className="analysis-toolbar-field analysis-history-field">
+            <span>Ejecución</span>
             <select
               value={runId ?? ""}
               onChange={(event) => {
@@ -358,173 +328,180 @@ export function AnalysisPanel({
                   {" · "}
                   {item.documentScorePercent === undefined
                     ? formatSignal(item.documentScore)
-                    : formatPercentPoints(item.documentScorePercent)} ·{" "}
-                  {STATUS_LABEL[item.status] ?? item.status}
+                    : formatPercentPoints(item.documentScorePercent)}{" "}
+                  · {STATUS_LABEL[item.status] ?? item.status}
                 </option>
               ))}
             </select>
           </label>
+        )}
+
+        <div className="analysis-toolbar-action">
+          <button
+            className="button button-primary"
+            type="button"
+            disabled={!hasText || analyze.isPending || !usable}
+            onClick={() => analyze.mutate()}
+            aria-busy={analyze.isPending}
+          >
+            <Icon name="spark" size={15} />
+            <span>{analyze.isPending ? "Analizando…" : "Analizar IA"}</span>
+          </button>
         </div>
-      )}
+      </div>
 
-      <ul className="analysis-model-status" aria-label="Estado de los modelos">
-        {requiredModelNames.map((name) => {
-          const item = models.data?.items.find((model) => model.name === name);
-          return (
-            <li key={name}>
-              <strong>{name}</strong>
-              <span>
-                {item
-                  ? availabilityLabel(item.availability)
-                  : models.isError
-                    ? "Sin conexión con la API"
-                    : "Comprobando…"}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-      {modelStatusError && (
-        <p className="analysis-notice" role="status">
-          {operationErrorMessage("modelStatusError")} El análisis está
-          deshabilitado hasta verificar su disponibilidad.
-        </p>
-      )}
-      {!usable && models.data && (
-        <p className="analysis-notice" role="status">
-          El analizador {modelName} no está disponible. Revisa el artefacto
-          registrado para ese modelo; las rutas locales no se muestran aquí.
-        </p>
-      )}
-      {!hasText && (
-        <p className="analysis-notice">
-          El documento aún no tiene texto extraído listo. Completa la extracción
-          u OCR antes de analizarlo.
-        </p>
-      )}
-      {historyError && researchMode && (
-        <p className="analysis-notice analysis-error" role="alert">
-          {operationErrorMessage("historyError")} El resultado que ya está
-          seleccionado permanece visible.
-          <button className="button button-quiet" type="button" onClick={() => void runs.refetch()}>
-            Reintentar historial
-          </button>
-        </p>
-      )}
-      {analysisError && (
-        <p className="analysis-notice analysis-error" role="alert">
-          {analysisError instanceof ApiRequestError
-            ? analysisErrorMessage(analysisError.code, analysisError.status)
-            : operationErrorMessage("analysisError")}
-          <button className="button button-quiet" type="button" onClick={() => analyze.mutate()}>
-            Reintentar análisis
-          </button>
-        </p>
-      )}
-      {analyze.isPending && (
-        <p className="analysis-notice" role="status" aria-live="polite">
-          Estado: ANALYZING · el análisis local está en curso, sin porcentaje
-          estimado.
-        </p>
-      )}
-      <p className="analysis-workflow-status" role="status">
-        Estado del flujo: <strong>{workflowStatus}</strong>
-      </p>
+      <div className="analysis-notices-compact">
+        {researchMode && (!f006 || !f006.servable) && (
+          <p className="analysis-inline-note analysis-inline-warning" role="status">
+            <span>
+              <strong>F006 no disponible para inferencia:</strong>{" "}
+              {f006
+                ? availabilityLabel(f006.availability)
+                : "No habilitado en el registro local."}
+            </span>
+          </p>
+        )}
+        {mode === "CONTEXTUAL_PARAGRAPH" && (
+          <p className="analysis-inline-note" role="status">
+            Modo contextual seleccionado: añade una ventana breve de párrafos vecinos como referencia; el porcentaje sigue perteneciendo únicamente al párrafo evaluado.
+          </p>
+        )}
+        {modelStatusError && (
+          <p className="analysis-notice" role="status">
+            {operationErrorMessage("modelStatusError")} El análisis está
+            deshabilitado hasta verificar su disponibilidad.
+          </p>
+        )}
+        {!usable && models.data && (
+          <p className="analysis-notice" role="status">
+            El analizador {modelName} no está disponible ({requiredModels.map((m) => m ? availabilityLabel(m.availability) : "No disponible").join(", ")}).
+          </p>
+        )}
+        {!hasText && (
+          <p className="analysis-notice">
+            El documento aún no tiene texto extraído listo. Completa la extracción
+            u OCR antes de analizarlo.
+          </p>
+        )}
+        {historyError && researchMode && (
+          <p className="analysis-notice analysis-error" role="alert">
+            <span>
+              {operationErrorMessage("historyError")} El resultado seleccionado permanece visible.
+            </span>
+            <button className="button button-quiet" type="button" onClick={() => void runs.refetch()}>
+              Reintentar historial
+            </button>
+          </p>
+        )}
+        {analysisError && (
+          <p className="analysis-notice analysis-error" role="alert">
+            <span>
+              {analysisError instanceof ApiRequestError
+                ? analysisErrorMessage(analysisError.code, analysisError.status)
+                : operationErrorMessage("analysisError")}
+            </span>
+            <button className="button button-quiet" type="button" onClick={() => analyze.mutate()}>
+              Reintentar análisis
+            </button>
+          </p>
+        )}
+        {analyze.isPending && (
+          <p className="analysis-notice" role="status" aria-live="polite">
+            Analizando documento localmente ({workflowStatus})…
+          </p>
+        )}
+      </div>
 
-      {researchMode && fileName && (
-        <p className="analysis-document-name">
-          Documento: <strong>{fileName}</strong>
-        </p>
-      )}
       {run && (
-        <div className="analysis-summary" aria-label="Resultado del análisis">
-          <div>
-            <span>Estado</span>
-            <strong>{STATUS_LABEL[run.status] ?? run.status}</strong>
-          </div>
-          <div>
-            <span>Run ID</span>
-            <strong title={run.id}>{run.id.slice(0, 8)}</strong>
-          </div>
-          <div>
-            <span>Fecha</span>
-            <strong>{runDate(run.createdAt)}</strong>
-          </div>
-          {fileName && (
-            <div>
-              <span>Documento</span>
-              <strong title={fileName}>{fileName}</strong>
-            </div>
-          )}
-          <div>
-            <span>Analizador</span>
-            <strong>
-              {run.analyzerMode === "ENSEMBLE"
-                ? "ENSEMBLE_V2_V3 · V2 + V3"
-                : ANALYZER_LABEL[run.analyzerMode]}
-            </strong>
-          </div>
-          <div>
-            <span>Perfil</span>
-            <strong>
-              {PROFILE_LABEL[run.thresholdProfile] ?? run.thresholdProfile}
-            </strong>
-          </div>
-          <div>
-            <span>Modo de párrafo</span>
-            <strong>
-              {run.paragraphMode === "STRICT_PARAGRAPH"
-                ? "Solo el párrafo"
-                : run.paragraphMode === "CONTEXTUAL_PARAGRAPH"
-                  ? "Con contexto breve"
-                  : run.paragraphMode ?? "—"}
-            </strong>
-          </div>
-          <div>
-            <span>Agregación</span>
-            <strong>{run.documentAggregation ?? "—"}</strong>
-          </div>
-          <div>
-            <span>Señal global</span>
-            <strong>
+        <div className="analysis-summary-band" aria-label="Resultado del análisis">
+          <div className="analysis-hero-metric">
+            <span className="analysis-hero-label">Señal global</span>
+            <strong className="analysis-hero-score">
               {run.status === "COMPLETED"
                 ? formatPercentPoints(runScorePercent)
                 : "—"}
             </strong>
+            <div className="analysis-hero-badges">
+              <span className={`analysis-level level-pill-${(runLevel ?? "none").toLowerCase()}`}>
+                {runLevel ? SIGNAL_LABEL[runLevel] : "Sin nivel"}
+              </span>
+              <span className="analysis-hero-sub">
+                {STATUS_LABEL[run.status] ?? run.status}
+              </span>
+            </div>
           </div>
-          <div>
-            <span>Nivel</span>
-            <strong>
-              {signalLevel(run.documentScore)
-                ? SIGNAL_LABEL[signalLevel(run.documentScore)!]
-                : "—"}
-            </strong>
-          </div>
-          <div>
-            <span>Párrafos</span>
-            <strong>
-              {run.scoredSegments} evaluados · {run.insufficientSegments}{" "}
-              insuficientes
-            </strong>
-          </div>
-          <div>
-            <span>Duración de inferencia</span>
-            <strong>
-              {run.inferenceMs !== null
-                ? `${(run.inferenceMs / 1000).toFixed(1)} s`
-                : "—"}
-            </strong>
-          </div>
-          <div>
-            <span>Umbral aplicado</span>
-            <strong>{formatPercent(run.threshold)}</strong>
-          </div>
-          <div>
-            <span>Cache hit</span>
-            <strong>{cacheHitLabel}</strong>
-          </div>
+
+          <dl className="analysis-meta-grid">
+            <div>
+              <dt>Estado</dt>
+              <dd>{STATUS_LABEL[run.status] ?? run.status} · {workflowStatus}</dd>
+            </div>
+            <div>
+              <dt>Run ID</dt>
+              <dd className="analysis-mono" title={run.id}>{run.id.slice(0, 8)}</dd>
+            </div>
+            <div>
+              <dt>Fecha</dt>
+              <dd>{runDate(run.createdAt)}</dd>
+            </div>
+            <div>
+              <dt>Analizador</dt>
+              <dd>
+                {run.analyzerMode === "ENSEMBLE"
+                  ? "ENSEMBLE_V2_V3 · V2 + V3"
+                  : ANALYZER_LABEL[run.analyzerMode]}
+              </dd>
+            </div>
+            <div>
+              <dt>Perfil</dt>
+              <dd>{PROFILE_LABEL[run.thresholdProfile] ?? run.thresholdProfile}</dd>
+            </div>
+            <div>
+              <dt>Modo de párrafo</dt>
+              <dd>
+                {run.paragraphMode === "STRICT_PARAGRAPH"
+                  ? "Solo el párrafo"
+                  : run.paragraphMode === "CONTEXTUAL_PARAGRAPH"
+                    ? "Con contexto breve"
+                    : run.paragraphMode ?? "—"}
+              </dd>
+            </div>
+            <div>
+              <dt>Umbral</dt>
+              <dd>{formatPercent(run.threshold)}</dd>
+            </div>
+            <div>
+              <dt>Duración</dt>
+              <dd>
+                {run.inferenceMs !== null
+                  ? `${(run.inferenceMs / 1000).toFixed(1)} s`
+                  : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt>Cache hit</dt>
+              <dd>{cacheHitLabel}</dd>
+            </div>
+            <div>
+              <dt>Párrafos</dt>
+              <dd>
+                {run.scoredSegments} evaluados · {run.insufficientSegments} insuficientes
+              </dd>
+            </div>
+            <div>
+              <dt>Agregación</dt>
+              <dd className="analysis-mono">{run.documentAggregation ?? "—"}</dd>
+            </div>
+            {fileName && (
+              <div>
+                <dt>Documento</dt>
+                <dd title={fileName}>{fileName}</dd>
+              </div>
+            )}
+          </dl>
         </div>
       )}
+
       {run?.status === "FAILED" && (
         <p className="analysis-notice analysis-error" role="alert">
           El análisis seleccionado no se completó ({run.errorCode ?? "error"}).
@@ -532,54 +509,63 @@ export function AnalysisPanel({
       )}
 
       {run?.status === "COMPLETED" && researchMode && (
-        <div className="analysis-segment-controls">
-          <label>
-            <span>Filtrar párrafos</span>
-            <select
-              value={filter}
-              onChange={(event) => {
-                setFilter(event.currentTarget.value as AnalysisSegmentFilter);
-                setPage(1);
-              }}
-            >
-              {ANALYSIS_SEGMENT_FILTERS.map((item) => (
-                <option key={item} value={item}>
-                  {item === "ALL"
-                    ? "Todos los niveles"
-                    : item === "INSUFFICIENT"
-                      ? "Texto insuficiente"
-                      : SIGNAL_LABEL[item]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Orden</span>
-            <select
-              value={sort}
-              onChange={(event) => {
-                setSort(event.currentTarget.value as AnalysisSegmentSort);
-                setPage(1);
-              }}
-            >
-              <option value="PARAGRAPH">Orden del documento</option>
-              <option value="SCORE_DESC">Señal más alta primero</option>
-            </select>
-          </label>
-          <span className="analysis-result-count">
-            {totalParagraphs} párrafos
-          </span>
+        <div className="analysis-list-bar">
+          <div className="analysis-list-heading">
+            <h3>Párrafos del documento</h3>
+            <span className="analysis-result-count">
+              {totalParagraphs} {totalParagraphs === 1 ? "párrafo" : "párrafos"}
+            </span>
+          </div>
+          <div className="analysis-segment-controls">
+            <label>
+              <span>Filtrar</span>
+              <select
+                value={filter}
+                onChange={(event) => {
+                  setFilter(event.currentTarget.value as AnalysisSegmentFilter);
+                  setPage(1);
+                }}
+              >
+                {ANALYSIS_SEGMENT_FILTERS.map((item) => (
+                  <option key={item} value={item}>
+                    {item === "ALL"
+                      ? "Todos los niveles"
+                      : item === "INSUFFICIENT"
+                        ? "Texto insuficiente"
+                        : SIGNAL_LABEL[item]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Ordenar</span>
+              <select
+                value={sort}
+                onChange={(event) => {
+                  setSort(event.currentTarget.value as AnalysisSegmentSort);
+                  setPage(1);
+                }}
+              >
+                <option value="PARAGRAPH">Orden del documento</option>
+                <option value="SCORE_DESC">Señal más alta primero</option>
+              </select>
+            </label>
+          </div>
         </div>
       )}
+
       {segmentsError && researchMode && (
         <p className="analysis-notice analysis-error" role="alert">
-          {operationErrorMessage("segmentsError")} Run {runId?.slice(0, 8)}.
-          La señal global del run sigue disponible.
+          <span>
+            {operationErrorMessage("segmentsError")} Run {runId?.slice(0, 8)}.
+            La señal global del run sigue disponible.
+          </span>
           <button className="button button-quiet" type="button" onClick={() => void segments.refetch()}>
             Reintentar párrafos
           </button>
         </p>
       )}
+
       {segments.data && segmentsMatchRun && (
         <>
           {segments.data.stale && (
@@ -601,124 +587,175 @@ export function AnalysisPanel({
                   segment.text && segment.text.length > 260 && !expanded
                     ? `${segment.text.slice(0, 260)}…`
                     : segment.text;
+                const canInspectContext =
+                  run?.paragraphMode === "CONTEXTUAL_PARAGRAPH"
+                  && segment.classification !== "INSUFFICIENT_TEXT"
+                  && Boolean(segment.id);
+                const isContextOpen = Boolean(
+                  canInspectContext && contextSegmentId === segment.id,
+                );
+
                 return (
                   <li
                     key={segment.paragraphIndex}
                     className={`analysis-paragraph level-${(level ?? "none").toLowerCase()}`}
                   >
                     <div className="analysis-paragraph-head">
-                      <strong>Párrafo {segment.paragraphIndex + 1}</strong>
-                      <span>
-                        {segment.classification === "INSUFFICIENT_TEXT"
-                          ? "Texto insuficiente"
-                          : `Señal IA ${formatSignal(segment.calibratedScore)}`}
-                      </span>
-                      {level && (
-                        <span className="analysis-level">
-                          {SIGNAL_LABEL[level]}
-                        </span>
-                      )}
-                      {segment.pageNumber !== null && (
-                        <small>pág. {segment.pageNumber}</small>
-                      )}
-                      {run?.paragraphMode === "CONTEXTUAL_PARAGRAPH" && (
-                        <span className="analysis-context-badge">
+                      <div className="analysis-paragraph-id">
+                        <strong>Párrafo {segment.paragraphIndex + 1}</strong>
+                        {segment.pageNumber !== null && (
+                          <small>pág. {segment.pageNumber}</small>
+                        )}
+                      </div>
+                      <div className="analysis-paragraph-badges">
+                        <span className="analysis-paragraph-score">
                           {segment.classification === "INSUFFICIENT_TEXT"
-                            ? "Contexto no aplicado"
-                            : "Contexto utilizado"}
+                            ? "Texto insuficiente"
+                            : formatSignal(segment.calibratedScore)}
                         </span>
-                      )}
-                      <small>
-                        {segment.modelName} · {run?.analyzerMode} ·{" "}
-                        {run?.analyzerVersion} · {segment.classification}
-                      </small>
+                        {level && (
+                          <span className={`analysis-level level-pill-${level.toLowerCase()}`}>
+                            {SIGNAL_LABEL[level]}
+                          </span>
+                        )}
+                        {run?.paragraphMode === "CONTEXTUAL_PARAGRAPH" && (
+                          <span className="analysis-context-badge">
+                            {segment.classification === "INSUFFICIENT_TEXT"
+                              ? "Contexto no aplicado"
+                              : "Contexto utilizado"}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    {preview && <p>{preview}</p>}
-                    {segment.text && segment.text.length > 260 && (
-                      <button
-                        className="analysis-text-toggle"
-                        type="button"
-                        aria-expanded={expanded}
-                        onClick={() =>
-                          setExpandedParagraphs((current) => ({
-                            ...current,
-                            [segment.paragraphIndex]: !expanded,
-                          }))
-                        }
-                      >
-                        {expanded
-                          ? "Ocultar texto completo"
-                          : "Ver texto completo"}
-                      </button>
-                    )}
-                    {run?.paragraphMode === "CONTEXTUAL_PARAGRAPH"
-                      && segment.classification !== "INSUFFICIENT_TEXT"
-                      && segment.id && (
-                        <div className="analysis-context-control">
-                          <button
-                            className="analysis-text-toggle"
-                            type="button"
-                            aria-expanded={contextSegmentId === segment.id}
-                            aria-controls={`analysis-context-${segment.id}`}
-                            onClick={() => setContextSegmentId((current) =>
-                              current === segment.id ? null : segment.id ?? null,
-                            )}
-                          >
-                            {contextSegmentId === segment.id
-                              ? "Ocultar contexto utilizado"
-                              : "Ver contexto utilizado"}
-                          </button>
-                          {contextSegmentId === segment.id && (
-                            <div
-                              className="analysis-context-drawer"
-                              id={`analysis-context-${segment.id}`}
-                              role="region"
-                              aria-label={`Contexto del párrafo ${segment.paragraphIndex + 1}`}
-                            >
-                              {segmentContext.isError && (
-                                <p className="analysis-context-message" role="alert">
-                                  No se pudo cargar el contexto utilizado.
-                                  <button className="button button-quiet" type="button" onClick={() => void segmentContext.refetch()}>
-                                    Reintentar
-                                  </button>
-                                </p>
-                              )}
-                              {segmentContext.isPending && !segmentContext.data && (
-                                <p className="analysis-context-message" role="status">Cargando contexto…</p>
-                              )}
-                              {segmentContext.data && (
-                                <>
-                                  <p className="analysis-context-explanation">
-                                    El modelo usa hasta {segmentContext.data.contextMetadata.tokenLimitPerSide ?? "un límite no registrado"} tokens por lado y ventana. Se muestran los párrafos vecinos completos como referencia; el porcentaje pertenece solo al párrafo evaluado.
-                                  </p>
-                                  <section className="analysis-context-neighbor">
-                                    <h4>Anterior</h4>
-                                    {segmentContext.data.before.paragraphIndex === null
-                                      ? <p>No disponible: es el primer párrafo.</p>
-                                      : <p>{segmentContext.data.before.text}</p>}
-                                    {segmentContext.data.before.paragraphIndex !== null && (
-                                      <small>Tokens usados por ventana · {contextTokenLabel(segmentContext.data.before.tokensUsed)}</small>
-                                    )}
-                                  </section>
-                                  <section className="analysis-context-target">
-                                    <h4>Párrafo evaluado · Señal IA {formatSignal(segment.calibratedScore)}</h4>
-                                    <p>{segmentContext.data.target.text}</p>
-                                  </section>
-                                  <section className="analysis-context-neighbor">
-                                    <h4>Siguiente</h4>
-                                    {segmentContext.data.after.paragraphIndex === null
-                                      ? <p>No disponible: es el último párrafo.</p>
-                                      : <p>{segmentContext.data.after.text}</p>}
-                                    {segmentContext.data.after.paragraphIndex !== null && (
-                                      <small>Tokens usados por ventana · {contextTokenLabel(segmentContext.data.after.tokensUsed)}</small>
-                                    )}
-                                  </section>
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
+
+                    {preview && <p className="analysis-paragraph-text">{preview}</p>}
+
+                    <div className="analysis-paragraph-footer">
+                      {segment.text && segment.text.length > 260 && (
+                        <button
+                          className="analysis-text-toggle"
+                          type="button"
+                          aria-expanded={expanded}
+                          onClick={() =>
+                            setExpandedParagraphs((current) => ({
+                              ...current,
+                              [segment.paragraphIndex]: !expanded,
+                            }))
+                          }
+                        >
+                          {expanded
+                            ? "Ocultar texto completo"
+                            : "Ver texto completo"}
+                        </button>
                       )}
+
+                      {canInspectContext && (
+                        <button
+                          className="analysis-text-toggle"
+                          type="button"
+                          aria-expanded={isContextOpen}
+                          aria-controls={`analysis-context-${segment.id}`}
+                          onClick={() =>
+                            setContextSegmentId((current) =>
+                              current === segment.id ? null : segment.id ?? null,
+                            )
+                          }
+                        >
+                          {isContextOpen
+                            ? "Ocultar contexto utilizado"
+                            : "Ver contexto utilizado"}
+                        </button>
+                      )}
+
+                      <details className="analysis-paragraph-tech">
+                        <summary>Detalles técnicos</summary>
+                        <span>
+                          {segment.modelName} · {run?.analyzerMode} ·{" "}
+                          {run?.analyzerVersion} · {segment.classification}
+                          {segment.words !== undefined ? ` · ${segment.words} palabras` : ""}
+                        </span>
+                      </details>
+                    </div>
+
+                    {isContextOpen && (
+                      <div
+                        className="analysis-context-drawer"
+                        id={`analysis-context-${segment.id}`}
+                        role="region"
+                        aria-label={`Contexto del párrafo ${segment.paragraphIndex + 1}`}
+                      >
+                        {segmentContext.isError && (
+                          <p className="analysis-context-message" role="alert">
+                            <span>No se pudo cargar el contexto utilizado.</span>
+                            <button
+                              className="button button-quiet"
+                              type="button"
+                              onClick={() => void segmentContext.refetch()}
+                            >
+                              Reintentar
+                            </button>
+                          </p>
+                        )}
+                        {segmentContext.isPending && !segmentContext.data && (
+                          <p className="analysis-context-message" role="status">
+                            Cargando contexto…
+                          </p>
+                        )}
+                        {segmentContext.data && (
+                          <>
+                            <p className="analysis-context-explanation">
+                              El modelo usa hasta{" "}
+                              {segmentContext.data.contextMetadata.tokenLimitPerSide ??
+                                "un límite no registrado"}{" "}
+                              tokens por lado y ventana. Se muestran los párrafos
+                              vecinos completos como referencia; el porcentaje
+                              pertenece solo al párrafo evaluado.
+                            </p>
+                            <div className="analysis-context-grid">
+                              <section className="analysis-context-neighbor">
+                                <h4>Anterior</h4>
+                                {segmentContext.data.before.paragraphIndex === null ? (
+                                  <p>No disponible: es el primer párrafo.</p>
+                                ) : (
+                                  <p>{segmentContext.data.before.text}</p>
+                                )}
+                                {segmentContext.data.before.paragraphIndex !== null && (
+                                  <small>
+                                    Tokens usados por ventana ·{" "}
+                                    {contextTokenLabel(
+                                      segmentContext.data.before.tokensUsed,
+                                    )}
+                                  </small>
+                                )}
+                              </section>
+                              <section className="analysis-context-target">
+                                <h4>
+                                  Párrafo evaluado · Señal IA{" "}
+                                  {formatSignal(segment.calibratedScore)}
+                                </h4>
+                                <p>{segmentContext.data.target.text}</p>
+                              </section>
+                              <section className="analysis-context-neighbor">
+                                <h4>Siguiente</h4>
+                                {segmentContext.data.after.paragraphIndex === null ? (
+                                  <p>No disponible: es el último párrafo.</p>
+                                ) : (
+                                  <p>{segmentContext.data.after.text}</p>
+                                )}
+                                {segmentContext.data.after.paragraphIndex !== null && (
+                                  <small>
+                                    Tokens usados por ventana ·{" "}
+                                    {contextTokenLabel(
+                                      segmentContext.data.after.tokensUsed,
+                                    )}
+                                  </small>
+                                )}
+                              </section>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </li>
                 );
               })}
@@ -756,8 +793,10 @@ export function AnalysisPanel({
       )}
       {segments.data && !segmentsMatchRun && run?.status === "COMPLETED" && researchMode && (
         <p className="analysis-notice analysis-error" role="alert">
-          La respuesta de párrafos no corresponde al análisis seleccionado; no se
-          mostrarán fragmentos de otro run.
+          <span>
+            La respuesta de párrafos no corresponde al análisis seleccionado; no se
+            mostrarán fragmentos de otro run.
+          </span>
           <button className="button button-quiet" type="button" onClick={() => void segments.refetch()}>
             Volver a cargar párrafos
           </button>
