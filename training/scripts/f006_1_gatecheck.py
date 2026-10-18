@@ -18,12 +18,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from f006_lib import threshold_for_fpr, wilson, write_json  # noqa: E402
 
-D61 = Path("/content/drive/MyDrive/turniting/f006_1")
+import os  # noqa: E402
+
+D61 = Path(os.environ.get("F006_DRIVE", "/content/drive/MyDrive/turniting/f006_1"))
+VAL = os.environ.get("F006_VAL", "f006_1_validation.parquet")
 REPO = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
-    val = pd.read_parquet(D61 / "datasets" / "f006_1_validation.parquet", columns=["id", "label", "language"]).set_index("id")
+    val = pd.read_parquet(D61 / "datasets" / VAL, columns=["id", "label", "language"]).set_index("id")
     out, any_ok = {}, False
     for p in sorted((D61 / "runs").glob("*/validation_doc_logits.parquet")):
         lg = pd.read_parquet(p).set_index("id").reindex(val.index)["logit"].values
@@ -38,7 +41,7 @@ def main() -> int:
                               "passes": bool(ok)}
     rep = {"rule": __doc__.split("This check")[1].strip(), "runs": out, "any_pass": bool(any_ok)}
     write_json(D61 / "reports" / "ablation_gate_check.json", rep)
-    write_json(REPO / "reports" / "f006_1" / "ablation_gate_check.json", rep)
+    write_json(REPO / "reports" / os.environ.get("F006_REPORT_DIR", "f006_1") / "ablation_gate_check.json", rep)
     print(int(any_ok))
     return 0
 

@@ -35,12 +35,12 @@ D6 = Path("/content/drive/MyDrive/turniting/f006")
 D61 = Path("/content/drive/MyDrive/turniting/f006_1")
 V3D = Path("/content/drive/MyDrive/turniting/v3")
 REPO = Path(__file__).resolve().parents[1]
-OPTIONS = ["GLOBAL", "ES_ISO", "ES_PLATT", "ES_THRESH"]
-COMPLEXITY = {"GLOBAL": 0, "ES_THRESH": 1, "ES_PLATT": 2, "ES_ISO": 3}
+OPTIONS = ["GLOBAL", "GLOBAL_PLATT", "ES_ISO", "ES_PLATT", "ES_THRESH"]
+COMPLEXITY = {"GLOBAL": 0, "GLOBAL_PLATT": 0, "ES_THRESH": 1, "ES_PLATT": 2, "ES_ISO": 3}
 
 
 def fit(option: str, lg: np.ndarray, y: np.ndarray, es: np.ndarray) -> dict:
-    g = Calibrator("isotonic").fit(lg, y)
+    g = Calibrator("platt" if option == "GLOBAL_PLATT" else "isotonic").fit(lg, y)
     cfg = {"option": option, "global": g.to_dict()}
     if option in ("ES_ISO", "ES_PLATT") and es.sum() > 50 and len(set(y[es])) == 2:
         cfg["spanish"] = Calibrator("isotonic" if option == "ES_ISO" else "platt").fit(lg[es], y[es]).to_dict()
