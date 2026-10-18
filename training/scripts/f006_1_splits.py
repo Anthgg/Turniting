@@ -100,6 +100,42 @@ def spanish_select(es: pd.DataFrame, side: str) -> pd.DataFrame:
     return out
 
 
+def supplement(idx: pd.DataFrame, chosen: pd.DataFrame, side: str, need: dict) -> pd.DataFrame:
+    """Top up subsets the core split cannot fill (mixed / span) from other splits of the same side."""
+    d = idx[(idx["side"] == side) & ~idx["id"].isin(set(chosen["id"]))]
+    add = []
+    for name, n in need.items():
+        have = int(((chosen["primary"] == name) & (chosen["fine_label"] != "HUMAN")).sum())
+        if have >= n:
+            continue
+        pool = d[d["fine_label"] == "MIXED"] if name == "mixed" else d[(d["fine_label"] != "HUMAN") & d["span_labels_present"].fillna(False).astype(bool)]
+        pool = pool[~pool["id"].isin(set(pd.concat(add)["id"]) if add else set())]
+        extra = cap(pool, n - have, ["dataset", "fine_label"], SEED).assign(primary=name)
+        log(f"  {side} {name}: +{len(extra):,} from {sorted(extra['split'].unique())}")
+        add.append(extra)
+    return pd.concat([chosen, *add], ignore_index=True) if add else chosen
+
+
+def near_dup_members(a: pd.DataFrame, b: pd.DataFrame) -> set:
+    """Row indices of `b` that are MinHash near duplicates (J>=0.8) of any row of `a`."""
+    from turniting_train.dedup import MinHasher, band_hashes, candidate_pairs, estimated_jaccard
+
+    mh = MinHasher(num_perm=64, seed=42, max_chars=3000)
+    texts = a["text_original"].tolist() + b["text_original"].tolist()
+    sig = np.stack([mh.signature(t) for t in texts])
+    pairs = candidate_pairs(band_hashes(sig, 8), np.ones(len(texts), bool))
+    out = set()
+    if len(pairs):
+        j = estimated_jaccard(sig, pairs)
+        na = len(a)
+        for x, y in pairs[j >= 0.8]:
+            if x < na <= y:
+                out.add(int(y - na))
+            elif y < na <= x:
+                out.add(int(x - na))
+    return out
+
+
 def main() -> int:
     man_path = D61 / "manifests" / "f006_1_final_holdout.json"
     if man_path.exists() and json.loads(man_path.read_text()).get("LOCKED"):
@@ -149,6 +185,8 @@ def main() -> int:
     # ---------------- selection
     val_g = select(idx, "VAL", GLOBAL["validation"])
     hold_g = select(idx, "TEST", GLOBAL["holdout"])
+    hold_g = supplement(idx, hold_g, "TEST", {"mixed": 800, "span": 600})
+    val_g = supplement(idx, val_g, "VAL", {"mixed": 800})
     newm = new.drop(columns=["text", "title", "url", "src_id", "original_split", "year", "license", "provenance", "label"], errors="ignore")
     es_all = pd.concat([idx[elig & (idx["language"] == "es")], newm], ignore_index=True)
     es_all["region"] = es_all["region"].fillna("UNKNOWN") if "region" in es_all else "UNKNOWN"
@@ -167,6 +205,15 @@ def main() -> int:
     tr_parent = set(train_rows["parent_id"].dropna()) | set(train_rows["id"]) | set(extra["id"])
     vtexts, htexts = read_text(val, new), read_text(hold, new)
     etexts = read_text(extra, new)
+    es_eval = pd.concat([vtexts[vtexts["primary"] == "spanish"], htexts[htexts["primary"] == "spanish"]], ignore_index=True)
+    drop = near_dup_members(es_eval, etexts)
+    if drop:
+        log(f"dropping {len(drop)} TRAIN_EXTRA rows that are near duplicates of evaluation rows")
+        etexts = etexts.drop(index=sorted(drop)).reset_index(drop=True)
+        extra = extra[extra["id"].isin(set(etexts["id"]))]
+        tr_groups = set(train_rows["group_id"]) | set(extra["group_id"])
+        tr_hash = set(train_rows["text_hash"]) | set(extra["text_hash"])
+        tr_parent = set(train_rows["parent_id"].dropna()) | set(train_rows["id"]) | set(extra["id"])
     vg, hg = set(val["group_id"]), set(hold["group_id"])
 
     def pc_(a, b_ids, b_par):
