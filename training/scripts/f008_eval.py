@@ -324,25 +324,34 @@ def span_scores(docs, preds: dict) -> dict:
             "paraphrase_precision": para_tp / max(para_tp + para_fp, 1), "paraphrase_hits": para_tp, "paws_negative_hits": para_fp}
 
 
-def detect(docs, sysm: Systems, system: str, rer: Reranker | None, cfg: dict, top_rerank: int = 20, top_align: int = 3, char: CharNgram | None = None):
+def prepare(docs, sysm: Systems, system: str, rer: Reranker | None, top_rerank: int = 20):
+    """Retrieval + reranking once per doc set (cached across alignment configs)."""
     qp = query_passages(docs)
     texts = [q["text"] for q in qp]
     t0 = time.time()
-    res = sysm.run(texts, 100)
-    rankings = fused(res)[system]
+    rankings = fused(sysm.run(texts, 100))[system]
     t_ret = time.time() - t0
+    log(f"  retrieval {len(qp):,} query passages in {t_ret:.0f}s")
     t1 = time.time()
     ps = sysm.ps
     cands = [r[:top_rerank] for r in rankings]
     pairs = [(q["text"], ps["text"].iat[pid]) for q, c in zip(qp, cands) for pid in c]
     rs = rer.score(pairs) if rer else np.ones(len(pairs))
     t_rr = time.time() - t1
-    preds, k, t2 = {}, 0, time.time()
-    for q, c in zip(qp, cands):
-        sc = rs[k:k + len(c)]
-        k += len(c)
-        order = np.argsort(-sc)[:top_align]
-        for j in order:
+    log(f"  reranked {len(pairs):,} pairs in {t_rr:.0f}s")
+    offs = np.cumsum([0] + [len(c) for c in cands])
+    scores = [rs[offs[i]:offs[i + 1]] for i in range(len(cands))]
+    reranked = [[c[j] for j in np.argsort(-sc)] for c, sc in zip(cands, scores)]
+    gold = [q["gold_sources"] for q in qp]
+    return {"qp": qp, "rankings": rankings, "cands": cands, "scores": scores, "reranked": reranked, "gold": gold,
+            "pos": [i for i, g in enumerate(gold) if g], "perf": {"query_passages": len(qp), "retrieval_s": t_ret, "rerank_s": t_rr,
+                                                                    "queries_per_sec": len(qp) / max(t_ret, 1e-9), "rerank_pairs_per_sec": len(pairs) / max(t_rr, 1e-9)}}
+
+
+def align_stage(prep, sysm: Systems, rer, char, cfg: dict, top_align: int = 3) -> dict:
+    ps, preds, t2 = sysm.ps, {}, time.time()
+    for q, c, sc in zip(prep["qp"], prep["cands"], prep["scores"]):
+        for j in np.argsort(-sc)[:top_align]:
             if sc[j] < cfg["tau_doc"]:
                 continue
             pid = c[j]
@@ -350,12 +359,8 @@ def detect(docs, sysm: Systems, system: str, rer: Reranker | None, cfg: dict, to
                 m = {**m, "queryStart": m["queryStart"] + q["start"], "queryEnd": m["queryEnd"] + q["start"], "source": ps["doc"].iat[pid],
                      "rerankerScore": m["rerankerScore"] if m["rerankerScore"] is not None else float(sc[j])}
                 preds.setdefault(q["doc_id"], []).append(m)
-    t_al = time.time() - t2
-    reranked = [[c[j] for j in np.argsort(-rs[sum(len(x) for x in cands[:i]):sum(len(x) for x in cands[:i + 1])])] for i, c in enumerate(cands)]
-    gold = [q["gold_sources"] for q in qp]
-    pos = [i for i, g in enumerate(gold) if g]
-    perf = {"query_passages": len(qp), "retrieval_s": t_ret, "rerank_s": t_rr, "align_s": t_al, "queries_per_sec": len(qp) / max(t_ret, 1e-9)}
-    return preds, rankings, reranked, gold, pos, perf
+    prep["perf"]["align_s"] = time.time() - t2
+    return preds
 
 
 def bakeoff() -> int:
@@ -363,41 +368,56 @@ def bakeoff() -> int:
     sysm = Systems(ps)
     docs = queries("validation")
     qp = query_passages(docs)
-    texts = [q["text"] for q in qp]
-    gold = [q["gold_sources"] for q in qp]
-    pos = [i for i, g in enumerate(gold) if g]
+    rng = np.random.default_rng(SEED)
+    pos_all = [i for i, q in enumerate(qp) if q["gold_sources"]]
+    caps = {"pan": 4000, "es_synth": 3000, "paws": 1000}
+    pos = []
+    for fam, cap in caps.items():
+        f = [i for i in pos_all if qp[i]["family"] == fam]
+        pos += sorted(rng.choice(f, min(cap, len(f)), replace=False).tolist()) if f else []
+    log(f"validation query passages {len(qp):,}; positive {len(pos_all):,}; evaluated {len(pos):,}")
+    texts = [qp[i]["text"] for i in pos]
+    gold = [qp[i]["gold_sources"] for i in pos]
+    fam_of = [qp[i]["family"] for i in pos]
+    t0 = time.time()
     res = fused(sysm.run(texts, 100))
+    log(f"retrieval systems on {len(texts):,} queries in {time.time() - t0:.0f}s")
     ret = {}
-    for fam in ("pan", "es_synth", "paws"):
-        idx = [i for i in pos if qp[i]["family"] == fam]
-        ret[fam] = {name: retrieval_metrics([r[i] for i in idx], [gold[i] for i in idx], ps) for name, r in res.items()}
+    for fam in caps:
+        idx = [k for k, f in enumerate(fam_of) if f == fam]
+        ret[fam] = {name: retrieval_metrics([r[k] for k in idx], [gold[k] for k in idx], ps) for name, r in res.items()}
     best = max(res, key=lambda n: np.mean([ret[f][n]["mrr"] for f in ret if ret[f][n]["queries"]]))
+    log("MRR by system: " + json.dumps({n: round(float(np.mean([ret[f][n]["mrr"] for f in ret if ret[f][n]["queries"]])), 4) for n in res}))
     rer = Reranker()
     rr_rank = []
-    for i in pos:
-        c = res[best][i][:100]
-        sc = rer.score([(texts[i], ps["text"].iat[p]) for p in c])
+    t0 = time.time()
+    for k in range(len(texts)):
+        c = res[best][k][:100]
+        sc = rer.score([(texts[k], ps["text"].iat[p]) for p in c])
         rr_rank.append([c[j] for j in np.argsort(-sc)])
-    rer_metrics = {fam: retrieval_metrics([rr_rank[k] for k, i in enumerate(pos) if qp[i]["family"] == fam], [gold[i] for i in pos if qp[i]["family"] == fam], ps)
-                   for fam in ("pan", "es_synth", "paws")}
+    log(f"reranked top-100 for {len(texts):,} queries in {time.time() - t0:.0f}s")
+    rer_metrics = {fam: retrieval_metrics([rr_rank[k] for k, f in enumerate(fam_of) if f == fam], [gold[k] for k, f in enumerate(fam_of) if f == fam], ps)
+                   for fam in caps}
     char = CharNgram()
     grid = [{"tau_doc": td, "tau_sem": ts, "tau_rr": tr} for td in (0.2, 0.4) for ts in (0.78, 0.85) for tr in (0.4, 0.7)]
+    by = {f: [d for d in docs if d["family"] == f] for f in caps}
+    sub = by["pan"][:: max(1, len(by["pan"]) // 60)] + by["es_synth"][:: max(1, len(by["es_synth"]) // 300)] + by["paws"][:: max(1, len(by["paws"]) // 300)]
+    prep = prepare(sub, sysm, best, rer)
     span_res = []
-    sub = docs[:: max(1, len(docs) // 400)]
     for cfg in grid:
-        preds, *_ = detect(sub, sysm, best, rer, cfg, char=char)
+        preds = align_stage(prep, sysm, rer, char, cfg)
         sc = span_scores(sub, preds)
         sc["config"] = cfg
         sc["objective"] = sc["char_f1"] - 2 * max(0, sc["same_topic_fpr"] - 0.02) - 2 * max(0, sc["boilerplate_fpr"] - 0.02) - 0.5 * (1 - sc["paraphrase_precision"])
         span_res.append(sc)
         log(f"span cfg {cfg}: {json.dumps({k: round(v, 3) for k, v in sc.items() if isinstance(v, float)})}")
     chosen = max(span_res, key=lambda x: x["objective"])
-    out = {"set": "F008_VALIDATION", "retrieval_zero_shot": ret, "best_retrieval_system": best, "reranker_bge_v2_m3": rer_metrics,
-           "span_alignment_grid": span_res, "chosen_alignment": chosen["config"],
+    out = {"set": "F008_VALIDATION", "retrieval_queries": {"total_query_passages": len(qp), "positive": len(pos_all), "evaluated": len(pos), "caps": caps},
+           "retrieval_zero_shot": ret, "best_retrieval_system": best, "reranker_bge_v2_m3": rer_metrics, "span_docs": len(sub),
+           "span_alignment_grid": span_res, "chosen_alignment": chosen["config"], "performance_span_subset": prep["perf"],
            "fine_tune_decision": "not run: zero-shot BGE-M3 hybrid + reranker is the baseline; see report for whether validation justifies training"}
     write_json(D / "reports" / "zero_shot_bakeoff.json", out)
-    for name in ("zero_shot_bakeoff.json",):
-        write_json(REPO / "reports" / "f008" / name, out)
+    write_json(REPO / "reports" / "f008" / "zero_shot_bakeoff.json", out)
     write_json(REPO / "reports" / "f008" / "retrieval_validation.json", {"retrieval": ret, "best": best})
     write_json(REPO / "reports" / "f008" / "reranker_validation.json", rer_metrics)
     write_json(REPO / "reports" / "f008" / "span_validation.json", {"grid": span_res, "chosen": chosen})
@@ -460,8 +480,9 @@ def final() -> int:
     sysm = Systems(ps)
     rer, char = Reranker(), CharNgram()
     docs = queries("holdout")
-    preds, rankings, reranked, gold, pos, perf = detect(docs, sysm, lock["retriever"], rer, lock["alignment"], char=char)
-    qp = query_passages(docs)
+    prep = prepare(docs, sysm, lock["retriever"], rer)
+    preds = align_stage(prep, sysm, rer, char, lock["alignment"])
+    qp, rankings, reranked, gold, pos, perf = prep["qp"], prep["rankings"], prep["reranked"], prep["gold"], prep["pos"], prep["perf"]
     out = {"set": "F008_FINAL_HOLDOUT", "evaluatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "lock": lock, "holdout_docs": hman["docs"], "performance": perf}
     for fam in ("pan", "es_synth", "paws"):
         idx = [i for i in pos if qp[i]["family"] == fam]

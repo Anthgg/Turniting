@@ -96,17 +96,31 @@ class BM25:
         return _topk_sparse(q, self.W, k, batch)
 
 
-def _topk_sparse(q, W, k, batch):
-    ids, scores = [], []
-    for s in range(0, q.shape[0], batch):
-        m = (q[s:s + batch] @ W).toarray()
-        kk = min(k, m.shape[1])
-        part = np.argpartition(-m, kk - 1, axis=1)[:, :kk]
-        ps = np.take_along_axis(m, part, 1)
-        order = np.argsort(-ps, axis=1)
-        ids.append(np.take_along_axis(part, order, 1))
-        scores.append(np.take_along_axis(ps, order, 1))
-    return np.vstack(ids), np.vstack(scores)
+_SP = {}
+
+
+def _topk_chunk(args):
+    s, e, k = args
+    m = (_SP["q"][s:e] @ _SP["W"]).toarray()
+    kk = min(k, m.shape[1])
+    part = np.argpartition(-m, kk - 1, axis=1)[:, :kk]
+    ps = np.take_along_axis(m, part, 1)
+    order = np.argsort(-ps, axis=1)
+    return np.take_along_axis(part, order, 1), np.take_along_axis(ps, order, 1)
+
+
+def _topk_sparse(q, W, k, batch, workers: int = 10):
+    """Sparse query x sparse index top-k; forked worker pool for large query sets (scipy matmul is single-threaded)."""
+    import multiprocessing as mp
+
+    _SP["q"], _SP["W"] = q, W
+    jobs = [(s, min(s + batch, q.shape[0]), k) for s in range(0, q.shape[0], batch)]
+    if len(jobs) > 4 and workers > 1:
+        with mp.get_context("fork").Pool(workers) as pool:
+            res = pool.map(_topk_chunk, jobs, chunksize=1)
+    else:
+        res = [_topk_chunk(j) for j in jobs]
+    return np.vstack([r[0] for r in res]), np.vstack([r[1] for r in res])
 
 
 class CharNgram:
