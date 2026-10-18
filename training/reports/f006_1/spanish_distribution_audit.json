@@ -1,0 +1,519 @@
+{
+ "question": "F006 Spanish human FPR 0.014 on F006 validation vs 0.142 on the F006 final holdout",
+ "thresholds_balanced_calibrated": {
+  "V3": 0.8646,
+  "F006": 0.8433
+ },
+ "spanish_rows_by_split_label": {
+  "adversarial_test": {
+   "PARAPHRASED_AI": 5500
+  },
+  "test": {
+   "HUMAN": 18828,
+   "AI_GENERATED": 17083,
+   "PARAPHRASED_AI": 5246
+  },
+  "train": {
+   "HUMAN": 26770,
+   "AI_GENERATED": 23480,
+   "PARAPHRASED_AI": 5723
+  },
+  "unseen_domain_test": {
+   "AI_GENERATED": 5946,
+   "HUMAN": 4157
+  },
+  "unseen_generator_test": {
+   "AI_GENERATED": 4637,
+   "PARAPHRASED_AI": 1964
+  },
+  "validation": {
+   "HUMAN": 3380,
+   "AI_GENERATED": 2943,
+   "PARAPHRASED_AI": 722
+  }
+ },
+ "train_spanish_humans": {
+  "name": "TRAIN Spanish humans (stratified sample)",
+  "n": 26770,
+  "by_dataset": {
+   "autextification2023": 12107,
+   "detectrl_x": 7645,
+   "iberautextification": 7018
+  },
+  "by_origin": {
+   "v1": 19125,
+   "new": 7645
+  },
+  "by_v1_split": {
+   "train": 19125,
+   "nan": 7645
+  },
+  "by_domain": {
+   "wiki": 7822,
+   "social": 5286,
+   "legal": 3227,
+   "news": 3157,
+   "literary": 2176,
+   "webtext": 1292,
+   "novel": 1276,
+   "academic": 1269,
+   "seo": 1265
+  },
+  "length_quantiles_words": {
+   "0.1": 17.0,
+   "0.25": 50.0,
+   "0.5": 87.0,
+   "0.75": 325.0,
+   "0.9": 414.0
+  },
+  "style_medians": {
+   "words": 87.0,
+   "mean_sentence_words": 16.2,
+   "paragraphs": 1.0,
+   "newline_rate": 0.0,
+   "comma_rate": 0.0489,
+   "semicolon_colon_rate": 0.0,
+   "quote_rate": 0.0,
+   "inverted_marks": 0.0,
+   "digit_rate": 0.0046,
+   "upper_rate": 0.0181,
+   "citations": 0.0,
+   "references_or_urls": 0.0,
+   "non_ascii_rate": 0.0194,
+   "unusual_unicode": 0.0,
+   "type_token_ratio": 0.6463,
+   "lexical_density": 0.5472
+  },
+  "style_means": {
+   "words": 231.0238,
+   "mean_sentence_words": 17.4044,
+   "paragraphs": 1.0,
+   "newline_rate": 0.0,
+   "comma_rate": 0.0508,
+   "semicolon_colon_rate": 0.0097,
+   "quote_rate": 0.0079,
+   "inverted_marks": 0.0071,
+   "digit_rate": 0.0138,
+   "upper_rate": 0.0256,
+   "citations": 0.0355,
+   "references_or_urls": 0.1064,
+   "non_ascii_rate": 0.0211,
+   "unusual_unicode": 0.1065,
+   "type_token_ratio": 0.6811,
+   "lexical_density": 0.5542
+  }
+ },
+ "validation_spanish_humans": {
+  "name": "F006 VALIDATION Spanish humans",
+  "n": 2225,
+  "by_dataset": {
+   "detectrl_x": 796,
+   "autextification2023": 750,
+   "iberautextification": 679
+  },
+  "by_origin": {
+   "v1": 1429,
+   "new": 796
+  },
+  "by_v1_split": {
+   "validation": 1429,
+   "nan": 796
+  },
+  "by_domain": {
+   "wiki": 584,
+   "social": 416,
+   "news": 316,
+   "literary": 196,
+   "legal": 188,
+   "novel": 151,
+   "academic": 129,
+   "webtext": 124,
+   "seo": 121
+  },
+  "length_quantiles_words": {
+   "0.1": 17.0,
+   "0.25": 60.0,
+   "0.5": 264.0,
+   "0.75": 353.0,
+   "0.9": 477.6
+  },
+  "style_medians": {
+   "words": 264.0,
+   "mean_sentence_words": 17.0,
+   "paragraphs": 1.0,
+   "newline_rate": 0.0,
+   "comma_rate": 0.0513,
+   "semicolon_colon_rate": 0.002,
+   "quote_rate": 0.0,
+   "inverted_marks": 0.0,
+   "digit_rate": 0.0053,
+   "upper_rate": 0.0182,
+   "citations": 0.0,
+   "references_or_urls": 0.0,
+   "non_ascii_rate": 0.0195,
+   "unusual_unicode": 0.0,
+   "type_token_ratio": 0.6139,
+   "lexical_density": 0.5479
+  },
+  "style_means": {
+   "words": 281.653,
+   "mean_sentence_words": 18.0159,
+   "paragraphs": 1.0,
+   "newline_rate": 0.0,
+   "comma_rate": 0.0526,
+   "semicolon_colon_rate": 0.0101,
+   "quote_rate": 0.0093,
+   "inverted_marks": 0.0058,
+   "digit_rate": 0.0141,
+   "upper_rate": 0.0254,
+   "citations": 0.0373,
+   "references_or_urls": 0.1299,
+   "non_ascii_rate": 0.0209,
+   "unusual_unicode": 0.1622,
+   "type_token_ratio": 0.6626,
+   "lexical_density": 0.5556
+  }
+ },
+ "holdout_spanish_humans": {
+  "name": "F006 HOLDOUT Spanish humans (observed; descriptive)",
+  "n": 2628,
+  "by_dataset": {
+   "iberautextification": 1151,
+   "detectrl_x": 751,
+   "autextification2023": 726
+  },
+  "by_origin": {
+   "v1": 1877,
+   "new": 751
+  },
+  "by_v1_split": {
+   "test": 1679,
+   "nan": 751,
+   "unseen_domain_test": 198
+  },
+  "by_domain": {
+   "chat": 530,
+   "news": 524,
+   "howto": 357,
+   "novel": 277,
+   "reviews": 198,
+   "wiki": 189,
+   "academic": 139,
+   "social": 133,
+   "webtext": 102,
+   "literary": 84,
+   "seo": 73,
+   "legal": 22
+  },
+  "length_quantiles_words": {
+   "0.1": 18.0,
+   "0.25": 46.0,
+   "0.5": 83.0,
+   "0.75": 291.0,
+   "0.9": 436.3
+  },
+  "style_medians": {
+   "words": 83.0,
+   "mean_sentence_words": 16.75,
+   "paragraphs": 1.0,
+   "newline_rate": 0.0,
+   "comma_rate": 0.0482,
+   "semicolon_colon_rate": 0.0,
+   "quote_rate": 0.0,
+   "inverted_marks": 0.0,
+   "digit_rate": 0.0002,
+   "upper_rate": 0.0123,
+   "citations": 0.0,
+   "references_or_urls": 0.0,
+   "non_ascii_rate": 0.0192,
+   "unusual_unicode": 0.0,
+   "type_token_ratio": 0.6839,
+   "lexical_density": 0.5359
+  },
+  "style_means": {
+   "words": 189.7462,
+   "mean_sentence_words": 18.7018,
+   "paragraphs": 1.0,
+   "newline_rate": 0.0,
+   "comma_rate": 0.0508,
+   "semicolon_colon_rate": 0.0071,
+   "quote_rate": 0.0106,
+   "inverted_marks": 0.0073,
+   "digit_rate": 0.0081,
+   "upper_rate": 0.0189,
+   "citations": 0.0742,
+   "references_or_urls": 0.0529,
+   "non_ascii_rate": 0.0209,
+   "unusual_unicode": 0.0597,
+   "type_token_ratio": 0.6966,
+   "lexical_density": 0.5409
+  }
+ },
+ "train_fpr_by_dataset": {
+  "autextification2023": {
+   "n": 12107,
+   "V3": {
+    "fpr": 0.0137,
+    "ci95": [
+     0.0118,
+     0.0159
+    ]
+   },
+   "F006": {
+    "fpr": 0.012,
+    "ci95": [
+     0.0102,
+     0.0141
+    ]
+   }
+  },
+  "detectrl_x": {
+   "n": 7645,
+   "V3": {
+    "fpr": 0.0012,
+    "ci95": [
+     0.0006,
+     0.0022
+    ]
+   },
+   "F006": {
+    "fpr": 0.0008,
+    "ci95": [
+     0.0004,
+     0.0017
+    ]
+   }
+  },
+  "iberautextification": {
+   "n": 7018,
+   "V3": {
+    "fpr": 0.0071,
+    "ci95": [
+     0.0054,
+     0.0094
+    ]
+   },
+   "F006": {
+    "fpr": 0.008,
+    "ci95": [
+     0.0062,
+     0.0103
+    ]
+   }
+  }
+ },
+ "validation_fpr_by_dataset": {
+  "autextification2023": {
+   "n": 750,
+   "V3": {
+    "fpr": 0.0293,
+    "ci95": [
+     0.0194,
+     0.044
+    ]
+   },
+   "F006": {
+    "fpr": 0.0307,
+    "ci95": [
+     0.0205,
+     0.0456
+    ]
+   }
+  },
+  "detectrl_x": {
+   "n": 796,
+   "V3": {
+    "fpr": 0.0,
+    "ci95": [
+     0.0,
+     0.0048
+    ]
+   },
+   "F006": {
+    "fpr": 0.0,
+    "ci95": [
+     0.0,
+     0.0048
+    ]
+   }
+  },
+  "iberautextification": {
+   "n": 679,
+   "V3": {
+    "fpr": 0.0103,
+    "ci95": [
+     0.005,
+     0.0211
+    ]
+   },
+   "F006": {
+    "fpr": 0.0118,
+    "ci95": [
+     0.006,
+     0.0231
+    ]
+   }
+  }
+ },
+ "DESCRIPTIVE_ONLY_observed_f006_holdout_fpr_by_source": {
+  "autextification2023|v1|test": {
+   "n": 620,
+   "V3": {
+    "fpr": 0.1435,
+    "ci95": [
+     0.1181,
+     0.1733
+    ]
+   },
+   "F006": {
+    "fpr": 0.0806,
+    "ci95": [
+     0.0617,
+     0.1048
+    ]
+   }
+  },
+  "autextification2023|v1|unseen_domain_test": {
+   "n": 106,
+   "V3": {
+    "fpr": 0.1226,
+    "ci95": [
+     0.0731,
+     0.1986
+    ]
+   },
+   "F006": {
+    "fpr": 0.0755,
+    "ci95": [
+     0.0387,
+     0.1419
+    ]
+   }
+  },
+  "detectrl_x|new|nan": {
+   "n": 751,
+   "V3": {
+    "fpr": 0.0,
+    "ci95": [
+     0.0,
+     0.0051
+    ]
+   },
+   "F006": {
+    "fpr": 0.0013,
+    "ci95": [
+     0.0002,
+     0.0075
+    ]
+   }
+  },
+  "iberautextification|v1|test": {
+   "n": 1059,
+   "V3": {
+    "fpr": 0.3551,
+    "ci95": [
+     0.3268,
+     0.3843
+    ]
+   },
+   "F006": {
+    "fpr": 0.2937,
+    "ci95": [
+     0.267,
+     0.3218
+    ]
+   }
+  },
+  "iberautextification|v1|unseen_domain_test": {
+   "n": 92,
+   "V3": {
+    "fpr": 0.0435,
+    "ci95": [
+     0.017,
+     0.1065
+    ]
+   },
+   "F006": {
+    "fpr": 0.0,
+    "ci95": [
+     0.0,
+     0.0401
+    ]
+   }
+  }
+ },
+ "style_standardised_mean_difference": {
+  "words": {
+   "holdout_vs_validation": -0.3051,
+   "train_vs_validation": -0.1681
+  },
+  "mean_sentence_words": {
+   "holdout_vs_validation": 0.0651,
+   "train_vs_validation": -0.058
+  },
+  "paragraphs": {
+   "holdout_vs_validation": 0.0,
+   "train_vs_validation": 0.0
+  },
+  "newline_rate": {
+   "holdout_vs_validation": 0.0,
+   "train_vs_validation": 0.0
+  },
+  "comma_rate": {
+   "holdout_vs_validation": -0.0486,
+   "train_vs_validation": -0.0502
+  },
+  "semicolon_colon_rate": {
+   "holdout_vs_validation": -0.1358,
+   "train_vs_validation": -0.0167
+  },
+  "quote_rate": {
+   "holdout_vs_validation": 0.0312,
+   "train_vs_validation": -0.0331
+  },
+  "inverted_marks": {
+   "holdout_vs_validation": 0.0684,
+   "train_vs_validation": 0.0555
+  },
+  "digit_rate": {
+   "holdout_vs_validation": -0.3266,
+   "train_vs_validation": -0.0165
+  },
+  "upper_rate": {
+   "holdout_vs_validation": -0.2263,
+   "train_vs_validation": 0.0094
+  },
+  "citations": {
+   "holdout_vs_validation": 0.0414,
+   "train_vs_validation": -0.0021
+  },
+  "references_or_urls": {
+   "holdout_vs_validation": -0.2441,
+   "train_vs_validation": -0.0746
+  },
+  "non_ascii_rate": {
+   "holdout_vs_validation": -0.0013,
+   "train_vs_validation": 0.016
+  },
+  "unusual_unicode": {
+   "holdout_vs_validation": -0.0687,
+   "train_vs_validation": -0.0373
+  },
+  "type_token_ratio": {
+   "holdout_vs_validation": 0.2206,
+   "train_vs_validation": 0.1198
+  },
+  "lexical_density": {
+   "holdout_vs_validation": -0.1959,
+   "train_vs_validation": -0.0194
+  }
+ },
+ "holdout_spanish_human_datasets_absent_from_validation": [],
+ "holdout_spanish_human_share_v1_test_split": 1.0,
+ "validation_spanish_human_share_v1_rows": 0.6422,
+ "datasets_with_train_humans": [
+  "autextification2023",
+  "detectrl_x",
+  "iberautextification"
+ ]
+}

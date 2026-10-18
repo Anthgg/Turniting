@@ -1,0 +1,167 @@
+{
+  "name": "SPANISH_HARD_HUMAN_POOL",
+  "source": "Spanish TRAIN humans only (V2 TRAIN + F006_1 TRAIN_EXTRA)",
+  "scored_humans": 67607,
+  "thresholds_balanced_calibrated": {
+    "V3": 0.8645833333333335,
+    "F006": 0.8433420365535249
+  },
+  "flagged_by_v3": 1725,
+  "flagged_by_f006": 1263,
+  "candidates": 15293,
+  "pool_size": 10562,
+  "cell_cap": "<= 15% of the pool per (dataset, domain)",
+  "pool_by_dataset": {
+    "autextification2023": 5239,
+    "cc_news_es_2019": 2028,
+    "iberautextification": 1645,
+    "xlsum_es_bbcmundo": 917,
+    "detectrl_x": 733
+  },
+  "pool_by_domain": {
+    "news": 4687,
+    "wiki": 1918,
+    "social": 1235,
+    "reviews": 777,
+    "howto": 474,
+    "legal": 356,
+    "chat": 354,
+    "webtext": 204,
+    "seo": 198,
+    "literary": 181,
+    "novel": 134,
+    "academic": 44
+  },
+  "pool_by_region": {
+    "UNKNOWN": 7617,
+    "LATAM_INTERNATIONAL": 917,
+    "BO": 299,
+    "PE": 225,
+    "CL": 160,
+    "AR": 158,
+    "GT": 133,
+    "HN": 132,
+    "VE": 125,
+    "CO": 123,
+    "ES": 119,
+    "CR": 116,
+    "MX": 101,
+    "NI": 89,
+    "PR": 83,
+    "PA": 67,
+    "UY": 51,
+    "PY": 46,
+    "SV": 1
+  },
+  "pool_by_part": {
+    "F006_1_TRAIN_EXTRA": 6276,
+    "V2_TRAIN": 4286
+  },
+  "pool_length_quantiles": {
+    "0.1": 20.0,
+    "0.5": 76.0,
+    "0.9": 323.0
+  },
+  "train_fpr_by_dataset_domain": {
+    "autextification2023|legal": {
+      "n": 3355,
+      "V3": 0.009538002980625931,
+      "F006": 0.00894187779433681
+    },
+    "autextification2023|news": {
+      "n": 1760,
+      "V3": 0.1625,
+      "F006": 0.10852272727272727
+    },
+    "autextification2023|reviews": {
+      "n": 1337,
+      "V3": 0.0762902019446522,
+      "F006": 0.0456245325355273
+    },
+    "autextification2023|social": {
+      "n": 4420,
+      "V3": 0.009728506787330317,
+      "F006": 0.004072398190045249
+    },
+    "autextification2023|wiki": {
+      "n": 4791,
+      "V3": 0.020455019828845754,
+      "F006": 0.022542266750156543
+    },
+    "cc_news_es_2019|news": {
+      "n": 24820,
+      "V3": 0.02671232876712329,
+      "F006": 0.017888799355358583
+    },
+    "detectrl_x|academic": {
+      "n": 1439,
+      "V3": 0.0,
+      "F006": 0.0
+    },
+    "detectrl_x|news": {
+      "n": 1542,
+      "V3": 0.0006485084306095979,
+      "F006": 0.0006485084306095979
+    },
+    "detectrl_x|novel": {
+      "n": 1424,
+      "V3": 0.0014044943820224719,
+      "F006": 0.002106741573033708
+    },
+    "detectrl_x|seo": {
+      "n": 1552,
+      "V3": 0.0019329896907216496,
+      "F006": 0.0006443298969072165
+    },
+    "detectrl_x|webtext": {
+      "n": 1547,
+      "V3": 0.005171299288946348,
+      "F006": 0.003878474466709761
+    },
+    "detectrl_x|wiki": {
+      "n": 1520,
+      "V3": 0.0006578947368421052,
+      "F006": 0.0
+    },
+    "iberautextification|chat": {
+      "n": 436,
+      "V3": 0.4105504587155963,
+      "F006": 0.3555045871559633
+    },
+    "iberautextification|howto": {
+      "n": 656,
+      "V3": 0.3323170731707317,
+      "F006": 0.2423780487804878
+    },
+    "iberautextification|literary": {
+      "n": 2214,
+      "V3": 0.0036133694670280035,
+      "F006": 0.008581752484191508
+    },
+    "iberautextification|news": {
+      "n": 1911,
+      "V3": 0.014652014652014652,
+      "F006": 0.0141287284144427
+    },
+    "iberautextification|reviews": {
+      "n": 171,
+      "V3": 0.04093567251461988,
+      "F006": 0.029239766081871343
+    },
+    "iberautextification|social": {
+      "n": 994,
+      "V3": 0.01006036217303823,
+      "F006": 0.002012072434607646
+    },
+    "iberautextification|wiki": {
+      "n": 1986,
+      "V3": 0.0030211480362537764,
+      "F006": 0.004531722054380665
+    },
+    "xlsum_es_bbcmundo|news": {
+      "n": 9732,
+      "V3": 0.0030826140567200987,
+      "F006": 0.002466091245376079
+    }
+  }
+}

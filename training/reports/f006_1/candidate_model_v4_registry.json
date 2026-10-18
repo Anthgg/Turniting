@@ -1,0 +1,118 @@
+{
+  "name": "EXPERIMENTAL_F006_1_MODEL",
+  "status": "EXPERIMENTAL",
+  "active": false,
+  "parentModel": "B1_v3",
+  "architecture": "microsoft/mdeberta-v3-base + V3 multi-task heads",
+  "artifactPath": "MyDrive/turniting/f006_1/models/experimental_f006_1",
+  "checkpointPath": "MyDrive/turniting/f006_1/runs/F0061_FULL/best",
+  "calibration": {
+    "option": "ES_ISO",
+    "global": "isotonic",
+    "spanish": "isotonic"
+  },
+  "thresholdGlobal": 0.6442953020134229,
+  "thresholdSpanish": 0.6442953020134229,
+  "languageProfile": "Spanish threshold/calibrator applies when language == 'es' (reproducible local detector required); global fallback",
+  "metrics_final_holdout": {
+    "all": {
+      "macro_f1": 0.8913183115501333,
+      "fpr": 0.05545454545454546,
+      "fpr_ci95": [
+        0.051330669224617376,
+        0.05988881615946885
+      ],
+      "recall": 0.846793893129771
+    },
+    "spanish": {
+      "macro_f1": 0.9192178110962022,
+      "fpr": 0.05490909090909091,
+      "fpr_ci95": [
+        0.049193331328846165,
+        0.06124618422697943
+      ],
+      "recall": 0.8916
+    },
+    "spanish_academic": {
+      "macro_f1": 0.9626716940479396,
+      "fpr": 0.0,
+      "fpr_ci95": [
+        0.0,
+        0.03316252537948371
+      ],
+      "recall": 0.9458128078817734
+    },
+    "spanish_non_academic": {
+      "macro_f1": 0.917679460847894,
+      "fpr": 0.05605048255382331,
+      "fpr_ci95": [
+        0.05021888460932599,
+        0.06251469421094202
+      ],
+      "recall": 0.8893058161350844
+    },
+    "academic": {
+      "macro_f1": 0.928611936781685,
+      "fpr": 0.016331658291457288,
+      "fpr_ci95": [
+        0.011169199901173578,
+        0.02382274416144517
+      ],
+      "recall": 0.8775510204081632
+    },
+    "mixed": {
+      "macro_f1": null,
+      "fpr": null,
+      "fpr_ci95": null,
+      "recall": 0.63
+    },
+    "ai_edited": {
+      "macro_f1": 0.9237804308497959,
+      "fpr": 0.005,
+      "fpr_ci95": [
+        0.0013722242215711469,
+        0.018045289972112716
+      ],
+      "recall": 0.89625
+    },
+    "ood": {
+      "macro_f1": 0.9419886297714353,
+      "fpr": 0.044,
+      "fpr_ci95": [
+        0.029233737680341678,
+        0.06571991441984218
+      ],
+      "recall": 0.928
+    },
+    "unseen_generator": {
+      "macro_f1": 0.8768449328449328,
+      "fpr": 0.1075,
+      "fpr_ci95": [
+        0.08788069399954664,
+        0.1308708610331862
+      ],
+      "recall": 0.86125
+    },
+    "unseen_domain": {
+      "macro_f1": 0.8394262163464112,
+      "fpr": 0.06,
+      "fpr_ci95": [
+        0.042348086000950205,
+        0.08436157830624476
+      ],
+      "recall": 0.742
+    },
+    "adversarial": {
+      "macro_f1": null,
+      "fpr": null,
+      "fpr_ci95": null,
+      "recall": 0.8725
+    }
+  },
+  "warnings": [
+    "F006_1_GATES_FAILED: A_overall_human_fpr_le_0.05, D_unseen_generator_fpr_le_0.10, E_mixed_recall_ge_0.64, H_span_f1_ge_0.86"
+  ],
+  "modelSha256": "c451a0062321189f026a1cc3779f50aa1b398a580d4cedfb9365a9486c835a90",
+  "trainingCommit": "52c71d7ee9bedf5e6afc55b48499039db4d74497",
+  "createdAt": "2026-10-18T06:59:53Z"
+}

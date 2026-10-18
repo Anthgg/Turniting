@@ -1,0 +1,236 @@
+{
+  "name": "F006_1_VALIDATION",
+  "created_at": "2026-10-18T03:07:16Z",
+  "seed": 6106,
+  "provenance_rules": {
+    "autextification2023": [
+      "HUMAN_STRONG",
+      "AuTexTification 2023 human texts come from pre-2022 public corpora (task paper)"
+    ],
+    "iberautextification": [
+      "HUMAN_STRONG",
+      "IberAuTexTification human texts collected from existing pre-LLM public corpora (task paper)"
+    ],
+    "detectrl_x": [
+      "HUMAN_STRONG",
+      "DetectRL human side built from pre-2023 public datasets"
+    ],
+    "xlsum_es_bbcmundo": [
+      "HUMAN_STRONG",
+      "BBC Mundo articles published before 2021"
+    ],
+    "cc_news_es_2019": [
+      "HUMAN_STRONG",
+      "news crawled in 2019, before public LLM assistants"
+    ]
+  },
+  "spanish_repartition": "groups outside V2 TRAIN, never evaluated, not in the F006 holdout: 40% TRAIN_EXTRA / 30% VALIDATION / 30% HOLDOUT",
+  "leakage": {
+    "group": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0,
+      "holdout_f006_holdout": 0,
+      "holdout_ever_evaluated": 0
+    },
+    "exact": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "parent_child": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "near_duplicate": {
+      "validation_holdout": 0,
+      "spanish_validation_train_extra": 0,
+      "spanish_holdout_train_extra": 0,
+      "v2_train_eval": 0
+    },
+    "lineage": {
+      "note": "V2 group_id already joins prompt/source/parent lineage; new sources: one group per article URL/id",
+      "validation_holdout_same_source_url": 0,
+      "eval_train_extra_same_source_url": 0
+    },
+    "result": "PASS"
+  },
+  "docs": 23871,
+  "humans": 11371,
+  "machine": 12500,
+  "groups": 18320,
+  "by_primary": {
+    "academic": {
+      "docs": 1600,
+      "humans": 800
+    },
+    "adversarial": {
+      "docs": 800,
+      "humans": 0
+    },
+    "ai_edited": {
+      "docs": 1200,
+      "humans": 400
+    },
+    "general": {
+      "docs": 5000,
+      "humans": 2500
+    },
+    "mixed": {
+      "docs": 814,
+      "humans": 14
+    },
+    "ood": {
+      "docs": 1000,
+      "humans": 500
+    },
+    "spanish": {
+      "docs": 11000,
+      "humans": 6000
+    },
+    "unseen_domain": {
+      "docs": 857,
+      "humans": 357
+    },
+    "unseen_generator": {
+      "docs": 1600,
+      "humans": 800
+    }
+  },
+  "spanish_docs": 11000,
+  "spanish_humans": 6000,
+  "spanish_by_dataset_label": {
+    "cc_news_es_2019|HUMAN": 1973,
+    "autextification2023|HUMAN": 1959,
+    "autextification2023|AI_GENERATED": 1385,
+    "detectrl_x|AI_GENERATED": 1246,
+    "detectrl_x|PARAPHRASED_AI": 1244,
+    "iberautextification|AI_GENERATED": 1125,
+    "detectrl_x|HUMAN": 982,
+    "iberautextification|HUMAN": 959,
+    "xlsum_es_bbcmundo|HUMAN": 127
+  },
+  "spanish_by_domain": {
+    "news": 4152,
+    "reviews": 1419,
+    "wiki": 1215,
+    "howto": 863,
+    "chat": 771,
+    "seo": 581,
+    "webtext": 544,
+    "social": 423,
+    "novel": 351,
+    "academic": 296,
+    "legal": 292,
+    "literary": 93
+  },
+  "spanish_by_region": {
+    "UNKNOWN": 8900,
+    "HN": 132,
+    "LATAM_INTERNATIONAL": 127,
+    "PR": 126,
+    "AR": 124,
+    "MX": 122,
+    "NI": 122,
+    "VE": 122,
+    "UY": 121,
+    "BO": 120,
+    "GT": 120,
+    "CL": 119,
+    "PY": 118,
+    "ES": 117,
+    "CO": 117,
+    "PA": 116,
+    "PE": 115,
+    "CR": 115,
+    "SV": 47
+  },
+  "spanish_by_v1_split": {
+    "nan": 3472,
+    "test": 2730,
+    "none": 2100,
+    "unseen_domain_test": 1399,
+    "validation": 755,
+    "unseen_generator_test": 544
+  },
+  "spanish_human_provenance": {
+    "HUMAN_STRONG": 6000
+  },
+  "languages": {
+    "es": 11000,
+    "en": 10090,
+    "zh": 497,
+    "de": 472,
+    "pt": 447,
+    "ru": 378,
+    "ar": 366,
+    "fr": 363,
+    "it": 64,
+    "gl": 51,
+    "eu": 43,
+    "ca": 42,
+    "ur": 31,
+    "id": 17,
+    "bg": 10
+  },
+  "domains": {
+    "news": 5755,
+    "academic": 5058,
+    "wiki": 1925,
+    "reviews": 1419,
+    "forum": 1066,
+    "howto": 956,
+    "seo": 888,
+    "webtext": 860,
+    "reports": 857,
+    "chat": 829,
+    "novel": 707,
+    "qa": 700,
+    "unknown": 619,
+    "social": 531,
+    "literary": 452,
+    "legal": 329,
+    "web": 262,
+    "social_media": 228,
+    "knowledge": 158,
+    "outfox": 116,
+    "pubmed": 71,
+    "tech_news": 46,
+    "poetry": 24,
+    "creative": 7,
+    "jmlr_pre2015": 3
+  },
+  "datasets": {
+    "detectrl_x": 5891,
+    "autextification2023": 3507,
+    "iberautextification": 2364,
+    "opai_bench": 2224,
+    "cc_news_es_2019": 1973,
+    "mgtbench2_academic": 1444,
+    "mage": 976,
+    "semeval2024_task8": 964,
+    "mdta": 923,
+    "gradtex": 621,
+    "coling2025_mgt_en": 549,
+    "academic_arxiv_gpt_gemini": 545,
+    "openllmtext": 262,
+    "hc3": 258,
+    "nigerian_academic": 230,
+    "turingbench": 208,
+    "m4": 207,
+    "seqxgpt": 197,
+    "txd22": 132,
+    "xlsum_es_bbcmundo": 127,
+    "outfox": 104,
+    "raid": 77,
+    "hc3_chinese": 76,
+    "beemo": 7,
+    "het_ai_spans": 5
+  },
+  "mixed": 1467,
+  "ai_edited": 1566,
+  "hard_humans": 1711,
+  "ids_sha256": "00cf9ee12875019601b7cc30c9304e09382cd310182ff06cc13db5ec74ef07af",
+  "file_sha256": "0bc107496ccb1e03773e0c3f5c7d0689116196af2d3bd2eec9c96f8b73e47adf"
+}

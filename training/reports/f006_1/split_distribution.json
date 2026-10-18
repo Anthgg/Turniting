@@ -1,0 +1,420 @@
+{
+  "manifest_sha256": {
+    "holdout": "cd9717a894e9da82cbc5491e4ee9aab993df90edc7dc2bba735730d1234cfbcb",
+    "validation": "493cd53fdcc12d37fdd834fb3976fff73c07711c3932f3f4a0a87fbfe082a55c"
+  },
+  "validation": {
+    "docs": 23871,
+    "humans": 11371,
+    "machine": 12500,
+    "groups": 18320,
+    "by_primary": {
+      "academic": {
+        "docs": 1600,
+        "humans": 800
+      },
+      "adversarial": {
+        "docs": 800,
+        "humans": 0
+      },
+      "ai_edited": {
+        "docs": 1200,
+        "humans": 400
+      },
+      "general": {
+        "docs": 5000,
+        "humans": 2500
+      },
+      "mixed": {
+        "docs": 814,
+        "humans": 14
+      },
+      "ood": {
+        "docs": 1000,
+        "humans": 500
+      },
+      "spanish": {
+        "docs": 11000,
+        "humans": 6000
+      },
+      "unseen_domain": {
+        "docs": 857,
+        "humans": 357
+      },
+      "unseen_generator": {
+        "docs": 1600,
+        "humans": 800
+      }
+    },
+    "spanish_docs": 11000,
+    "spanish_humans": 6000,
+    "spanish_by_dataset_label": {
+      "cc_news_es_2019|HUMAN": 1973,
+      "autextification2023|HUMAN": 1959,
+      "autextification2023|AI_GENERATED": 1385,
+      "detectrl_x|AI_GENERATED": 1246,
+      "detectrl_x|PARAPHRASED_AI": 1244,
+      "iberautextification|AI_GENERATED": 1125,
+      "detectrl_x|HUMAN": 982,
+      "iberautextification|HUMAN": 959,
+      "xlsum_es_bbcmundo|HUMAN": 127
+    },
+    "spanish_by_domain": {
+      "news": 4152,
+      "reviews": 1419,
+      "wiki": 1215,
+      "howto": 863,
+      "chat": 771,
+      "seo": 581,
+      "webtext": 544,
+      "social": 423,
+      "novel": 351,
+      "academic": 296,
+      "legal": 292,
+      "literary": 93
+    },
+    "spanish_by_region": {
+      "UNKNOWN": 8900,
+      "HN": 132,
+      "LATAM_INTERNATIONAL": 127,
+      "PR": 126,
+      "AR": 124,
+      "MX": 122,
+      "NI": 122,
+      "VE": 122,
+      "UY": 121,
+      "BO": 120,
+      "GT": 120,
+      "CL": 119,
+      "PY": 118,
+      "ES": 117,
+      "CO": 117,
+      "PA": 116,
+      "PE": 115,
+      "CR": 115,
+      "SV": 47
+    },
+    "spanish_by_v1_split": {
+      "nan": 3472,
+      "test": 2730,
+      "none": 2100,
+      "unseen_domain_test": 1399,
+      "validation": 755,
+      "unseen_generator_test": 544
+    },
+    "spanish_human_provenance": {
+      "HUMAN_STRONG": 6000
+    },
+    "languages": {
+      "es": 11000,
+      "en": 10090,
+      "zh": 497,
+      "de": 472,
+      "pt": 447,
+      "ru": 378,
+      "ar": 366,
+      "fr": 363,
+      "it": 64,
+      "gl": 51,
+      "eu": 43,
+      "ca": 42,
+      "ur": 31,
+      "id": 17,
+      "bg": 10
+    },
+    "domains": {
+      "news": 5755,
+      "academic": 5058,
+      "wiki": 1925,
+      "reviews": 1419,
+      "forum": 1066,
+      "howto": 956,
+      "seo": 888,
+      "webtext": 860,
+      "reports": 857,
+      "chat": 829,
+      "novel": 707,
+      "qa": 700,
+      "unknown": 619,
+      "social": 531,
+      "literary": 452,
+      "legal": 329,
+      "web": 262,
+      "social_media": 228,
+      "knowledge": 158,
+      "outfox": 116,
+      "pubmed": 71,
+      "tech_news": 46,
+      "poetry": 24,
+      "creative": 7,
+      "jmlr_pre2015": 3
+    },
+    "datasets": {
+      "detectrl_x": 5891,
+      "autextification2023": 3507,
+      "iberautextification": 2364,
+      "opai_bench": 2224,
+      "cc_news_es_2019": 1973,
+      "mgtbench2_academic": 1444,
+      "mage": 976,
+      "semeval2024_task8": 964,
+      "mdta": 923,
+      "gradtex": 621,
+      "coling2025_mgt_en": 549,
+      "academic_arxiv_gpt_gemini": 545,
+      "openllmtext": 262,
+      "hc3": 258,
+      "nigerian_academic": 230,
+      "turingbench": 208,
+      "m4": 207,
+      "seqxgpt": 197,
+      "txd22": 132,
+      "xlsum_es_bbcmundo": 127,
+      "outfox": 104,
+      "raid": 77,
+      "hc3_chinese": 76,
+      "beemo": 7,
+      "het_ai_spans": 5
+    },
+    "mixed": 1467,
+    "ai_edited": 1566,
+    "hard_humans": 1711
+  },
+  "holdout_metadata_only": {
+    "docs": 24100,
+    "humans": 11000,
+    "machine": 13100,
+    "groups": 19785,
+    "by_primary": {
+      "academic": {
+        "docs": 1600,
+        "humans": 800
+      },
+      "adversarial": {
+        "docs": 800,
+        "humans": 0
+      },
+      "ai_edited": {
+        "docs": 1200,
+        "humans": 400
+      },
+      "general": {
+        "docs": 5000,
+        "humans": 2500
+      },
+      "mixed": {
+        "docs": 800,
+        "humans": 0
+      },
+      "ood": {
+        "docs": 1000,
+        "humans": 500
+      },
+      "span": {
+        "docs": 600,
+        "humans": 0
+      },
+      "spanish": {
+        "docs": 10500,
+        "humans": 5500
+      },
+      "unseen_domain": {
+        "docs": 1000,
+        "humans": 500
+      },
+      "unseen_generator": {
+        "docs": 1600,
+        "humans": 800
+      }
+    },
+    "spanish_docs": 10500,
+    "spanish_humans": 5500,
+    "spanish_by_dataset_label": {
+      "cc_news_es_2019|HUMAN": 1808,
+      "autextification2023|HUMAN": 1616,
+      "autextification2023|AI_GENERATED": 1356,
+      "detectrl_x|PARAPHRASED_AI": 1275,
+      "iberautextification|AI_GENERATED": 1194,
+      "detectrl_x|AI_GENERATED": 1175,
+      "detectrl_x|HUMAN": 996,
+      "iberautextification|HUMAN": 964,
+      "xlsum_es_bbcmundo|HUMAN": 116
+    },
+    "spanish_by_domain": {
+      "news": 4144,
+      "reviews": 1523,
+      "howto": 930,
+      "wiki": 923,
+      "chat": 818,
+      "webtext": 575,
+      "seo": 545,
+      "novel": 333,
+      "academic": 315,
+      "social": 184,
+      "legal": 148,
+      "literary": 62
+    },
+    "spanish_by_region": {
+      "UNKNOWN": 8576,
+      "HN": 117,
+      "LATAM_INTERNATIONAL": 116,
+      "AR": 115,
+      "MX": 114,
+      "GT": 113,
+      "BO": 112,
+      "CO": 111,
+      "PY": 110,
+      "VE": 110,
+      "NI": 109,
+      "ES": 109,
+      "PA": 108,
+      "CL": 107,
+      "PE": 107,
+      "PR": 107,
+      "UY": 106,
+      "CR": 105,
+      "SV": 48
+    },
+    "spanish_by_v1_split": {
+      "nan": 3446,
+      "test": 2830,
+      "none": 1924,
+      "unseen_domain_test": 1498,
+      "unseen_generator_test": 580,
+      "validation": 222
+    },
+    "spanish_human_provenance": {
+      "HUMAN_STRONG": 5500
+    },
+    "languages": {
+      "en": 10818,
+      "es": 10500,
+      "zh": 563,
+      "pt": 431,
+      "de": 374,
+      "ru": 307,
+      "ar": 284,
+      "fr": 225,
+      "ca": 179,
+      "eu": 142,
+      "it": 118,
+      "gl": 59,
+      "bg": 48,
+      "ur": 30,
+      "id": 22
+    },
+    "domains": {
+      "news": 5725,
+      "academic": 5088,
+      "reviews": 2680,
+      "howto": 1499,
+      "wiki": 1357,
+      "chat": 1080,
+      "reports": 878,
+      "unknown": 754,
+      "forum": 736,
+      "literary": 663,
+      "webtext": 657,
+      "seo": 627,
+      "novel": 502,
+      "qa": 459,
+      "social_media": 335,
+      "web": 318,
+      "social": 222,
+      "knowledge": 182,
+      "legal": 156,
+      "tech_news": 118,
+      "outfox": 54,
+      "pubmed": 8,
+      "conversations": 2
+    },
+    "datasets": {
+      "detectrl_x": 5259,
+      "autextification2023": 3337,
+      "iberautextification": 3126,
+      "gradtex": 1827,
+      "cc_news_es_2019": 1808,
+      "mgtbench2_academic": 1795,
+      "semeval2024_task8": 1365,
+      "opai_bench": 1236,
+      "mage": 1147,
+      "coling2025_mgt_en": 787,
+      "academic_arxiv_gpt_gemini": 608,
+      "mdta": 383,
+      "openllmtext": 318,
+      "hc3": 255,
+      "turingbench": 213,
+      "outfox": 166,
+      "seqxgpt": 159,
+      "xlsum_es_bbcmundo": 116,
+      "m4": 100,
+      "hc3_chinese": 92,
+      "nigerian_academic": 3
+    },
+    "mixed": 1465,
+    "ai_edited": 2019,
+    "hard_humans": 1656
+  },
+  "train_extra": {
+    "name": "F006_1_TRAIN_EXTRA",
+    "rows": 51346,
+    "humans": 40837,
+    "by_dataset_label": {
+      "cc_news_es_2019|HUMAN": 24820,
+      "xlsum_es_bbcmundo|HUMAN": 9732,
+      "autextification2023|AI_GENERATED": 4374,
+      "autextification2023|HUMAN": 3556,
+      "detectrl_x|PARAPHRASED_AI": 2613,
+      "iberautextification|AI_GENERATED": 1762,
+      "detectrl_x|AI_GENERATED": 1760,
+      "detectrl_x|HUMAN": 1379,
+      "iberautextification|HUMAN": 1350
+    },
+    "by_domain": {
+      "news": 40649,
+      "reviews": 3667,
+      "howto": 1476,
+      "wiki": 1265,
+      "chat": 1042,
+      "seo": 861,
+      "webtext": 765,
+      "academic": 511,
+      "novel": 449,
+      "social": 312,
+      "legal": 241,
+      "literary": 108
+    },
+    "ids_sha256": "77cf9a5aca3a4b55d07bfe19f9b7bdd91675a4063e98ea68a2465f065a006e8f"
+  },
+  "leakage": {
+    "group": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0,
+      "holdout_f006_holdout": 0,
+      "holdout_ever_evaluated": 0
+    },
+    "exact": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "parent_child": {
+      "validation_train": 0,
+      "holdout_train": 0,
+      "validation_holdout": 0
+    },
+    "near_duplicate": {
+      "validation_holdout": 0,
+      "spanish_validation_train_extra": 0,
+      "spanish_holdout_train_extra": 0,
+      "v2_train_eval": 0
+    },
+    "lineage": {
+      "note": "V2 group_id already joins prompt/source/parent lineage; new sources: one group per article URL/id",
+      "validation_holdout_same_source_url": 0,
+      "eval_train_extra_same_source_url": 0
+    },
+    "result": "PASS"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "name": "SPANISH_TRAIN_POOL_F006_1",
+  "rows": 107319,
+  "by_part_label": {
+    "F006_1_TRAIN_EXTRA|HUMAN": 40837,
+    "V2_TRAIN|HUMAN": 26770,
+    "V2_TRAIN|AI_GENERATED": 23480,
+    "F006_1_TRAIN_EXTRA|AI_GENERATED": 7896,
+    "V2_TRAIN|PARAPHRASED_AI": 5723,
+    "F006_1_TRAIN_EXTRA|PARAPHRASED_AI": 2613
+  },
+  "by_dataset_label": {
+    "cc_news_es_2019|HUMAN": 24820,
+    "autextification2023|AI_GENERATED": 17453,
+    "autextification2023|HUMAN": 15663,
+    "xlsum_es_bbcmundo|HUMAN": 9732,
+    "detectrl_x|HUMAN": 9024,
+    "iberautextification|HUMAN": 8368,
+    "detectrl_x|PARAPHRASED_AI": 8336,
+    "detectrl_x|AI_GENERATED": 7489,
+    "iberautextification|AI_GENERATED": 6428,
+    "semeval2024_task8|AI_GENERATED": 6
+  },
+  "humans_by_domain": {
+    "news": 39765,
+    "wiki": 8297,
+    "social": 5414,
+    "legal": 3355,
+    "literary": 2214,
+    "seo": 1552,
+    "webtext": 1547,
+    "reviews": 1508,
+    "academic": 1439,
+    "novel": 1424,
+    "howto": 656,
+    "chat": 436
+  },
+  "humans_by_region": {
+    "UNKNOWN": 33055,
+    "LATAM_INTERNATIONAL": 9732,
+    "NI": 1632,
+    "CO": 1607,
+    "BO": 1605,
+    "PE": 1604,
+    "AR": 1584,
+    "MX": 1576,
+    "PA": 1558,
+    "UY": 1544,
+    "PR": 1538,
+    "CL": 1538,
+    "ES": 1528,
+    "VE": 1508,
+    "PY": 1500,
+    "HN": 1484,
+    "GT": 1453,
+    "CR": 1413,
+    "SV": 148
+  },
+  "machine_by_generator": {
+    "gpt": 13359,
+    "unknown": 10509,
+    "bloom": 6277,
+    "gemini": 3814,
+    "qwen": 3806,
+    "ai21.j2-ultra-v1": 1156,
+    "llama": 791
+  },
+  "mixed_rows": 0,
+  "ai_edited_rows": 0,
+  "paraphrased_rows": 8336,
+  "adversarial_rows": 1232,
+  "note": "TURNITING_DATASET_V2 has no Spanish MIXED or AI_EDITED rows; Spanish machine = AI_GENERATED + PARAPHRASED_AI"
+}

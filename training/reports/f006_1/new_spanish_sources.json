@@ -1,0 +1,53 @@
+{
+  "created_at": "2026-10-18T02:47:40Z",
+  "sources": {
+    "xlsum_es_bbcmundo": {
+      "status": "DOWNLOADED",
+      "rows_after_length_filter": 25000
+    },
+    "cc_news_es_2019": {
+      "status": "DOWNLOADED",
+      "rows_after_length_filter": 64454
+    }
+  },
+  "rows_before_dedup": 89454,
+  "exact_dup_vs_v2_removed": 0,
+  "near_dup_removed": 789,
+  "rows_final": 86950,
+  "by_dataset": {
+    "cc_news_es_2019": 62472,
+    "xlsum_es_bbcmundo": 24478
+  },
+  "by_region": {
+    "xlsum_es_bbcmundo|LATAM_INTERNATIONAL": 24478,
+    "cc_news_es_2019|PE": 3970,
+    "cc_news_es_2019|AR": 3967,
+    "cc_news_es_2019|BO": 3962,
+    "cc_news_es_2019|CL": 3962,
+    "cc_news_es_2019|NI": 3954,
+    "cc_news_es_2019|CO": 3952,
+    "cc_news_es_2019|ES": 3936,
+    "cc_news_es_2019|PY": 3923,
+    "cc_news_es_2019|PR": 3921,
+    "cc_news_es_2019|UY": 3904,
+    "cc_news_es_2019|MX": 3838,
+    "cc_news_es_2019|VE": 3823,
+    "cc_news_es_2019|PA": 3804,
+    "cc_news_es_2019|HN": 3796,
+    "cc_news_es_2019|GT": 3719,
+    "cc_news_es_2019|CR": 3656,
+    "cc_news_es_2019|SV": 385
+  },
+  "by_provenance": {
+    "HUMAN_STRONG": 86950
+  },
+  "licenses": {
+    "cc_news_es_2019": "MIT (dataset card); article rights remain with publishers; research use",
+    "xlsum_es_bbcmundo": "CC-BY-NC-SA-4.0 (research only)"
+  },
+  "official_sources": {
+    "xlsum_es_bbcmundo": "https://huggingface.co/datasets/csebuetnlp/xlsum",
+    "cc_news_es_2019": "https://huggingface.co/datasets/LeoCordoba/CC-NEWS-ES"
+  },
+  "seconds": 873.0
+}

@@ -1,0 +1,362 @@
+{
+ "thresholds": {
+  "V3": 0.8646,
+  "F006": 0.8433
+ },
+ "train_spanish_humans": {
+  "n": 67607,
+  "counts": {
+   "BOTH_CORRECT_HUMAN": 65738,
+   "BOTH_FALSE_POSITIVE": 1119,
+   "V3_FALSE_POSITIVE_ONLY": 606,
+   "F006_FALSE_POSITIVE_ONLY": 144
+  },
+  "BOTH_CORRECT_HUMAN": {
+   "n": 65738,
+   "by_dataset": {
+    "cc_news_es_2019": 24117,
+    "autextification2023": 15035,
+    "xlsum_es_bbcmundo": 9695,
+    "detectrl_x": 9007,
+    "iberautextification": 7884
+   },
+   "by_domain": {
+    "news": 38688,
+    "wiki": 8146,
+    "social": 5360,
+    "legal": 3317,
+    "literary": 2194,
+    "seo": 1549,
+    "webtext": 1538,
+    "academic": 1439,
+    "novel": 1421,
+    "reviews": 1397,
+    "howto": 434,
+    "chat": 255
+   },
+   "median_words": 180.0
+  },
+  "BOTH_FALSE_POSITIVE": {
+   "n": 1119,
+   "by_dataset": {
+    "cc_news_es_2019": 404,
+    "iberautextification": 348,
+    "autextification2023": 341,
+    "xlsum_es_bbcmundo": 17,
+    "detectrl_x": 9
+   },
+   "by_domain": {
+    "news": 618,
+    "howto": 155,
+    "chat": 153,
+    "wiki": 71,
+    "reviews": 64,
+    "legal": 24,
+    "social": 19,
+    "literary": 7,
+    "webtext": 5,
+    "novel": 2,
+    "seo": 1
+   },
+   "median_words": 84.0
+  },
+  "F006_FALSE_POSITIVE_ONLY": {
+   "n": 144,
+   "by_dataset": {
+    "autextification2023": 67,
+    "cc_news_es_2019": 40,
+    "iberautextification": 28,
+    "xlsum_es_bbcmundo": 7,
+    "detectrl_x": 2
+   },
+   "by_domain": {
+    "news": 69,
+    "wiki": 46,
+    "literary": 12,
+    "legal": 6,
+    "howto": 4,
+    "chat": 2,
+    "reviews": 2,
+    "social": 1,
+    "novel": 1,
+    "webtext": 1
+   },
+   "median_words": 81.0
+  },
+  "V3_FALSE_POSITIVE_ONLY": {
+   "n": 606,
+   "by_dataset": {
+    "cc_news_es_2019": 259,
+    "autextification2023": 220,
+    "iberautextification": 108,
+    "xlsum_es_bbcmundo": 13,
+    "detectrl_x": 6
+   },
+   "by_domain": {
+    "news": 390,
+    "howto": 63,
+    "reviews": 45,
+    "social": 34,
+    "wiki": 34,
+    "chat": 26,
+    "legal": 8,
+    "webtext": 3,
+    "seo": 2,
+    "literary": 1
+   },
+   "median_words": 69.0
+  }
+ },
+ "validation_spanish_humans": {
+  "n": 6000,
+  "counts": {
+   "BOTH_CORRECT_HUMAN": 5532,
+   "BOTH_FALSE_POSITIVE": 321,
+   "V3_FALSE_POSITIVE_ONLY": 133,
+   "F006_FALSE_POSITIVE_ONLY": 14
+  },
+  "BOTH_CORRECT_HUMAN": {
+   "n": 5532,
+   "by_dataset": {
+    "cc_news_es_2019": 1933,
+    "autextification2023": 1799,
+    "detectrl_x": 980,
+    "iberautextification": 693,
+    "xlsum_es_bbcmundo": 127
+   },
+   "by_domain": {
+    "news": 2654,
+    "reviews": 855,
+    "wiki": 507,
+    "howto": 290,
+    "social": 235,
+    "chat": 206,
+    "seo": 188,
+    "webtext": 180,
+    "legal": 175,
+    "novel": 118,
+    "academic": 100,
+    "literary": 24
+   },
+   "median_words": 98.0,
+   "style_medians": {
+    "words": 73.0,
+    "mean_sentence_words": 16.2426,
+    "paragraphs": 1.0,
+    "newline_rate": 0.0,
+    "comma_rate": 0.0484,
+    "semicolon_colon_rate": 0.0,
+    "quote_rate": 0.0,
+    "inverted_marks": 0.0,
+    "digit_rate": 0.0,
+    "upper_rate": 0.018,
+    "citations": 0.0,
+    "references_or_urls": 0.0,
+    "non_ascii_rate": 0.0175,
+    "unusual_unicode": 0.0,
+    "type_token_ratio": 0.7346,
+    "lexical_density": 0.5422
+   }
+  },
+  "BOTH_FALSE_POSITIVE": {
+   "n": 321,
+   "by_dataset": {
+    "iberautextification": 216,
+    "autextification2023": 82,
+    "cc_news_es_2019": 23
+   },
+   "by_domain": {
+    "howto": 107,
+    "chat": 103,
+    "news": 67,
+    "reviews": 32,
+    "wiki": 10,
+    "legal": 1,
+    "social": 1
+   },
+   "median_words": 78.0,
+   "style_medians": {
+    "words": 78.0,
+    "mean_sentence_words": 16.2,
+    "paragraphs": 1.0,
+    "newline_rate": 0.0,
+    "comma_rate": 0.0427,
+    "semicolon_colon_rate": 0.0,
+    "quote_rate": 0.0,
+    "inverted_marks": 0.0,
+    "digit_rate": 0.0,
+    "upper_rate": 0.0024,
+    "citations": 0.0,
+    "references_or_urls": 0.0,
+    "non_ascii_rate": 0.0169,
+    "unusual_unicode": 0.0,
+    "type_token_ratio": 0.6875,
+    "lexical_density": 0.5256
+   }
+  },
+  "F006_FALSE_POSITIVE_ONLY": {
+   "n": 14,
+   "by_dataset": {
+    "iberautextification": 6,
+    "autextification2023": 6,
+    "cc_news_es_2019": 2
+   },
+   "by_domain": {
+    "howto": 4,
+    "news": 4,
+    "chat": 2,
+    "reviews": 2,
+    "wiki": 1,
+    "social": 1
+   },
+   "median_words": 74.0,
+   "style_medians": {
+    "words": 74.0,
+    "mean_sentence_words": 14.0,
+    "paragraphs": 1.0,
+    "newline_rate": 0.0,
+    "comma_rate": 0.0357,
+    "semicolon_colon_rate": 0.0,
+    "quote_rate": 0.0,
+    "inverted_marks": 0.0,
+    "digit_rate": 0.0,
+    "upper_rate": 0.0081,
+    "citations": 0.0,
+    "references_or_urls": 0.0,
+    "non_ascii_rate": 0.0143,
+    "unusual_unicode": 0.0,
+    "type_token_ratio": 0.7083,
+    "lexical_density": 0.5143
+   }
+  },
+  "V3_FALSE_POSITIVE_ONLY": {
+   "n": 133,
+   "by_dataset": {
+    "autextification2023": 72,
+    "iberautextification": 44,
+    "cc_news_es_2019": 15,
+    "detectrl_x": 2
+   },
+   "by_domain": {
+    "news": 53,
+    "reviews": 33,
+    "howto": 21,
+    "chat": 21,
+    "webtext": 2,
+    "wiki": 2,
+    "social": 1
+   },
+   "median_words": 58.0,
+   "style_medians": {
+    "words": 58.0,
+    "mean_sentence_words": 16.5,
+    "paragraphs": 1.0,
+    "newline_rate": 0.0,
+    "comma_rate": 0.0476,
+    "semicolon_colon_rate": 0.0,
+    "quote_rate": 0.0,
+    "inverted_marks": 0.0,
+    "digit_rate": 0.0,
+    "upper_rate": 0.013,
+    "citations": 0.0,
+    "references_or_urls": 0.0,
+    "non_ascii_rate": 0.0183,
+    "unusual_unicode": 0.0,
+    "type_token_ratio": 0.7722,
+    "lexical_density": 0.5091
+   }
+  }
+ },
+ "validation_fpr_by_dataset_domain": {
+  "autextification2023|legal": {
+   "n": 176,
+   "V3": 0.0057,
+   "F006": 0.0057
+  },
+  "autextification2023|news": {
+   "n": 463,
+   "V3": 0.1728,
+   "F006": 0.0972
+  },
+  "autextification2023|reviews": {
+   "n": 795,
+   "V3": 0.0742,
+   "F006": 0.0365
+  },
+  "autextification2023|social": {
+   "n": 230,
+   "V3": 0.0087,
+   "F006": 0.0087
+  },
+  "autextification2023|wiki": {
+   "n": 295,
+   "V3": 0.0407,
+   "F006": 0.0373
+  },
+  "cc_news_es_2019|news": {
+   "n": 1973,
+   "V3": 0.0193,
+   "F006": 0.0127
+  },
+  "detectrl_x|academic": {
+   "n": 100,
+   "V3": 0.0,
+   "F006": 0.0
+  },
+  "detectrl_x|news": {
+   "n": 184,
+   "V3": 0.0,
+   "F006": 0.0
+  },
+  "detectrl_x|novel": {
+   "n": 118,
+   "V3": 0.0,
+   "F006": 0.0
+  },
+  "detectrl_x|seo": {
+   "n": 188,
+   "V3": 0.0,
+   "F006": 0.0
+  },
+  "detectrl_x|webtext": {
+   "n": 182,
+   "V3": 0.011,
+   "F006": 0.0
+  },
+  "detectrl_x|wiki": {
+   "n": 210,
+   "V3": 0.0,
+   "F006": 0.0
+  },
+  "iberautextification|chat": {
+   "n": 332,
+   "V3": 0.3735,
+   "F006": 0.3163
+  },
+  "iberautextification|howto": {
+   "n": 422,
+   "V3": 0.3033,
+   "F006": 0.263
+  },
+  "iberautextification|literary": {
+   "n": 24,
+   "V3": 0.0,
+   "F006": 0.0
+  },
+  "iberautextification|news": {
+   "n": 31,
+   "V3": 0.0645,
+   "F006": 0.0323
+  },
+  "iberautextification|reviews": {
+   "n": 127,
+   "V3": 0.0472,
+   "F006": 0.0394
+  },
+  "xlsum_es_bbcmundo|news": {
+   "n": 127,
+   "V3": 0.0,
+   "F006": 0.0
+  }
+ }
+}

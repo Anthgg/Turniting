@@ -1,0 +1,31 @@
+{
+  "name": "F006_1_TRAIN_EXTRA",
+  "rows": 51346,
+  "humans": 40837,
+  "by_dataset_label": {
+    "cc_news_es_2019|HUMAN": 24820,
+    "xlsum_es_bbcmundo|HUMAN": 9732,
+    "autextification2023|AI_GENERATED": 4374,
+    "autextification2023|HUMAN": 3556,
+    "detectrl_x|PARAPHRASED_AI": 2613,
+    "iberautextification|AI_GENERATED": 1762,
+    "detectrl_x|AI_GENERATED": 1760,
+    "detectrl_x|HUMAN": 1379,
+    "iberautextification|HUMAN": 1350
+  },
+  "by_domain": {
+    "news": 40649,
+    "reviews": 3667,
+    "howto": 1476,
+    "wiki": 1265,
+    "chat": 1042,
+    "seo": 861,
+    "webtext": 765,
+    "academic": 511,
+    "novel": 449,
+    "social": 312,
+    "legal": 241,
+    "literary": 108
+  },
+  "ids_sha256": "77cf9a5aca3a4b55d07bfe19f9b7bdd91675a4063e98ea68a2465f065a006e8f"
+}

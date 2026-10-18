@@ -1,0 +1,323 @@
+{
+ "set": "F006_1_VALIDATION (out-of-fold metrics at each model's chosen calibration option)",
+ "models": {
+  "F006_1_MODEL": {
+   "all": {
+    "n": 23871,
+    "n_human": 11371,
+    "fpr": 0.0478,
+    "fpr_ci95": [
+     0.044,
+     0.0518
+    ],
+    "recall": 0.8732,
+    "macro_f1": 0.9109,
+    "ece": 0.0094,
+    "brier": 0.0597
+   },
+   "spanish": {
+    "n": 11000,
+    "n_human": 6000,
+    "fpr": 0.0442,
+    "fpr_ci95": [
+     0.0393,
+     0.0497
+    ],
+    "recall": 0.87,
+    "macro_f1": 0.9155,
+    "ece": 0.0064,
+    "brier": 0.0583
+   },
+   "non_spanish": {
+    "n": 12871,
+    "n_human": 5371,
+    "fpr": 0.0518,
+    "fpr_ci95": [
+     0.0461,
+     0.058
+    ],
+    "recall": 0.8753,
+    "macro_f1": 0.9045,
+    "ece": 0.0155,
+    "brier": 0.061
+   },
+   "spanish_academic": {
+    "n": 296,
+    "n_human": 100,
+    "fpr": 0.0,
+    "fpr_ci95": [
+     0.0,
+     0.037
+    ],
+    "recall": 0.9133,
+    "macro_f1": 0.9382,
+    "ece": 0.0464,
+    "brier": 0.0256
+   },
+   "calibration_option": "ES_ISO"
+  },
+  "CANDIDATE_MODEL_V3": {
+   "all": {
+    "n": 23871,
+    "n_human": 11371,
+    "fpr": 0.045,
+    "fpr_ci95": [
+     0.0414,
+     0.049
+    ],
+    "recall": 0.8045,
+    "macro_f1": 0.876,
+    "ece": 0.0234,
+    "brier": 0.0756
+   },
+   "spanish": {
+    "n": 11000,
+    "n_human": 6000,
+    "fpr": 0.0657,
+    "fpr_ci95": [
+     0.0597,
+     0.0722
+    ],
+    "recall": 0.7864,
+    "macro_f1": 0.8639,
+    "ece": 0.0095,
+    "brier": 0.0904
+   },
+   "non_spanish": {
+    "n": 12871,
+    "n_human": 5371,
+    "fpr": 0.022,
+    "fpr_ci95": [
+     0.0184,
+     0.0262
+    ],
+    "recall": 0.8165,
+    "macro_f1": 0.8834,
+    "ece": 0.0435,
+    "brier": 0.063
+   },
+   "spanish_academic": {
+    "n": 296,
+    "n_human": 100,
+    "fpr": 0.0,
+    "fpr_ci95": [
+     0.0,
+     0.037
+    ],
+    "recall": 0.8469,
+    "macro_f1": 0.8933,
+    "ece": 0.0868,
+    "brier": 0.0461
+   },
+   "calibration_option": "ES_ISO"
+  },
+  "EXPERIMENTAL_F006_MODEL": {
+   "all": {
+    "n": 23871,
+    "n_human": 11371,
+    "fpr": 0.0349,
+    "fpr_ci95": [
+     0.0317,
+     0.0384
+    ],
+    "recall": 0.7842,
+    "macro_f1": 0.87,
+    "ece": 0.0049,
+    "brier": 0.0738
+   },
+   "spanish": {
+    "n": 11000,
+    "n_human": 6000,
+    "fpr": 0.0497,
+    "fpr_ci95": [
+     0.0445,
+     0.0555
+    ],
+    "recall": 0.759,
+    "macro_f1": 0.8591,
+    "ece": 0.0427,
+    "brier": 0.088
+   },
+   "non_spanish": {
+    "n": 12871,
+    "n_human": 5371,
+    "fpr": 0.0184,
+    "fpr_ci95": [
+     0.0152,
+     0.0224
+    ],
+    "recall": 0.8009,
+    "macro_f1": 0.8759,
+    "ece": 0.0368,
+    "brier": 0.0616
+   },
+   "spanish_academic": {
+    "n": 296,
+    "n_human": 100,
+    "fpr": 0.0,
+    "fpr_ci95": [
+     0.0,
+     0.037
+    ],
+    "recall": 0.7653,
+    "macro_f1": 0.84,
+    "ece": 0.0823,
+    "brier": 0.0393
+   },
+   "calibration_option": "ES_THRESH"
+  }
+ },
+ "training_history": [
+  {
+   "step": 0,
+   "epoch": 0.0,
+   "threshold_general_fpr_0.04": 0.945,
+   "selection": {
+    "score": -0.0287,
+    "positive": 0.916,
+    "penalty": 0.9448,
+    "eligible": false,
+    "terms": {
+     "general_macro_f1": 0.9061,
+     "spanish_macro_f1": 0.8691,
+     "spanish_recall": 0.905,
+     "academic_macro_f1": 0.937,
+     "mixed_recall": 0.8237,
+     "ai_edited_macro_f1": 0.9349,
+     "ood_macro_f1": 0.953,
+     "unseen_generator_recall": 0.9775,
+     "adversarial_recall": 0.985
+    },
+    "fprs": {
+     "fpr_all_humans": 0.1136,
+     "spanish_fpr": 0.1603,
+     "academic_fpr": 0.0209,
+     "unseen_generator_fpr": 0.03,
+     "ood_fpr": 0.03,
+     "unseen_domain_fpr": 0.4762
+    },
+    "mode": "f006_1"
+   }
+  },
+  {
+   "step": 1200,
+   "epoch": 0.335,
+   "threshold_general_fpr_0.04": 0.9716,
+   "selection": {
+    "score": 0.4365,
+    "positive": 0.9136,
+    "penalty": 0.4771,
+    "eligible": false,
+    "terms": {
+     "general_macro_f1": 0.9061,
+     "spanish_macro_f1": 0.8969,
+     "spanish_recall": 0.8672,
+     "academic_macro_f1": 0.9277,
+     "mixed_recall": 0.8075,
+     "ai_edited_macro_f1": 0.9374,
+     "ood_macro_f1": 0.949,
+     "unseen_generator_recall": 0.9575,
+     "adversarial_recall": 0.99
+    },
+    "fprs": {
+     "fpr_all_humans": 0.0681,
+     "spanish_fpr": 0.076,
+     "academic_fpr": 0.0239,
+     "unseen_generator_fpr": 0.0187,
+     "ood_fpr": 0.05,
+     "unseen_domain_fpr": 0.437
+    },
+    "mode": "f006_1"
+   },
+   "elapsed_s": 866.4,
+   "gpu": {
+    "gpu_util_mean": 96.1,
+    "gpu_util_p50": 99.0,
+    "gpu_util_p90": 100.0,
+    "vram_used_max_gb": 67.0,
+    "vram_total_gb": 80.0,
+    "samples": 44
+   }
+  },
+  {
+   "step": 2400,
+   "epoch": 0.669,
+   "threshold_general_fpr_0.04": 0.9707,
+   "selection": {
+    "score": 0.4418,
+    "positive": 0.9263,
+    "penalty": 0.4845,
+    "eligible": false,
+    "terms": {
+     "general_macro_f1": 0.9114,
+     "spanish_macro_f1": 0.9206,
+     "spanish_recall": 0.9022,
+     "academic_macro_f1": 0.9349,
+     "mixed_recall": 0.805,
+     "ai_edited_macro_f1": 0.9462,
+     "ood_macro_f1": 0.955,
+     "unseen_generator_recall": 0.9775,
+     "adversarial_recall": 0.99
+    },
+    "fprs": {
+     "fpr_all_humans": 0.0648,
+     "spanish_fpr": 0.0627,
+     "academic_fpr": 0.0274,
+     "unseen_generator_fpr": 0.0387,
+     "ood_fpr": 0.034,
+     "unseen_domain_fpr": 0.5042
+    },
+    "mode": "f006_1"
+   },
+   "elapsed_s": 1742.0,
+   "gpu": {
+    "gpu_util_mean": 95.2,
+    "gpu_util_p50": 99.0,
+    "gpu_util_p90": 100.0,
+    "vram_used_max_gb": 68.0,
+    "vram_total_gb": 80.0,
+    "samples": 87
+   }
+  },
+  {
+   "step": 3587,
+   "epoch": 1.0,
+   "threshold_general_fpr_0.04": 0.9664,
+   "selection": {
+    "score": 0.3943,
+    "positive": 0.925,
+    "penalty": 0.5307,
+    "eligible": false,
+    "terms": {
+     "general_macro_f1": 0.9098,
+     "spanish_macro_f1": 0.9203,
+     "spanish_recall": 0.8968,
+     "academic_macro_f1": 0.9361,
+     "mixed_recall": 0.8063,
+     "ai_edited_macro_f1": 0.9417,
+     "ood_macro_f1": 0.955,
+     "unseen_generator_recall": 0.975,
+     "adversarial_recall": 0.9888
+    },
+    "fprs": {
+     "fpr_all_humans": 0.064,
+     "spanish_fpr": 0.0585,
+     "academic_fpr": 0.0286,
+     "unseen_generator_fpr": 0.0338,
+     "ood_fpr": 0.034,
+     "unseen_domain_fpr": 0.5686
+    },
+    "mode": "f006_1"
+   },
+   "elapsed_s": 2661.6,
+   "gpu": {
+    "gpu_util_mean": 95.1,
+    "gpu_util_p50": 100.0,
+    "gpu_util_p90": 100.0,
+    "vram_used_max_gb": 68.0,
+    "vram_total_gb": 80.0,
+    "samples": 133
+   }
+  }
+ ]
+}
