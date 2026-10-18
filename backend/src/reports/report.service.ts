@@ -16,12 +16,14 @@ import {
 import { createHash, randomUUID } from 'node:crypto';
 import {
   createReviewDocumentContext,
+  getReviewEvidence,
   getReviewPresentation,
+  normalizeReviewSegmentOffsets,
   ReportReviewIntegrityError,
   type ReviewSegment,
 } from '../analysis/review-presentation.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { REPORT_RENDERER_VERSION, ReportRenderer } from './report-renderer.js';
+import { REPORT_RENDERER_VERSION, SIMILARITY_RENDERER_VERSION, ReportRenderer } from './report-renderer.js';
 import type {
   AIReportHistoryItem,
   AIReportInput,
@@ -566,11 +568,16 @@ export class ReportService {
     generatedAt: Date,
   ): Promise<Omit<AIReportInput, 'reportId'>> {
     const extractedText = fullRun.documentVersion.extractedText ?? '';
+    let normalizedSegments = fullRun.segments;
     let reviewContext: ReturnType<typeof createReviewDocumentContext>;
     try {
+      normalizedSegments = normalizeReviewSegmentOffsets(
+        extractedText,
+        fullRun.segments,
+      );
       reviewContext = createReviewDocumentContext(
         extractedText,
-        fullRun.segments as ReviewSegment[],
+        normalizedSegments,
       );
     } catch (error) {
       if (error instanceof ReportReviewIntegrityError) {
@@ -581,7 +588,7 @@ export class ReportService {
       }
       throw error;
     }
-    const paragraphs: AIReportParagraph[] = fullRun.segments.map((segment) => {
+    const paragraphs: AIReportParagraph[] = normalizedSegments.map((segment) => {
       const verified = reviewContext.byParagraphIndex.get(segment.paragraphIndex);
       if (!verified) {
         throw new ConflictException({
@@ -589,22 +596,31 @@ export class ReportService {
           message: 'El texto de esta versión no coincide con el análisis.',
         });
       }
+      const sourceSegment = segment as typeof segment & { evidence?: unknown };
+      const evidence = getReviewEvidence({
+        ...segment,
+        calibratedScore: segment.calibratedScore,
+        evidence: sourceSegment.evidence,
+      } as ReviewSegment, fullRun.threshold, reviewContext);
       return {
         paragraphIndex: segment.paragraphIndex,
         textHash: segment.textHash,
         charStart: segment.charStart,
         charEnd: segment.charEnd,
         segmentEvidence: {
-          type: 'PARAGRAPH',
+          type: evidence.granularity,
           paragraphId: segment.paragraphIndex,
           start: segment.charStart,
           end: segment.charEnd,
           score: segment.calibratedScore,
           level: segment.signalLevel,
+          ...(evidence.spans.length ? { spans: evidence.spans } : {}),
         },
+        reviewEvidence: evidence,
         reviewPresentation: getReviewPresentation(
-          segment as ReviewSegment,
+          { ...segment, calibratedScore: segment.calibratedScore } as ReviewSegment,
           reviewContext,
+          fullRun.threshold,
         ),
         score: segment.calibratedScore,
         signalLevel: segment.signalLevel,
@@ -737,7 +753,9 @@ export class ReportService {
           ...data,
           status: ReportArtifactStatus.GENERATING,
           activeFingerprint: data.fingerprint,
-          generationVersion: REPORT_RENDERER_VERSION,
+          generationVersion: data.type === ReportType.AI_REPORT
+            ? REPORT_RENDERER_VERSION
+            : SIMILARITY_RENDERER_VERSION,
           expiresAt: new Date(data.generatedAt.getTime() + this.retentionMs),
         },
       });
@@ -960,7 +978,11 @@ export class ReportService {
         (artifact.status === ReportArtifactStatus.ERROR
           ? GENERIC_FAILURE_REASON
           : null),
-      generationVersion: artifact.generationVersion ?? REPORT_RENDERER_VERSION,
+      generationVersion: artifact.generationVersion ?? (
+        artifact.type === ReportType.AI_REPORT
+          ? REPORT_RENDERER_VERSION
+          : SIMILARITY_RENDERER_VERSION
+      ),
       generatedAt: artifact.generatedAt,
       expiresAt: artifact.expiresAt,
       deletedAt: artifact.deletedAt,

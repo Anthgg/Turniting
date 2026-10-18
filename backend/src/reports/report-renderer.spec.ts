@@ -132,7 +132,7 @@ function syntheticAIInput(options: {
       const insufficient = paragraphIndex === 4 || paragraphIndex === 5;
       return {
         paragraphIndex,
-        textHash: sha256(textPreview),
+        textHash: sha256(textPreview.replace(/\s+/gu, ' ').trim()),
         charStart,
         charEnd,
         segmentEvidence: {
@@ -308,7 +308,7 @@ function documentReviewAIInput(reverseSegments = false): AIReportInput {
 }
 
 describe('ReportRenderer', () => {
-  it('renders a multi-page AI PDF with contextual counts and grouped insufficient paragraphs', async () => {
+  it('renders a clean multi-page AI PDF with the cover and full document review', async () => {
     const input = syntheticAIInput();
     const pdf = await renderer.renderAI(input);
     const content = compactPdfText(pdf);
@@ -320,14 +320,20 @@ describe('ReportRenderer', () => {
     expect(content).toContain('63.0%');
     expect(content).toContain('senalglobalestimada');
     expect(content).toContain('noesunreporteoficialdeturnitin');
-    expect(content).toContain('detalleporparrafo');
-    expect(content).toContain('metodologia');
-    expect(content).toContain('versiondelrenderer');
-    expect(content).toContain('historialdeldocumento');
-    expect(content).toContain('limitacionesaplicablesaestemodelo/run');
-    expect(content).toContain('contextobreve|antes:0tokens|despues:9tokens');
+    expect(content).toContain('parrafosseñalados'.normalize('NFD').replace(/\p{Diacritic}/gu, ''));
+    expect(content).toContain('parrafosevaluados');
+    expect(content).toContain('documentopararevision');
+    expect(content).not.toContain('detalleporparrafo');
+    expect(content).not.toContain('metodologia');
+    expect(content).not.toContain('versiondelrenderer');
+    expect(content).not.toContain('historialdeldocumento');
+    expect(content).not.toContain('contextobreve|antes:');
+    expect(content).not.toContain('synthetic_model_v3');
+    expect(content).not.toContain('f005-local-analyzer-v1');
+    expect(content).not.toContain('74.0%');
+    expect(content).not.toContain('párrafo 1'.normalize('NFD').replace(/\p{Diacritic}/gu, ''));
     expect(content).toContain('turniting');
-    expect(content).toContain(`id${reportId.slice(0, 8)}`);
+    expect(content).not.toContain(`id${reportId.slice(0, 8)}`);
     expect(pdf.toString('latin1')).toContain('/Count ');
   });
 
@@ -342,9 +348,9 @@ describe('ReportRenderer', () => {
 
     expect(pageCount(fiveParagraphPdf)).toBeGreaterThanOrEqual(1);
     expect(pageCount(thirtyParagraphPdf)).toBeGreaterThan(pageCount(fiveParagraphPdf));
-    expect(strictContent).toContain('soloelparrafo');
+    expect(strictContent).toContain('documentopararevision');
     expect(strictContent).not.toContain('contextobreve|antes:');
-    expect(strictContent).toContain('bloquesintextosuficienteparaevaluacion');
+    expect(strictContent).not.toContain('detalleporparrafo');
   });
 
   it('wraps a very long synthetic paragraph across pages without losing the report footer', async () => {
@@ -357,7 +363,60 @@ describe('ReportRenderer', () => {
     expect(pageCount(pdf)).toBeGreaterThanOrEqual(2);
     expect(content).toContain('pagina1de');
     expect(content).toContain('reporteindependiente');
-    expect(content).toContain('parrafo1');
+    expect(content).toContain('parrafosinteticodeevaluacion');
+  });
+
+  it('renders paragraph-relative UTF-16 evidence spans without duplicating source text', async () => {
+    const input = syntheticAIInput({ paragraphCount: 1, paragraphMode: 'STRICT_PARAGRAPH' });
+    const text = 'ABCDEFGHIJKLMN';
+    input.extractedText = text;
+    input.run.threshold = 0.8;
+    input.paragraphs[0] = {
+      ...input.paragraphs[0]!,
+      paragraphIndex: 30,
+      textHash: sha256(text),
+      charStart: 0,
+      charEnd: text.length,
+      score: 0.8,
+      signalLevel: 'HIGH',
+      classification: 'MACHINE_SIGNAL',
+      textPreview: text,
+      segmentEvidence: {
+        type: 'SPAN',
+        paragraphId: 30,
+        start: 0,
+        end: text.length,
+        score: 0.8,
+        level: 'HIGH',
+        spans: [{ startChar: 2, endChar: 5 }, { startChar: 8, endChar: 11 }],
+      },
+      reviewEvidence: {
+        evaluated: true,
+        flagged: true,
+        score: 0.8,
+        threshold: 0.8,
+        presentationExcluded: false,
+        granularity: 'SPAN',
+        paragraphFlagged: true,
+        spans: [{ startChar: 2, endChar: 5 }, { startChar: 8, endChar: 11 }],
+      },
+      reviewPresentation: { highlight: true, level: 'HIGH' },
+    };
+    const pdf = await renderer.renderAI(input);
+    const content = compactPdfText(pdf);
+    const drawing = decompressedPdfStreams(pdf);
+
+    expect(content.match(/abcdefghijklmn/gu)).toHaveLength(1);
+    expect(drawing.match(/0\.862745\d* 0\.929411\d* 0\.917647\d* scn/gu)?.length ?? 0).toBeGreaterThanOrEqual(3);
+
+    input.paragraphs[0] = {
+      ...input.paragraphs[0]!,
+      segmentEvidence: { ...input.paragraphs[0]!.segmentEvidence, spans: [] },
+      reviewEvidence: { ...input.paragraphs[0]!.reviewEvidence!, spans: [] },
+    };
+    const fallbackPdf = await renderer.renderAI(input);
+    const fallbackDrawing = decompressedPdfStreams(fallbackPdf);
+    expect(fallbackDrawing.match(/0\.862745\d* 0\.929411\d* 0\.917647\d* scn/gu)?.length ?? 0).toBeGreaterThanOrEqual(2);
   });
 
   it('renders the document review in source order with paragraph-level signal highlights and reference exclusion', async () => {
@@ -365,8 +424,7 @@ describe('ReportRenderer', () => {
     const text = compactPdfText(pdf);
     const drawing = decompressedPdfStreams(pdf);
     const reviewStart = text.indexOf('documentopararevision');
-    const detailStart = text.indexOf('detalleporparrafo');
-    const reviewText = text.slice(reviewStart, detailStart);
+    const reviewText = text.slice(reviewStart);
     const orderedText = [
       'universidadsintetica',
       'autor:anaejemplo',
@@ -385,28 +443,21 @@ describe('ReportRenderer', () => {
     ];
 
     expect(reviewStart).toBeGreaterThanOrEqual(0);
-    expect(detailStart).toBeGreaterThan(reviewStart);
     let previous = reviewStart;
     for (const phrase of orderedText) {
       const position = text.indexOf(phrase, reviewStart);
       expect(position, phrase).toBeGreaterThan(previous);
-      expect(position, phrase).toBeLessThan(detailStart);
+      expect(position, phrase).toBeLessThan(text.length);
       previous = position;
     }
-    expect(text).toContain('resaltadofuerte:senalalta');
-    expect(text).toContain('resaltadotenue:senalmoderada');
-    expect(reviewText).toContain('p6');
-    expect(reviewText).toContain('91.9%');
-    expect(reviewText).toContain('49.1%');
-    expect(reviewText).not.toContain('24.1%');
-    expect(text).toContain(
-      'referencias:fueradelavistaprincipalderevisionderedaccion',
-    );
-    expect(text).toContain('unidaddeanalisisdelmodelo');
-    expect(text).toContain('parrafocompleto');
-    expect(reviewText).toContain('leyenda');
-    expect(drawing.match(/0\.862745\d* 0\.929411\d* 0\.917647\d* scn/gu) ?? []).toHaveLength(2);
-    expect(drawing.match(/0\.952941\d* 0\.945098\d* 0\.909803\d* scn/gu) ?? []).toHaveLength(2);
+    expect(reviewText).toContain('resaltado:segmentoigualosuperioralumbralaplicado');
+    expect(text).not.toContain('91.9%');
+    expect(text).not.toContain('49.1%');
+    expect(text).not.toContain('24.1%');
+    expect(text).not.toContain('detalleporparrafo');
+    expect(text).not.toContain('unidaddeanalisisdelmodelo');
+    expect(drawing.match(/0\.862745\d* 0\.929411\d* 0\.917647\d* scn/gu)?.length ?? 0).toBeGreaterThan(0);
+    expect(drawing).not.toMatch(/0\.952941\d* 0\.945098\d* 0\.909803\d* scn/);
   });
 
   it('rejects document review segments whose offsets no longer match their persisted hashes', async () => {

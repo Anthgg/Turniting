@@ -2,11 +2,14 @@ import { Injectable } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
 import {
   createReviewDocumentContext,
+  getReviewEvidence,
   getReviewPresentation,
   isReferenceHeading,
+  mergeReviewSpansForDisplay,
   ReportReviewIntegrityError,
   validateReportReviewEvidenceSpans,
   type ReviewPresentation,
+  type ReviewEvidence,
   type ReviewSegment as ReviewSourceSegment,
   type VerifiedReviewRange,
 } from '../analysis/review-presentation.js';
@@ -17,7 +20,8 @@ import type {
   SimilarityReportInput,
 } from './report.contracts.js';
 
-export const REPORT_RENDERER_VERSION = 'f0092-report-renderer-v3.1';
+export const REPORT_RENDERER_VERSION = 'f0093-threshold-span-ready-renderer-v4';
+export const SIMILARITY_RENDERER_VERSION = 'f0092-report-renderer-v3.1';
 
 const PAGE = { width: 595.28, height: 841.89 };
 const COLOR = {
@@ -57,6 +61,7 @@ type DistributionLevel = 'HIGH' | 'MODERATE' | 'LOW' | 'INSUFFICIENT';
 type RenderReviewSegment = VerifiedReviewRange & {
   paragraph: AIReportParagraph;
   presentation: ReviewPresentation;
+  evidence: ReviewEvidence;
 };
 type ReviewLine = { text: string; start: number; end: number };
 
@@ -192,19 +197,13 @@ function dateLabel(value: Date | null | undefined): string {
   }).format(value);
 }
 
-function formatDuration(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return 'No disponible';
-  if (value < 1000) return `${Math.max(0, Math.round(value))} ms`;
-  return `${(value / 1000).toFixed(1)} s`;
-}
-
 function paragraphModeLabel(value: string | null | undefined): string {
   if (value === 'STRICT_PARAGRAPH') return 'Solo el párrafo';
   if (value === 'CONTEXTUAL_PARAGRAPH') return 'Contexto breve';
   return value ?? 'No disponible';
 }
 
-function addFooter(doc: PDFDoc, reportId: string): void {
+function addFooter(doc: PDFDoc, reportId: string, includeReportId = true): void {
   const range = doc.bufferedPageRange();
   for (let index = range.start; index < range.start + range.count; index += 1) {
     doc.switchToPage(index);
@@ -225,7 +224,7 @@ function addFooter(doc: PDFDoc, reportId: string): void {
       .fontSize(8)
       .fillColor(COLOR.muted)
       .text(
-        `Turniting | Reporte independiente | Página ${index - range.start + 1} de ${range.count} | ID ${reportId.slice(0, 8)}`,
+        `Turniting | Reporte independiente | Página ${index - range.start + 1} de ${range.count}${includeReportId ? ` | ID ${reportId.slice(0, 8)}` : ''}`,
         48,
         y,
         {
@@ -270,44 +269,41 @@ export class ReportRenderer {
       ) {
         throw new ReportReviewIntegrityError('ANALYSIS_SEGMENT_OFFSETS_INVALID');
       }
-      if (
-        paragraph.segmentEvidence.type === 'SPAN' &&
-        !paragraph.segmentEvidence.spans?.length
-      ) {
-        throw new ReportReviewIntegrityError('ANALYSIS_SEGMENT_SPANS_INVALID');
-      }
-      validateReportReviewEvidenceSpans(
-        segment,
-        paragraph.segmentEvidence.spans?.map(({ start, end }) => ({
-          charStart: start,
-          charEnd: end,
-        })),
-      );
+      const rawEvidence = paragraph.reviewEvidence ?? {
+        granularity: paragraph.segmentEvidence.type,
+        spans: paragraph.segmentEvidence.spans ?? [],
+      };
+      const reviewSegment = {
+        ...segment,
+        signalLevel: paragraph.signalLevel,
+        classification: paragraph.classification,
+        calibratedScore: paragraph.score,
+        evidence: rawEvidence,
+      } as ReviewSourceSegment;
+      const evidence = getReviewEvidence(reviewSegment, input.run.threshold, reviewContext);
+      validateReportReviewEvidenceSpans(segment.text, evidence.spans);
       return {
         ...segment,
         paragraph,
-        presentation: getReviewPresentation(paragraph, reviewContext),
+        evidence,
+        presentation: getReviewPresentation(reviewSegment, reviewContext, input.run.threshold),
       };
     });
+    const reviewCounts = {
+      evaluated: reviewSegments.filter(({ evidence }) => evidence.evaluated).length,
+      flagged: reviewSegments.filter(({ evidence }) => evidence.flagged).length,
+    };
 
     return this.renderPdf(
       'Reporte de señal de IA',
       input.reportId,
       input.generatedAt,
       (doc) => {
-        this.aiCoverAndSummary(doc, input);
-        this.aiDistribution(doc, input.paragraphs);
+        this.aiCoverAndSummary(doc, input, reviewCounts);
+        doc.addPage();
         this.aiDocumentReview(doc, input, reviewSegments);
-        this.aiParagraphs(
-          doc,
-          input.paragraphs,
-          input.run.paragraphMode,
-          input.run.metadata,
-        );
-        this.aiHistory(doc, input.history);
-        this.aiMethodology(doc, input);
-        this.aiLimitations(doc, input.limitations);
       },
+      false,
     );
   }
 
@@ -330,6 +326,7 @@ export class ReportRenderer {
     reportId: string,
     generatedAt: Date,
     draw: (doc: PDFDoc) => void,
+    includeReportId = true,
   ): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
@@ -345,7 +342,7 @@ export class ReportRenderer {
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       try {
         draw(doc);
-        addFooter(doc, reportId);
+        addFooter(doc, reportId, includeReportId);
         doc.end();
       } catch (error) {
         reject(error);
@@ -411,155 +408,37 @@ export class ReportRenderer {
       .text(value, x, y + 13, { width });
   }
 
-  private aiCoverAndSummary(doc: PDFDoc, input: AIReportInput): void {
+  private aiCoverAndSummary(
+    doc: PDFDoc,
+    input: AIReportInput,
+    counts: { evaluated: number; flagged: number },
+  ): void {
     this.brand(doc, 'Reporte independiente de señal de IA');
-    doc.moveDown(0.8);
-    doc
-      .font('Helvetica')
-      .fontSize(10)
-      .fillColor(COLOR.muted)
-      .text(
-        'Estimación probabilística del texto analizado; no equivale a una decisión de autoría.',
-      );
     doc.moveDown(1.1);
-    this.keyValue(
-      doc,
-      'Documento',
-      cleanText(input.document.filename, 160) || 'Documento',
-      48,
-      doc.y,
-      490,
-    );
-    doc.moveDown(1.3);
-    const metaY = doc.y;
-    this.keyValue(
-      doc,
-      'Fecha del documento',
-      dateLabel(input.document.createdAt),
-      48,
-      metaY,
-    );
-    this.keyValue(
-      doc,
-      'Fecha del análisis',
-      dateLabel(input.run.completedAt ?? input.run.createdAt),
-      290,
-      metaY,
-    );
-    this.keyValue(doc, 'Run ID', input.run.id.slice(0, 8), 48, metaY + 43);
-    this.keyValue(
-      doc,
-      'Fecha de generación',
-      dateLabel(input.generatedAt),
-      290,
-      metaY + 43,
-    );
-    doc.y = metaY + 92;
+    doc.font('Helvetica').fontSize(11).fillColor(COLOR.muted)
+      .text(cleanText(input.document.filename, 180) || 'Documento', 48, doc.y, { width: 499 });
+    doc.moveDown(1.2);
 
-    this.section(doc, 'Resumen');
     const cardY = doc.y;
-    doc.save().roundedRect(48, cardY, 499, 100, 8).fill(COLOR.panel).restore();
-    doc
-      .font('Helvetica')
-      .fontSize(8)
-      .fillColor(COLOR.muted)
-      .text('SEÑAL GLOBAL ESTIMADA', 64, cardY + 14);
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(32)
-      .fillColor(COLOR.ink)
-      .text(percentage(input.run.documentScore), 64, cardY + 29, {
-        width: 190,
-      });
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(11)
-      .fillColor(
-        levelColor(
-          levelFromRun(input.run.signalLevel, input.run.documentScore),
-        ),
-      )
-      .text(
-        `Nivel: ${levelLabel(levelFromRun(input.run.signalLevel, input.run.documentScore))}`,
-        300,
-        cardY + 42,
-        { width: 220 },
-      );
-    doc.y = cardY + 114;
+    doc.save().roundedRect(48, cardY, 499, 155, 8).fill(COLOR.panel).restore();
+    doc.font('Helvetica').fontSize(8).fillColor(COLOR.muted)
+      .text('SEÑAL GLOBAL ESTIMADA', 66, cardY + 18);
+    doc.font('Helvetica-Bold').fontSize(34).fillColor(COLOR.ink)
+      .text(percentage(input.run.documentScore), 66, cardY + 39, { width: 210 });
 
-    const total = input.paragraphs.length;
-    const evaluated = input.paragraphs.filter(
-      (paragraph) => levelFor(paragraph) !== 'INSUFFICIENT',
-    ).length;
-    const insufficient = total - evaluated;
-    this.keyValue(
-      doc,
-      'Analizador/modelo',
-      input.run.modelNames.join(' + ') || input.run.analyzerMode,
-      48,
-      doc.y,
-      240,
-    );
-    this.keyValue(doc, 'Perfil', input.run.thresholdProfile, 300, doc.y, 220);
-    const rowY = doc.y + 43;
-    this.keyValue(
-      doc,
-      'Modo de párrafo',
-      paragraphModeLabel(input.run.paragraphMode),
-      48,
-      rowY,
-    );
-    this.keyValue(
-      doc,
-      'Umbral aplicado',
-      input.run.threshold === null
-        ? 'No disponible'
-        : percentage(input.run.threshold),
-      300,
-      rowY,
-    );
-    const row2Y = rowY + 43;
-    this.keyValue(doc, 'Párrafos totales', `${total}`, 48, row2Y);
-    this.keyValue(doc, 'Párrafos evaluados', `${evaluated}`, 200, row2Y);
-    this.keyValue(doc, 'Insuficientes', `${insufficient}`, 360, row2Y);
-    const row3Y = row2Y + 43;
-    this.keyValue(
-      doc,
-      'Duración de inferencia',
-      formatDuration(input.run.inferenceMs),
-      48,
-      row3Y,
-    );
-    this.keyValue(
-      doc,
-      'Resultado desde caché',
-      input.run.cacheHit ? 'Sí' : 'No',
-      245,
-      row3Y,
-    );
-    this.keyValue(
-      doc,
-      'Agregación',
-      input.run.documentAggregation ?? 'No disponible',
-      370,
-      row3Y,
-      170,
-    );
-    doc.y = row3Y + 48;
+    this.keyValue(doc, 'Umbral aplicado', input.run.threshold === null
+      ? 'No disponible'
+      : percentage(input.run.threshold), 315, cardY + 25, 210);
+    this.keyValue(doc, 'Fecha de generación', dateLabel(input.generatedAt), 315, cardY + 78, 210);
+    this.keyValue(doc, 'Párrafos señalados', String(counts.flagged), 66, cardY + 105, 210);
+    this.keyValue(doc, 'Párrafos evaluados', String(counts.evaluated), 315, cardY + 105, 210);
+    doc.y = cardY + 178;
 
-    doc.save().roundedRect(48, doc.y, 499, 56, 6).fill('#f6f8fa').restore();
-    doc
-      .font('Helvetica')
-      .fontSize(9)
-      .fillColor(COLOR.ink)
-      .text(AI_DISCLAIMER, 61, doc.y + 11, {
-        width: 473,
-        height: 38,
-        lineGap: 1.5,
-      });
-    doc.y += 69;
+    doc.save().roundedRect(48, doc.y, 499, 64, 6).fill('#f6f8fa').restore();
+    doc.font('Helvetica').fontSize(9).fillColor(COLOR.ink)
+      .text(AI_DISCLAIMER, 61, doc.y + 11, { width: 473, height: 44, lineGap: 1.5 });
+    doc.y += 83;
   }
-
   private aiDistribution(doc: PDFDoc, paragraphs: AIReportParagraph[]): void {
     this.section(doc, 'Distribución de señal por párrafo');
     const levels: DistributionLevel[] = [
@@ -616,106 +495,10 @@ export class ReportRenderer {
     this.section(doc, 'Documento para revisión');
     this.aiReviewLegend(doc);
 
-    const actionable = reviewSegments.filter(({ presentation }) => presentation.highlight);
-    const high = actionable
-      .filter(({ presentation }) => presentation.level === 'HIGH')
-      .map(({ paragraph }) => paragraph.paragraphIndex + 1);
-    const moderate = actionable
-      .filter(({ presentation }) => presentation.level === 'MODERATE')
-      .map(({ paragraph }) => paragraph.paragraphIndex + 1);
-    const signalIndexLine = (label: string, indexes: number[]) => {
-      const visible = indexes.slice(0, 20).map((index) => `P${index}`).join(', ');
-      return `${label}: ${indexes.length} ${indexes.length === 1 ? 'párrafo' : 'párrafos'}${visible ? ` · ${visible}${indexes.length > 20 ? ', …' : ''}` : ''}`;
-    };
-    if (high.length || moderate.length) {
-      this.ensureSpace(doc, 16);
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(8.5)
-        .fillColor(COLOR.ink)
-        .text('Índice de señal', 48, doc.y, { width: 499 });
-      doc.moveDown(0.3);
-    }
-    if (high.length) {
-      this.ensureSpace(doc, 14);
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(8.5)
-        .fillColor(COLOR.ink)
-        .text(signalIndexLine('Alta', high), 48, doc.y, {
-          width: 499,
-        });
-      doc.moveDown(0.35);
-    }
-    if (moderate.length) {
-      this.ensureSpace(doc, 14);
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(8.5)
-        .fillColor(COLOR.ink)
-        .text(signalIndexLine('Moderada', moderate), 48, doc.y, {
-          width: 499,
-        });
-      doc.moveDown(0.45);
-    }
-
-    const nextContentByIndex: Array<RenderReviewSegment | null> = Array.from(
-      { length: reviewSegments.length },
-      () => null,
-    );
-    let nextContent: RenderReviewSegment | null = null;
-    for (let index = reviewSegments.length - 1; index >= 0; index -= 1) {
-      const candidate = reviewSegments[index]!;
-      nextContentByIndex[index] = nextContent;
-      if (!isReviewHeading(candidate) && reviewDisplayText(candidate.text)) {
-        nextContent = candidate;
-      }
-    }
-
     let cursor = 0;
-    let referenceNoteShown = false;
-    for (let index = 0; index < reviewSegments.length; index += 1) {
-      const segment = reviewSegments[index]!;
+    for (const segment of reviewSegments) {
       if (segment.charStart > cursor) {
-        this.renderReviewGap(
-          doc,
-          input.extractedText.slice(cursor, segment.charStart),
-        );
-      }
-      if (
-        segment.presentation.excludedReason === 'REFERENCE_SECTION' &&
-        !referenceNoteShown
-      ) {
-        this.ensureSpace(doc, 22);
-        doc
-          .font('Helvetica-Oblique')
-          .fontSize(8.5)
-          .fillColor(COLOR.muted)
-          .text(
-            'Referencias: fuera de la vista principal de revisión de redacción.',
-            48,
-            doc.y,
-            { width: 499 },
-          );
-        doc.moveDown(0.35);
-        referenceNoteShown = true;
-      }
-      if (isReviewHeading(segment)) {
-        const following = nextContentByIndex[index];
-        const maxBodyHeight =
-          PAGE.height - doc.page.margins.top - doc.page.margins.bottom;
-        const followingHeight = following
-          ? this.reviewParagraphHeight(doc, following)
-          : REVIEW_LAYOUT.lineHeight;
-        const keepFollowingHeight =
-          followingHeight <= maxBodyHeight
-            ? followingHeight
-            : REVIEW_LAYOUT.lineHeight * 2;
-        const headingHeight = this.reviewParagraphHeight(doc, segment, true);
-        this.ensureSpace(
-          doc,
-          Math.max(48, headingHeight + keepFollowingHeight + 10),
-        );
+        this.renderReviewGap(doc, input.extractedText.slice(cursor, segment.charStart));
       }
       this.renderReviewParagraph(doc, segment);
       cursor = segment.charEnd;
@@ -726,51 +509,15 @@ export class ReportRenderer {
   }
 
   private aiReviewLegend(doc: PDFDoc): void {
-    this.ensureSpace(doc, 18);
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(9)
-      .fillColor(COLOR.ink)
-      .text('Leyenda', 48, doc.y, { width: 499 });
-    doc.moveDown(0.25);
-    const rows = [
-      { color: REVIEW_COLOR.high, label: 'Resaltado fuerte: señal alta' },
-      { color: REVIEW_COLOR.moderate, label: 'Resaltado tenue: señal moderada' },
-      { color: null, label: 'Sin resaltado: señal baja o texto no evaluado' },
-    ];
-    for (const row of rows) {
-      this.ensureSpace(doc, 14);
-      if (row.color) {
-        doc.rect(49, doc.y + 1, 11, 9).fill(row.color);
-      } else {
-        doc
-          .strokeColor(COLOR.muted)
-          .lineWidth(0.7)
-          .moveTo(49, doc.y + 5)
-          .lineTo(60, doc.y + 5)
-          .stroke();
-      }
-      doc
-        .font('Helvetica')
-        .fontSize(8.5)
-        .fillColor(COLOR.ink)
-        .text(row.label, 67, doc.y, { width: 480, lineBreak: false });
-      doc.y += 13;
-    }
-    this.ensureSpace(doc, 28);
-    doc
-      .font('Helvetica-Oblique')
-      .fontSize(8.5)
-      .fillColor(COLOR.muted)
-      .text(
-        'El resaltado corresponde a la unidad de análisis del modelo. En este run la unidad es el párrafo completo.',
-        48,
-        doc.y,
-        { width: 499, lineGap: 1 },
-      );
-    doc.moveDown(0.55);
+    this.ensureSpace(doc, 24);
+    doc.rect(49, doc.y + 1, 11, 9).fill(REVIEW_COLOR.high);
+    doc.font('Helvetica').fontSize(8.5).fillColor(COLOR.ink)
+      .text('Resaltado: segmento igual o superior al umbral aplicado.', 67, doc.y, {
+        width: 480,
+        lineBreak: false,
+      });
+    doc.moveDown(0.65);
   }
-
   private renderReviewGap(doc: PDFDoc, sourceText: string): void {
     const text = reviewDisplayText(sourceText);
     if (!text) return;
@@ -806,8 +553,6 @@ export class ReportRenderer {
     doc: PDFDoc,
     segment: RenderReviewSegment,
   ): void {
-    const { paragraph } = segment;
-    const { level } = segment.presentation;
     const heading = isReviewHeading(segment);
     const displayText = reviewDisplayText(segment.text);
     if (!displayText) return;
@@ -816,40 +561,28 @@ export class ReportRenderer {
       this.ensureSpace(doc, 48);
       doc.moveDown(0.3);
     }
-    doc
-      .font(heading ? 'Helvetica-Bold' : 'Helvetica')
+    doc.font(heading ? 'Helvetica-Bold' : 'Helvetica')
       .fontSize(heading ? 11 : 9.5);
     const lines = wrapReviewLines(displayText, REVIEW_LAYOUT.textWidth, (value) =>
       doc.widthOfString(value),
     );
-    const spans = paragraph.segmentEvidence.spans ?? [];
-    const paragraphEvidence = paragraph.segmentEvidence.type === 'PARAGRAPH';
-    const ranges = spans.length
-      ? spans.map(({ start, end }) => ({ charStart: start, charEnd: end }))
-      : paragraphEvidence
-        ? [{ charStart: segment.charStart, charEnd: segment.charEnd }]
-        : [];
-    const highlightColor =
-      segment.presentation.highlight && level === 'HIGH'
-        ? REVIEW_COLOR.high
-        : segment.presentation.highlight && level === 'MODERATE'
-          ? REVIEW_COLOR.moderate
-          : null;
+    const shouldHighlight = segment.evidence.flagged &&
+      !segment.evidence.presentationExcluded;
+    const ranges = shouldHighlight
+      ? segment.evidence.granularity === 'SPAN' && segment.evidence.spans.length > 0
+        ? mergeReviewSpansForDisplay(segment.evidence.spans).map((span) => ({
+            startChar: segment.charStart + span.startChar,
+            endChar: segment.charStart + span.endChar,
+          }))
+        : [{ startChar: segment.charStart, endChar: segment.charEnd }]
+      : [];
 
     const visibleLines = lines.filter((line) => line.text.trim()).length;
-    const scoreLabelHeight =
-      segment.presentation.highlight &&
-      (level === 'HIGH' || level === 'MODERATE') &&
-      paragraph.score !== null
-        ? 11
-        : 0;
-    const wholeParagraphHeight =
-      visibleLines * REVIEW_LAYOUT.lineHeight + scoreLabelHeight + (heading ? 4 : 2);
+    const paragraphHeight =
+      visibleLines * REVIEW_LAYOUT.lineHeight + (heading ? 4 : 2);
     const maxBodyHeight =
       PAGE.height - doc.page.margins.bottom - doc.page.margins.top;
-    if (wholeParagraphHeight <= maxBodyHeight) {
-      this.ensureSpace(doc, wholeParagraphHeight);
-    }
+    if (paragraphHeight <= maxBodyHeight) this.ensureSpace(doc, paragraphHeight);
 
     for (const line of lines) {
       if (!line.text.trim()) {
@@ -858,41 +591,24 @@ export class ReportRenderer {
       }
       this.ensureSpace(doc, REVIEW_LAYOUT.lineHeight + 2);
       const y = doc.y;
-      if (highlightColor) {
-        if (paragraphEvidence) {
-          doc
-            .rect(
-              REVIEW_LAYOUT.left,
-              y - 1,
-              REVIEW_LAYOUT.width,
-              REVIEW_LAYOUT.lineHeight + 1,
-            )
-            .fill(highlightColor);
-          doc
-            .rect(REVIEW_LAYOUT.left, y - 1, 2.5, REVIEW_LAYOUT.lineHeight + 1)
-            .fill(level === 'HIGH' ? REVIEW_COLOR.highEdge : REVIEW_COLOR.moderateEdge);
-        } else {
-          const lineStart = segment.charStart + line.start;
-          const lineEnd = segment.charStart + line.end;
-          for (const range of ranges) {
-            const start = Math.max(lineStart, range.charStart);
-            const end = Math.min(lineEnd, range.charEnd);
-            if (end <= start) continue;
-            const prefix = displayText.slice(line.start, start - segment.charStart);
-            const highlighted = displayText.slice(
-              start - segment.charStart,
-              end - segment.charStart,
-            );
-            const x = REVIEW_LAYOUT.textLeft + doc.widthOfString(prefix);
-            const width = doc.widthOfString(highlighted);
-            doc
-              .rect(x - 1, y - 1, width + 2, REVIEW_LAYOUT.lineHeight + 1)
-              .fill(highlightColor);
-          }
+      const lineStart = segment.charStart + line.start;
+      const lineEnd = segment.charStart + line.end;
+      for (const range of ranges) {
+        const start = Math.max(lineStart, range.startChar);
+        const end = Math.min(lineEnd, range.endChar);
+        if (end <= start) continue;
+        const localStart = start - segment.charStart;
+        const localEnd = end - segment.charStart;
+        const prefix = displayText.slice(line.start, localStart);
+        const highlighted = displayText.slice(localStart, localEnd);
+        const x = REVIEW_LAYOUT.textLeft + doc.widthOfString(prefix);
+        const width = doc.widthOfString(highlighted);
+        if (width > 0) {
+          doc.rect(x - 1, y - 1, width + 2, REVIEW_LAYOUT.lineHeight + 1)
+            .fill(REVIEW_COLOR.high);
         }
       }
-      doc
-        .font(heading ? 'Helvetica-Bold' : 'Helvetica')
+      doc.font(heading ? 'Helvetica-Bold' : 'Helvetica')
         .fontSize(heading ? 11 : 9.5)
         .fillColor(REVIEW_COLOR.ink)
         .text(line.text, REVIEW_LAYOUT.textLeft, y, {
@@ -901,28 +617,8 @@ export class ReportRenderer {
         });
       doc.y = y + REVIEW_LAYOUT.lineHeight;
     }
-
-    if (
-      segment.presentation.highlight &&
-      (level === 'HIGH' || level === 'MODERATE') &&
-      paragraph.score !== null
-    ) {
-      this.ensureSpace(doc, 12);
-      doc
-        .font('Helvetica')
-        .fontSize(7.5)
-        .fillColor(COLOR.muted)
-        .text(
-          `${percentage(paragraph.score)} · ${levelLabel(level)}`,
-          REVIEW_LAYOUT.left,
-          doc.y,
-          { width: REVIEW_LAYOUT.width, align: 'right', lineBreak: false },
-        );
-      doc.y += 11;
-    }
     doc.y += heading ? 4 : 2;
   }
-
   private reviewParagraphHeight(
     doc: PDFDoc,
     segment: RenderReviewSegment,
@@ -1472,23 +1168,6 @@ export class ReportRenderer {
       doc.moveDown(0.3);
     });
   }
-}
-
-function levelFromRun(
-  level: string | null,
-  score: number | null,
-): DistributionLevel {
-  const normalized = level?.toUpperCase();
-  if (
-    normalized === 'HIGH' ||
-    normalized === 'MODERATE' ||
-    normalized === 'LOW'
-  )
-    return normalized;
-  if (score === null) return 'INSUFFICIENT';
-  if (score < 0.35) return 'LOW';
-  if (score < 0.65) return 'MODERATE';
-  return 'HIGH';
 }
 
 function readContextCounts(

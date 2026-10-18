@@ -47,6 +47,8 @@ function historyQuery(isError = false, status = 'COMPLETED', paragraphMode = 'CO
         documentClassification: 'MACHINE_SIGNAL',
         signalLevel: 'HIGH',
         scoredSegments: 1,
+        evaluatedSegments: 1,
+        flaggedSegments: 1,
         insufficientSegments: 0,
         inferenceMs: 1250,
         errorCode: null,
@@ -100,8 +102,8 @@ function reviewDocumentQuery() {
     { text: 'Autor: Ana Ejemplo', level: 'HIGH', highlight: false, excludedReason: 'METADATA' },
     { text: '1.1 Identificación del problema', level: null, highlight: false, excludedReason: 'HEADING' },
     { text: 'Párrafo sintético con señal alta.', level: 'HIGH', highlight: true },
-    { text: 'Párrafo sintético con señal moderada.', level: 'MODERATE', highlight: true },
-    { text: 'Párrafo sintético con señal baja.', level: 'LOW', highlight: false, excludedReason: 'LOW_SIGNAL' },
+    { text: 'Párrafo sintético con señal moderada.', level: 'MODERATE', highlight: false },
+    { text: 'Párrafo sintético con señal baja.', level: 'LOW', highlight: false },
     { text: 'Figura 1. Diagrama sintético.', level: 'HIGH', highlight: false, excludedReason: 'CAPTION' },
     { text: 'Referencias', level: null, highlight: false, excludedReason: 'REFERENCE_SECTION' },
     { text: 'Smith, A. (2024). Referencia sintética.', level: 'HIGH', highlight: false, excludedReason: 'REFERENCE_SECTION' },
@@ -132,6 +134,17 @@ function reviewDocumentQuery() {
         level: paragraph.level,
         ...(paragraph.excludedReason ? { excludedReason: paragraph.excludedReason } : {}),
       },
+      ...(paragraph.level === 'MODERATE' ? {} : { evidence: {
+        evaluated: paragraph.level !== null,
+        flagged: paragraph.highlight || Boolean(paragraph.excludedReason && paragraph.level !== null),
+        score: paragraph.level === 'HIGH' ? 0.91 : paragraph.level === 'MODERATE' ? 0.49 : paragraph.level === 'LOW' ? 0.2 : null,
+        threshold: 0.8,
+        presentationExcluded: Boolean(paragraph.excludedReason),
+        ...(paragraph.excludedReason ? { excludedReason: paragraph.excludedReason } : {}),
+        granularity: 'PARAGRAPH',
+        paragraphFlagged: paragraph.highlight || Boolean(paragraph.excludedReason && paragraph.level !== null),
+        spans: [],
+      } }),
     };
   });
   return {
@@ -263,7 +276,7 @@ describe('AnalysisPanel run provenance and operation errors', () => {
     expect(detail).not.toContain('document-panel analysis-panel');
   })
 
-  it('renders the complete review copy in document order with high and moderate highlights only', () => {
+  it('renders the complete review copy in document order with one threshold highlight style', () => {
     const html = renderPanel({ initialView: 'REVIEW' });
     const positions = [
       'UNIVERSIDAD SINTÉTICA',
@@ -279,9 +292,10 @@ describe('AnalysisPanel run provenance and operation errors', () => {
 
     expect(html).toContain('aria-selected="true" aria-controls="analysis-review-view"');
     expect(html).toContain('analysis-review-document');
-    expect(html).toContain('analysis-review-paragraph is-highlight-high');
-    expect(html).toContain('analysis-review-paragraph is-highlight-moderate');
-    expect(html).not.toContain('analysis-review-paragraph is-highlight-low');
+    expect(html).toContain('analysis-review-highlight');
+    expect(html).not.toContain('is-highlight-moderate');
+    expect(html).not.toContain('is-highlight-high');
+    expect(html).toContain('Señalado 1 de 1');
     expect(html).toContain('Referencia bibliográfica');
     expect(html).toContain('analysis-review-paragraph-action');
     expect(html).not.toContain('analysis-review-drawer');

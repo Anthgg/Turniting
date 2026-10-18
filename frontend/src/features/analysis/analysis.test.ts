@@ -63,24 +63,31 @@ describe('analysis presentation', () => {
       servable: true, thresholdProfiles: [], thresholdSource: null, preprocessing: ['V3_CANONICALIZED_V1'], warnings: [] }] })
     expect(models.items[0].availability).toBe('UNAVAILABLE')
     const segments = segmentListSchema.parse({ analysisId: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', stale: false,
+      spanEvidenceSupported: false, spanEvidenceGranularity: 'PARAGRAPH',
+      evidenceCapabilities: { paragraphHighlighting: true, spanHighlighting: false },
       page: 1, pageSize: 20, total: 2, pages: 1, items: [
       { paragraphIndex: 0, charStart: 0, charEnd: 10, pageNumber: null, words: 2, tokens: 3,
         modelName: 'CANDIDATE_MODEL_V3', rawScore: 0.2, calibratedScore: 0.12,
-        classification: 'LOW_SIGNAL', signalLevel: 'LOW', confidence: 'HIGH', text: 'Párrafo 1' },
+        classification: 'LOW_SIGNAL', signalLevel: 'LOW', confidence: 'HIGH', text: 'Párrafo 1',
+        evidence: { evaluated: true, flagged: false, score: 0.12, threshold: 0.59,
+          presentationExcluded: false, granularity: 'PARAGRAPH', paragraphFlagged: false, spans: [] } },
       { paragraphIndex: 1, charStart: 12, charEnd: 20, pageNumber: 2, words: 1, tokens: 1,
         modelName: 'CANDIDATE_MODEL_V3', rawScore: null, calibratedScore: null,
         classification: 'INSUFFICIENT_TEXT', signalLevel: null, confidence: null, text: 'Título' }] })
     expect(segments.items[1].classification).toBe('INSUFFICIENT_TEXT')
+    expect(segments.spanEvidenceSupported).toBe(false)
     expect(segments.total).toBe(2)
     const comparison = comparisonSchema.parse({ id: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', documentSimilarity: 0.9,
       globalScoreDelta: -0.07, changedSegments: 1, unchangedSegments: 1, addedSegments: 0, removedSegments: 0,
       disclaimer: 'not a Turnitin score', details: { baseDocumentScore: 0.31, targetDocumentScore: 0.24,
-        unchangedDrift: { n: 1, mean: 0.01, median: 0.01, p90: 0.01, p95: 0.01, max: 0.01 }, paragraphs: [
+      unchangedDrift: { n: 1, mean: 0.01, median: 0.01, p90: 0.01, p95: 0.01, max: 0.01 },
+      thresholdReview: { previousFlagged: 1, currentFlagged: 2, newlyFlagged: 1, noLongerFlagged: 0, stillFlagged: 1, baseThreshold: 0.59, targetThreshold: 0.59 }, paragraphs: [
           { status: 'MODIFIED', baseParagraphIndex: 11, targetParagraphIndex: 11, similarity: 0.7, baseScore: 0.71,
             targetScore: 0.34, delta: -0.37 },
           { status: 'UNCHANGED', baseParagraphIndex: 12, targetParagraphIndex: 12, similarity: 1, baseScore: 0.18,
             targetScore: 0.17, delta: -0.01 }] } })
     expect(formatDelta(comparison.details.paragraphs[0].delta)).toBe('-37 pp')
+    expect(comparison.details.thresholdReview?.newlyFlagged).toBe(1)
   })
 
   it('parses backend canonical percent and cache metadata from a persisted run', () => {
@@ -91,6 +98,8 @@ describe('analysis presentation', () => {
       threshold: 0.59, paragraphMode: 'STRICT_PARAGRAPH', documentAggregation: 'token_weighted_mean',
       documentScore: 0.655, documentScorePercent: 66, documentClassification: 'MACHINE_SIGNAL',
       signalLevel: 'HIGH', scoredSegments: 1, insufficientSegments: 0, inferenceMs: 1250, errorCode: null,
+      evaluatedSegments: 1, flaggedSegments: 1, spanEvidenceSupported: false,
+      spanEvidenceGranularity: 'PARAGRAPH', evidenceCapabilities: { paragraphHighlighting: true, spanHighlighting: false },
       createdAt: '2026-10-17T12:00:00.000Z', completedAt: '2026-10-17T12:00:01.250Z',
       metadata: { cacheHit: true, reusedAnalysisId: '9a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d' },
       modelResults: [{ modelName: 'CANDIDATE_MODEL_V3', modelVariant: 'v3', calibratedScore: 0.655,
@@ -98,6 +107,8 @@ describe('analysis presentation', () => {
         preprocessing: 'V3_CANONICALIZED_V1', inferenceMs: 0 }],
     })
     expect(run.documentScorePercent).toBe(66)
+    expect(run.flaggedSegments).toBe(1)
+    expect(run.evidenceCapabilities?.spanHighlighting).toBe(false)
     expect(run.metadata).toMatchObject({ cacheHit: true })
     expect(run.paragraphMode).toBe('STRICT_PARAGRAPH')
     expect(run.documentAggregation).toBe('token_weighted_mean')

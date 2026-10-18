@@ -22,6 +22,7 @@ import {
 } from "../../api/analysis";
 import { ApiRequestError } from "../../api/client";
 import { Icon } from "../../components/Icon";
+import { splitReviewText } from "./review-text";
 import {
   ANALYZER_LABEL,
   DEFAULT_PARAGRAPH_MODE,
@@ -74,6 +75,35 @@ function contextTokenLabel(tokens: Record<string, number> | null) {
     .join(" · ");
 }
 
+const REVIEW_PRESENTATION_EXCLUSIONS = new Set([
+  "REFERENCE_SECTION",
+  "METADATA",
+  "CAPTION",
+  "HEADING",
+  "INSUFFICIENT_TEXT",
+]);
+
+function reviewEvidenceForSegment(segment: AnalysisSegment, threshold: number | null) {
+  if (segment.evidence) return segment.evidence;
+  const evaluated = segment.classification !== "INSUFFICIENT_TEXT" &&
+    typeof segment.calibratedScore === "number" && Number.isFinite(segment.calibratedScore);
+  const flagged = evaluated && threshold !== null && Number.isFinite(threshold) &&
+    segment.calibratedScore! >= threshold;
+  const reason = segment.reviewPresentation?.excludedReason;
+  const presentationExcluded = Boolean(reason && REVIEW_PRESENTATION_EXCLUSIONS.has(reason));
+  return {
+    evaluated,
+    flagged,
+    score: segment.calibratedScore,
+    threshold,
+    presentationExcluded,
+    ...(presentationExcluded && reason ? { excludedReason: reason } : {}),
+    granularity: "PARAGRAPH" as const,
+    paragraphFlagged: flagged,
+    spans: [],
+  };
+}
+
 export function AnalysisPanel({
   documentId,
   fileName,
@@ -110,6 +140,7 @@ export function AnalysisPanel({
   const [contextSegmentId, setContextSegmentId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<AnalysisView>(initialView);
   const [reviewSelectedParagraphIndex, setReviewSelectedParagraphIndex] = useState<number | null>(null);
+  const [reviewNavigationIndex, setReviewNavigationIndex] = useState(0);
   const [reviewJump, setReviewJump] = useState<{ paragraphIndex: number | null; sequence: number }>({
     paragraphIndex: null,
     sequence: 0,
@@ -160,6 +191,7 @@ export function AnalysisPanel({
       setContextSegmentId(null);
       setActiveView("SUMMARY");
       setReviewSelectedParagraphIndex(null);
+      setReviewNavigationIndex(0);
       setReviewJump({ paragraphIndex: null, sequence: 0 });
       await queryClient.invalidateQueries({
         queryKey: analysisQueryKeys.documentAnalyses(documentId),
@@ -254,6 +286,18 @@ export function AnalysisPanel({
   const reviewSegments = [...(reviewDocument.data?.items ?? [])].sort(
     (left, right) => left.charStart - right.charStart || left.charEnd - right.charEnd,
   );
+  const reviewFlaggedSegments = reviewSegments.filter(
+    (segment) => {
+      const evidence = reviewEvidenceForSegment(segment, run?.threshold ?? null);
+      return evidence.flagged && !evidence.presentationExcluded;
+    },
+  );
+  const selectedFlaggedIndex = reviewFlaggedSegments.findIndex(
+    (segment) => segment.paragraphIndex === reviewSelectedParagraphIndex,
+  );
+  const visibleFlaggedIndex = selectedFlaggedIndex >= 0
+    ? selectedFlaggedIndex
+    : Math.min(reviewNavigationIndex, Math.max(0, reviewFlaggedSegments.length - 1));
   const selectedReviewSegment = reviewSegments.find(
     (segment) => segment.paragraphIndex === reviewSelectedParagraphIndex,
   );
@@ -276,29 +320,35 @@ export function AnalysisPanel({
       }
       const exactText = reviewText.slice(segment.charStart, segment.charEnd);
       const presentation = segment.reviewPresentation;
+      const evidence = reviewEvidenceForSegment(segment, run?.threshold ?? null);
       const selected = reviewSelectedParagraphIndex === segment.paragraphIndex;
-      const levelClass = presentation?.level?.toLowerCase() ?? "none";
+      const actionable = Boolean(evidence?.flagged && !evidence.presentationExcluded);
+      const textParts = splitReviewText(exactText, evidence, segment.charStart);
+      const renderedText = textParts.map((part, index) => part.highlighted
+        ? <mark className="analysis-review-highlight" key={`highlight-${index}`}>{part.text}</mark>
+        : <span key={`text-${index}`}>{part.text}</span>);
       reviewBlocks.push(
         <article
-          className={`analysis-review-paragraph${presentation?.highlight ? ` is-highlight-${levelClass}` : ""}`}
+          className={`analysis-review-paragraph${actionable ? " is-actionable" : ""}`}
           id={`analysis-review-paragraph-${segment.paragraphIndex}`}
           key={`review-paragraph-${segment.paragraphIndex}`}
         >
-          {presentation?.highlight ? (
+          {actionable ? (
             <button
               className="analysis-review-paragraph-action"
               type="button"
               aria-expanded={selected}
-              aria-label={`Párrafo ${segment.paragraphIndex + 1}, ${formatSignal(segment.calibratedScore)}, señal ${presentation.level ? SIGNAL_LABEL[presentation.level] : "sin nivel"}`}
-              onClick={() => setReviewSelectedParagraphIndex(selected ? null : segment.paragraphIndex)}
+              aria-label={`Párrafo ${segment.paragraphIndex + 1}, ${formatSignal(segment.calibratedScore)}, umbral ${formatPercent(evidence?.threshold ?? run?.threshold ?? null)}`}
+              onClick={() => {
+                setReviewSelectedParagraphIndex(selected ? null : segment.paragraphIndex);
+                const index = reviewFlaggedSegments.findIndex((item) => item.paragraphIndex === segment.paragraphIndex);
+                if (index >= 0) setReviewNavigationIndex(index);
+              }}
             >
-              <span className="analysis-review-paragraph-text">{exactText}</span>
-              <small>
-                {formatSignal(segment.calibratedScore)} · {presentation.level ? SIGNAL_LABEL[presentation.level] : "Sin nivel"}
-              </small>
+              <span className="analysis-review-paragraph-text">{renderedText}</span>
             </button>
           ) : (
-            <p className="analysis-review-paragraph-text">{exactText}</p>
+            <p className="analysis-review-paragraph-text">{renderedText}</p>
           )}
           {presentation?.excludedReason === "REFERENCE_SECTION" && (
             <small className="analysis-review-reference-label">Referencia bibliográfica</small>
@@ -322,6 +372,8 @@ export function AnalysisPanel({
               <dl className="analysis-review-drawer-grid">
                 <div><dt>Score</dt><dd>{formatSignal(segment.calibratedScore)}</dd></div>
                 <div><dt>Nivel</dt><dd>{presentation?.level ? SIGNAL_LABEL[presentation.level] : "Sin nivel"}</dd></div>
+                <div><dt>Umbral</dt><dd>{formatPercent(evidence?.threshold ?? run?.threshold ?? null)}</dd></div>
+                <div><dt>Estado</dt><dd>{evidence?.presentationExcluded ? evidence.excludedReason ?? "Excluido de la vista de revisión" : evidence?.flagged ? "Señalado por umbral" : "Bajo umbral"}</dd></div>
                 <div><dt>Tokens</dt><dd>{segment.tokens ?? "—"}</dd></div>
                 <div><dt>Words</dt><dd>{segment.words ?? "—"}</dd></div>
                 <div><dt>Modelo</dt><dd>{segment.modelName}</dd></div>
@@ -369,6 +421,21 @@ export function AnalysisPanel({
       paragraphIndex,
       sequence: current.sequence + 1,
     }));
+  }
+
+  function navigateFlagged(direction: -1 | 1) {
+    if (!reviewFlaggedSegments.length) return;
+    const baseIndex = selectedFlaggedIndex >= 0
+      ? selectedFlaggedIndex
+      : direction > 0
+        ? reviewNavigationIndex - 1
+        : reviewNavigationIndex;
+    const nextIndex = (baseIndex + direction + reviewFlaggedSegments.length) % reviewFlaggedSegments.length;
+    const segment = reviewFlaggedSegments[nextIndex]!;
+    setReviewNavigationIndex(nextIndex);
+    setActiveView("REVIEW");
+    setReviewSelectedParagraphIndex(segment.paragraphIndex);
+    setReviewJump((current) => ({ paragraphIndex: segment.paragraphIndex, sequence: current.sequence + 1 }));
   }
 
   function renderParagraphRow(segment: AnalysisSegment) {
@@ -663,6 +730,7 @@ export function AnalysisPanel({
                 setContextSegmentId(null);
                 setActiveView("SUMMARY");
                 setReviewSelectedParagraphIndex(null);
+                setReviewNavigationIndex(0);
                 setReviewJump({ paragraphIndex: null, sequence: 0 });
               }}
             >
@@ -917,9 +985,9 @@ export function AnalysisPanel({
               <dd>{cacheHitLabel}</dd>
             </div>
             <div>
-              <dt>Párrafos</dt>
+              <dt>Revisión por umbral</dt>
               <dd>
-                {run.scoredSegments} evaluados · {run.insufficientSegments} insuficientes
+                {run.evaluatedSegments ?? run.scoredSegments} evaluados · {run.flaggedSegments ?? "—"} señalados · {run.insufficientSegments} insuficientes
               </dd>
             </div>
             <div>
@@ -949,6 +1017,19 @@ export function AnalysisPanel({
               <h3>Documento para revisión</h3>
               <p>El texto conserva el orden del documento y muestra la unidad revisada por el análisis.</p>
             </div>
+            <nav className="analysis-review-navigation" aria-label="Navegación por señalados">
+              <button className="button button-quiet" type="button" disabled={!reviewFlaggedSegments.length} onClick={() => navigateFlagged(-1)}>
+                Anterior
+              </button>
+              <span aria-live="polite">
+                {reviewFlaggedSegments.length
+                  ? `Señalado ${visibleFlaggedIndex + 1} de ${reviewFlaggedSegments.length}`
+                  : "Sin párrafos señalados"}
+              </span>
+              <button className="button button-quiet" type="button" disabled={!reviewFlaggedSegments.length} onClick={() => navigateFlagged(1)}>
+                Siguiente
+              </button>
+            </nav>
             {fileName && <span className="analysis-review-filename">{fileName}</span>}
           </header>
           {reviewDocument.isPending && !reviewDocument.data && (
@@ -972,11 +1053,7 @@ export function AnalysisPanel({
           {reviewDocument.data && !reviewDocument.data.stale && (
             <>
               <div className="analysis-review-legend" aria-label="Leyenda de resaltados">
-                <strong>Leyenda</strong>
-                <span><i className="review-legend-high" /> Señal alta</span>
-                <span><i className="review-legend-moderate" /> Señal moderada</span>
-                <span><i className="review-legend-none" /> Señal baja o texto no evaluado</span>
-                <small>El resaltado corresponde a la unidad analizada por el modelo. En esta corrida, la unidad de análisis es el párrafo.</small>
+                <span><i className="review-legend-high" /> Score igual o superior al umbral guardado de esta corrida</span>
               </div>
               <div className="analysis-review-document" aria-label="Texto completo en orden documental">
                 {reviewBlocks}

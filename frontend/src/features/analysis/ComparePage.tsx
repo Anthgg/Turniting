@@ -119,6 +119,14 @@ export function ComparePage() {
             <div><span>Diferencia</span><strong>{formatDelta(data.globalScoreDelta)}</strong></div>
             <div><span>Similitud del texto</span><strong>{formatSignal(data.documentSimilarity)}</strong></div>
             <div><span>Párrafos</span><strong>{data.unchangedSegments} sin cambios · {data.changedSegments} modificados · {data.addedSegments} añadidos · {data.removedSegments} eliminados</strong></div>
+            {data.details.thresholdReview && (
+              <div>
+                <span>Señalados por umbral</span>
+                <strong>
+                  A: {data.details.thresholdReview.previousFlagged} · B: {data.details.thresholdReview.currentFlagged} · {data.details.thresholdReview.newlyFlagged} nuevos · {data.details.thresholdReview.noLongerFlagged} ya no señalados · {data.details.thresholdReview.stillFlagged} se mantienen
+                </strong>
+              </div>
+            )}
             <div><span>Deriva en párrafos sin cambios</span><strong>{data.details.unchangedDrift ? `mediana ${formatDelta(data.details.unchangedDrift.median)} · p95 ${formatDelta(data.details.unchangedDrift.p95)}` : '—'}</strong></div>
           </div>
           <table className="dataset-table compare-table">

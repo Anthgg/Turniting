@@ -12,6 +12,7 @@ const RUN = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
 const SECRET_TEXT = 'Párrafo sintético uno con contenido privado de prueba.\n\nPárrafo sintético dos con más texto.';
 
 function aiResult() {
+  const [firstParagraph, secondParagraph] = SECRET_TEXT.split('\n\n');
   return {
     analyzer: 'V3_ONLY', model: 'CANDIDATE_MODEL_V3', modelVersion: 'TURNITING_RESEARCH_V3_SPANISH_ACADEMIC',
     paragraphMode: 'CONTEXTUAL_PARAGRAPH', thresholdProfile: 'LOW_FALSE_POSITIVE', threshold: 0.9,
@@ -20,10 +21,12 @@ function aiResult() {
     insufficientParagraphs: 1, preprocessingVersion: 'V3_CANONICALIZED_V1', inferenceMs: 12,
     contextMetadata: { tokenLimitPerSide: 64, measurement: 'tokens_per_window', preprocessingProfiles: ['V3_CANONICALIZED_V1'] },
     segments: [
-      { paragraphIndex: 0, charStart: 0, charEnd: 55, pageNumber: null, textHash: 'a'.repeat(64), words: 8, tokens: 14,
+      { paragraphIndex: 0, charStart: 0, charEnd: firstParagraph!.length, pageNumber: null,
+        textHash: sha256(firstParagraph!), words: 8, tokens: 14,
         contextTokensUsed: { V3_CANONICALIZED_V1: { before: 0, after: 7 } },
         rawScore: 0.5, calibratedScore: 0.42, classification: 'LOW_SIGNAL', signalLevel: 'MODERATE', confidence: 'LOW' },
-      { paragraphIndex: 1, charStart: 57, charEnd: 93, pageNumber: null, textHash: 'b'.repeat(64), words: 6, tokens: 9,
+      { paragraphIndex: 1, charStart: firstParagraph!.length + 2, charEnd: SECRET_TEXT.length, pageNumber: null,
+        textHash: sha256(secondParagraph!), words: 6, tokens: 9,
         contextTokensUsed: {}, rawScore: null, calibratedScore: null, classification: 'INSUFFICIENT_TEXT', signalLevel: null, confidence: null },
     ],
   };
@@ -107,6 +110,60 @@ describe('AnalysisService', () => {
     expect(completed.documentScore).toBe(prisma.analysisModelResult.create.mock.calls[0][0].data.calibratedScore);
   });
 
+  it('converts AI-service paragraph codepoint ranges to UTF-16 before persisting', async () => {
+    const first = 'Un párrafo sintético 😀 con suficiente texto para validar offsets locales.';
+    const second = 'La sección siguiente conserva sus límites luego del emoji anterior.';
+    const extractedText = `${first}\n\n${second}`;
+    const result = aiResult();
+    result.segments = [
+      {
+        paragraphIndex: 0,
+        charStart: 0,
+        charEnd: Array.from(first).length,
+        textHash: sha256(first),
+        pageNumber: null,
+        words: 11,
+        tokens: 15,
+        contextTokensUsed: {},
+        rawScore: 0.8,
+        calibratedScore: 0.8,
+        classification: 'MACHINE_SIGNAL',
+        signalLevel: 'HIGH',
+        confidence: 'HIGH',
+      },
+      {
+        paragraphIndex: 1,
+        charStart: Array.from(`${first}\n\n`).length,
+        charEnd: Array.from(extractedText).length,
+        textHash: sha256(second),
+        pageNumber: null,
+        words: 10,
+        tokens: 13,
+        contextTokensUsed: {},
+        rawScore: 0.8,
+        calibratedScore: 0.8,
+        classification: 'MACHINE_SIGNAL',
+        signalLevel: 'HIGH',
+        confidence: 'HIGH',
+      },
+    ];
+    prisma.document.findUnique.mockResolvedValueOnce({ id: DOC, currentVersion: { id: 'v1', extractedText } });
+    ai.analyzeParagraphs.mockResolvedValueOnce(result);
+
+    await service.analyzeDocument(DOC, {
+      analyzer: 'V3_ONLY',
+      thresholdProfile: 'LOW_FALSE_POSITIVE',
+      granularity: 'PARAGRAPH',
+      paragraphMode: 'CONTEXTUAL_PARAGRAPH',
+    });
+
+    const stored = prisma.analysisSegment.createMany.mock.calls[0][0].data;
+    expect(stored.map(({ charStart, charEnd }) => [charStart, charEnd])).toEqual([
+      [0, first.length],
+      [`${first}\n\n`.length, extractedText.length],
+    ]);
+  });
+
   it('returns one canonical rounded percentage from the persisted run score', async () => {
     expect(displayPercent(0.655)).toBe(66);
     expect(displayPercent(null)).toBeNull();
@@ -126,7 +183,10 @@ describe('AnalysisService', () => {
       { id: RUN, documentScore: 0.655, modelResults: [{ calibratedScore: 0.655 }] },
     ]);
     const history = await service.listForDocument(DOC);
-    expect(prisma.analysisRun.findMany.mock.calls.at(-1)?.[0].include).toEqual({ modelResults: true });
+    expect(prisma.analysisRun.findMany.mock.calls.at(-1)?.[0].include).toEqual({
+      modelResults: true,
+      segments: { select: { classification: true, calibratedScore: true } },
+    });
     expect(history.items[0]).toMatchObject({ documentScore: 0.655, documentScorePercent: 66 });
     expect(history.items[0].modelResults[0].calibratedScore).toBe(history.items[0].documentScore);
   });
@@ -206,6 +266,7 @@ describe('AnalysisService', () => {
     prisma.analysisRun.findUnique.mockResolvedValueOnce({
       id: RUN,
       status: 'COMPLETED',
+      threshold: 0.59,
       paragraphMode: 'STRICT_PARAGRAPH',
       textHash: sha256(extractedText),
       metadata: {},
@@ -223,9 +284,12 @@ describe('AnalysisService', () => {
     expect(result.items[0]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'METADATA' });
     expect(result.items[1]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'METADATA' });
     expect(result.items[2]?.reviewPresentation).toMatchObject({ highlight: true, level: 'HIGH' });
-    expect(result.items[3]?.reviewPresentation).toMatchObject({ highlight: true, level: 'MODERATE' });
-    expect(result.items[4]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'LOW_SIGNAL' });
+    expect(result.items[2]?.evidence).toMatchObject({ evaluated: true, flagged: true, threshold: 0.59, granularity: 'PARAGRAPH', spans: [] });
+    expect(result.items[3]?.reviewPresentation).toMatchObject({ highlight: false, level: 'MODERATE' });
+    expect(result.items[3]?.evidence).toMatchObject({ evaluated: true, flagged: false, threshold: 0.59 });
+    expect(result.items[4]?.reviewPresentation).toMatchObject({ highlight: false, level: 'LOW' });
     expect(result.items[5]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'HEADING' });
+    expect(result.items[5]?.evidence).toMatchObject({ evaluated: false, flagged: false, presentationExcluded: true });
     expect(result.items[6]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'CAPTION' });
     expect(result.items[7]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'REFERENCE_SECTION' });
     expect(result.items[8]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'REFERENCE_SECTION' });
@@ -417,7 +481,8 @@ describe('AnalysisService', () => {
       modelResults: [{ modelVersionId: 'mv3', modelName: 'CANDIDATE_MODEL_V3', modelVariant: 'test-v3', rawScore: 0.31,
         calibratedScore: 0.42, thresholdProfile: 'BALANCED', threshold: 0.59, classification: 'LOW_SIGNAL', confidence: 'LOW',
         calibration: 'isotonic', preprocessing: 'V3_PREPROCESSING_V1', inferenceMs: 12 }],
-      segments: [{ paragraphIndex: 0, textHash: 'a'.repeat(64), charStart: 0, charEnd: 55, pageNumber: null,
+      segments: [{ paragraphIndex: 0, textHash: sha256(SECRET_TEXT.split('\n\n')[0]!), charStart: 0,
+        charEnd: SECRET_TEXT.split('\n\n')[0]!.length, pageNumber: null,
         words: 8, tokens: 14, rawScore: 0.5, calibratedScore: 0.42, classification: 'LOW_SIGNAL',
         signalLevel: 'MODERATE', confidence: 'LOW', modelVersionId: 'mv3', modelName: 'CANDIDATE_MODEL_V3' }],
     }]);
@@ -505,7 +570,7 @@ describe('AnalysisService', () => {
 
   it('compares two analyses paragraph by paragraph', async () => {
     const run = (id: string, scores: number[], doc: number) => ({
-      id, status: 'COMPLETED', analyzerMode: 'V3_ONLY', thresholdProfile: 'BALANCED', documentScore: doc,
+      id, status: 'COMPLETED', analyzerMode: 'V3_ONLY', thresholdProfile: 'BALANCED', threshold: 0.5, documentScore: doc,
       documentVersion: { extractedText: 'x' },
       segments: scores.map((s, i) => ({ paragraphIndex: i, calibratedScore: s, classification: 'LOW_SIGNAL' })),
     });
@@ -523,6 +588,13 @@ describe('AnalysisService', () => {
     expect(out.globalScoreDelta).toBeCloseTo(-0.07);
     expect(out.details.unchangedDrift?.max).toBeCloseTo(0.01);
     expect(out.details.paragraphs[0].delta).toBeCloseTo(-0.37);
+    expect(out.details.thresholdReview).toMatchObject({
+      previousFlagged: 1,
+      currentFlagged: 1,
+      newlyFlagged: 1,
+      noLongerFlagged: 1,
+      stillFlagged: 0,
+    });
   });
 
   it('refuses to compare analyses made with different profiles', async () => {

@@ -1,4 +1,4 @@
-import type { ReviewPresentation } from '../analysis/review-presentation.js';
+import type { ReviewEvidence, ReviewPresentation } from '../analysis/review-presentation.js';
 
 export type ReportKind = 'AI_REPORT' | 'SIMILARITY_REPORT';
 
@@ -6,8 +6,10 @@ export type ReportState =
   'GENERATING' | 'AVAILABLE' | 'ERROR' | 'EXPIRED' | 'DELETED';
 
 export interface AIReportEvidenceSpan {
-  start: number;
-  end: number;
+  startChar: number;
+  endChar: number;
+  confidence?: number;
+  label?: string;
 }
 
 export interface AIReportSegmentEvidence {
@@ -27,6 +29,7 @@ export interface AIReportParagraph {
   charEnd: number;
   segmentEvidence: AIReportSegmentEvidence;
   reviewPresentation: ReviewPresentation;
+  reviewEvidence?: ReviewEvidence;
   score: number | null;
   signalLevel: string | null;
   classification: string;

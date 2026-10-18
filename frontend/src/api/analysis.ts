@@ -43,6 +43,8 @@ export const analysisRunSchema = z.object({
   documentClassification: classification.nullable(),
   signalLevel: nullableString,
   scoredSegments: z.number(),
+  evaluatedSegments: z.number().optional(),
+  flaggedSegments: z.number().optional(),
   insufficientSegments: z.number(),
   inferenceMs: nullableNumber,
   errorCode: nullableString,
@@ -51,6 +53,12 @@ export const analysisRunSchema = z.object({
   modelResults: z.array(modelResultSchema).optional(),
   metadata: z.unknown().nullable().optional(),
   disclaimer: z.string().optional(),
+  spanEvidenceSupported: z.boolean().optional(),
+  spanEvidenceGranularity: z.enum(['PARAGRAPH', 'SPAN']).optional(),
+  evidenceCapabilities: z.object({
+    paragraphHighlighting: z.boolean(),
+    spanHighlighting: z.boolean(),
+  }).optional(),
 }).passthrough()
 
 export const analysisListSchema = z.object({ items: z.array(analysisRunSchema) })
@@ -69,6 +77,24 @@ export const reviewPresentationSchema = z.object({
   ]).optional(),
 })
 
+export const reviewEvidenceSchema = z.object({
+  evaluated: z.boolean(),
+  flagged: z.boolean(),
+  score: nullableNumber,
+  threshold: nullableNumber,
+  presentationExcluded: z.boolean(),
+  excludedReason: z.string().optional(),
+  granularity: z.enum(['PARAGRAPH', 'SPAN']),
+  paragraphFlagged: z.boolean(),
+  spans: z.array(z.object({
+    startChar: z.number().int().nonnegative(),
+    endChar: z.number().int().positive(),
+    confidence: z.number().optional(),
+    label: z.string().optional(),
+  })),
+  fallbackReason: z.literal('SPAN_EVIDENCE_UNAVAILABLE').optional(),
+})
+
 export const segmentSchema = z.object({
   id: z.string().uuid().optional(),
   paragraphIndex: z.number(),
@@ -85,6 +111,7 @@ export const segmentSchema = z.object({
   confidence: nullableString,
   text: nullableString,
   reviewPresentation: reviewPresentationSchema.optional(),
+  evidence: reviewEvidenceSchema.optional(),
   contextTokensBefore: z.record(z.string(), z.number()).nullable().optional(),
   contextTokensAfter: z.record(z.string(), z.number()).nullable().optional(),
 }).passthrough()
@@ -116,6 +143,12 @@ export const analysisSegmentContextSchema = z.object({
 export const segmentListSchema = z.object({
   analysisId: z.string().uuid(),
   stale: z.boolean(),
+  spanEvidenceSupported: z.boolean().optional(),
+  spanEvidenceGranularity: z.enum(['PARAGRAPH', 'SPAN']).optional(),
+  evidenceCapabilities: z.object({
+    paragraphHighlighting: z.boolean(),
+    spanHighlighting: z.boolean(),
+  }).optional(),
   documentText: z.string().optional(),
   items: z.array(segmentSchema),
   page: z.number().optional(),
@@ -150,6 +183,15 @@ export const comparisonSchema = z.object({
     unchangedDrift: driftSchema,
     baseDocumentScore: nullableNumber,
     targetDocumentScore: nullableNumber,
+    thresholdReview: z.object({
+      previousFlagged: z.number(),
+      currentFlagged: z.number(),
+      newlyFlagged: z.number(),
+      noLongerFlagged: z.number(),
+      stillFlagged: z.number(),
+      baseThreshold: nullableNumber,
+      targetThreshold: nullableNumber,
+    }).optional(),
   }).passthrough(),
   disclaimer: z.string(),
 }).passthrough()

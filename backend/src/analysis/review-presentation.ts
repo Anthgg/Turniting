@@ -24,6 +24,34 @@ export class ReportReviewIntegrityError extends Error {
 }
 
 export type ReviewLevel = 'HIGH' | 'MODERATE' | 'LOW';
+export type ReviewGranularity = 'PARAGRAPH' | 'SPAN';
+
+export interface ReviewSpan {
+  startChar: number;
+  endChar: number;
+  confidence?: number;
+  label?: string;
+}
+
+export interface PythonCodePointSpan {
+  startCodePoint: number;
+  endCodePoint: number;
+  confidence?: number;
+  label?: string;
+}
+
+export interface ReviewEvidence {
+  evaluated: boolean;
+  flagged: boolean;
+  score: number | null;
+  threshold: number | null;
+  presentationExcluded: boolean;
+  excludedReason?: ReviewExcludedReason;
+  granularity: ReviewGranularity;
+  paragraphFlagged: boolean;
+  spans: ReviewSpan[];
+  fallbackReason?: 'SPAN_EVIDENCE_UNAVAILABLE';
+}
 
 export type ReviewExcludedReason =
   | 'REFERENCE_SECTION'
@@ -43,6 +71,8 @@ export interface ReviewPresentation {
 export interface ReviewSegment extends ReviewRange {
   signalLevel: string | null;
   classification: string;
+  calibratedScore?: number | null;
+  evidence?: unknown;
 }
 
 export interface ReviewDocumentContext {
@@ -88,7 +118,8 @@ export function verifyReportReviewRanges(
     }
 
     const text = extractedText.slice(range.charStart, range.charEnd);
-    if (!range.textHash || sha256(text) !== range.textHash) {
+    const normalizedText = text.replace(/\s+/gu, ' ').trim();
+    if (!range.textHash || sha256(normalizedText) !== range.textHash) {
       throw new ReportReviewIntegrityError('ANALYSIS_SEGMENT_TEXT_MISMATCH');
     }
     paragraphIndexes.add(range.paragraphIndex);
@@ -118,24 +149,111 @@ export function createReviewDocumentContext(
 }
 
 export function validateReportReviewEvidenceSpans(
-  range: ReviewRange,
-  spans: readonly { charStart: number; charEnd: number }[] | undefined,
+  paragraphText: string,
+  spans: readonly ReviewSpan[] | undefined,
 ): void {
   if (!spans?.length) return;
-  let previousEnd = range.charStart;
   for (const span of spans) {
     if (
-      !Number.isSafeInteger(span.charStart) ||
-      !Number.isSafeInteger(span.charEnd) ||
-      span.charStart < range.charStart ||
-      span.charEnd <= span.charStart ||
-      span.charEnd > range.charEnd ||
-      span.charStart < previousEnd
+      !Number.isSafeInteger(span.startChar) ||
+      !Number.isSafeInteger(span.endChar) ||
+      span.startChar < 0 ||
+      span.endChar <= span.startChar ||
+      span.endChar > paragraphText.length ||
+      splitsSurrogatePair(paragraphText, span.startChar) ||
+      splitsSurrogatePair(paragraphText, span.endChar) ||
+      (span.confidence !== undefined &&
+        (!Number.isFinite(span.confidence) || span.confidence < 0 || span.confidence > 1)) ||
+      (span.label !== undefined && typeof span.label !== 'string')
     ) {
       throw new ReportReviewIntegrityError('ANALYSIS_SEGMENT_SPANS_INVALID');
     }
-    previousEnd = span.charEnd;
   }
+}
+
+function splitsSurrogatePair(text: string, offset: number): boolean {
+  if (offset <= 0 || offset >= text.length) return false;
+  const previous = text.charCodeAt(offset - 1);
+  const next = text.charCodeAt(offset);
+  return previous >= 0xd800 && previous <= 0xdbff && next >= 0xdc00 && next <= 0xdfff;
+}
+
+/** Convert a Python codepoint offset to the UTF-16 offset used by JavaScript strings. */
+export function codePointOffsetToUtf16(text: string, codePointOffset: number): number {
+  if (!Number.isSafeInteger(codePointOffset) || codePointOffset < 0) {
+    throw new ReportReviewIntegrityError('ANALYSIS_SEGMENT_SPANS_INVALID');
+  }
+  let codePoints = 0;
+  let utf16 = 0;
+  for (const character of text) {
+    if (codePoints === codePointOffset) return utf16;
+    codePoints += 1;
+    utf16 += character.length;
+  }
+  if (codePoints === codePointOffset) return utf16;
+  throw new ReportReviewIntegrityError('ANALYSIS_SEGMENT_SPANS_INVALID');
+}
+
+/** Convert Python paragraph ranges to JavaScript UTF-16 offsets. */
+export function convertPythonSegmentOffsetsToUtf16<T extends ReviewRange>(
+  text: string,
+  segments: readonly T[],
+): T[] {
+  return segments.map((segment) => ({
+    ...segment,
+    charStart: codePointOffsetToUtf16(text, segment.charStart),
+    charEnd: codePointOffsetToUtf16(text, segment.charEnd),
+  }));
+}
+
+/** Accept older persisted Python codepoint ranges and normalize them after verifying their hashes. */
+export function normalizeReviewSegmentOffsets<T extends ReviewRange>(
+  text: string,
+  segments: readonly T[],
+): T[] {
+  try {
+    verifyReportReviewRanges(text, segments);
+    return segments.map((segment) => ({ ...segment }));
+  } catch (error) {
+    if (!(error instanceof ReportReviewIntegrityError)) throw error;
+    const converted = convertPythonSegmentOffsetsToUtf16(text, segments);
+    verifyReportReviewRanges(text, converted);
+    return converted;
+  }
+}
+
+/** Convert service-side Python codepoint spans before exposing UTF-16 evidence to clients. */
+export function convertPythonSpansToUtf16(
+  text: string,
+  spans: readonly PythonCodePointSpan[],
+): ReviewSpan[] {
+  const converted = spans.map((span) => ({
+    startChar: codePointOffsetToUtf16(text, span.startCodePoint),
+    endChar: codePointOffsetToUtf16(text, span.endCodePoint),
+    ...(span.confidence !== undefined ? { confidence: span.confidence } : {}),
+    ...(span.label !== undefined ? { label: span.label } : {}),
+  }));
+  validateReportReviewEvidenceSpans(text, converted);
+  return converted;
+}
+
+/** Sort and merge overlaps for display without changing persisted evidence. */
+export function mergeReviewSpansForDisplay(
+  spans: readonly ReviewSpan[],
+): ReviewSpan[] {
+  const ordered = spans
+    .map((span) => ({ ...span }))
+    .sort((left, right) => left.startChar - right.startChar || left.endChar - right.endChar);
+  const merged: ReviewSpan[] = [];
+  for (const span of ordered) {
+    const previous = merged.at(-1);
+    if (previous && span.startChar < previous.endChar) {
+      previous.endChar = Math.max(previous.endChar, span.endChar);
+      continue;
+    }
+    merged.push(span);
+  }
+  return merged;
 }
 
 const REFERENCE_HEADINGS = new Set([
@@ -217,7 +335,27 @@ function captionReason(text: string): ReviewExcludedReason | null {
 export function getReviewPresentation(
   segment: ReviewSegment,
   documentContext: ReviewDocumentContext,
+  threshold: number | null = null,
 ): ReviewPresentation {
+  const evidence = getReviewEvidence(segment, threshold, documentContext);
+  const level = ['HIGH', 'MODERATE', 'LOW'].includes(
+    segment.signalLevel?.toUpperCase() ?? '',
+  )
+    ? (segment.signalLevel!.toUpperCase() as ReviewLevel)
+    : null;
+  return {
+    highlight: evidence.flagged && !evidence.presentationExcluded,
+    level,
+    ...(evidence.excludedReason ? { excludedReason: evidence.excludedReason } : {}),
+  };
+}
+
+/** Authoritative actionability: persisted run threshold plus presentation exclusions. */
+export function getReviewEvidence(
+  segment: ReviewSegment,
+  threshold: number | null,
+  documentContext: ReviewDocumentContext,
+): ReviewEvidence {
   const verified = documentContext.byParagraphIndex.get(segment.paragraphIndex);
   if (
     !verified ||
@@ -225,38 +363,99 @@ export function getReviewPresentation(
     verified.charEnd !== segment.charEnd ||
     verified.textHash !== segment.textHash
   ) {
-    return { highlight: false, level: null, excludedReason: 'UNSCORED' };
+    return {
+      evaluated: false,
+      flagged: false,
+      score: segment.calibratedScore ?? null,
+      threshold,
+      presentationExcluded: true,
+      excludedReason: 'UNSCORED',
+      granularity: 'PARAGRAPH',
+      paragraphFlagged: false,
+      spans: [],
+    };
   }
 
-  const level = ['HIGH', 'MODERATE', 'LOW'].includes(
-    segment.signalLevel?.toUpperCase() ?? '',
-  )
-    ? (segment.signalLevel!.toUpperCase() as ReviewLevel)
-    : null;
   const text = verified.text;
+  let excludedReason: ReviewExcludedReason | undefined;
 
   if (
     documentContext.referenceSectionStart !== null &&
     segment.charStart >= documentContext.referenceSectionStart
   ) {
-    return { highlight: false, level, excludedReason: 'REFERENCE_SECTION' };
+    excludedReason = 'REFERENCE_SECTION';
+  } else {
+    excludedReason = metadataReason(segment, text) ?? captionReason(text) ?? undefined;
   }
 
-  const metadata = metadataReason(segment, text);
-  if (metadata) return { highlight: false, level, excludedReason: metadata };
-  const caption = captionReason(text);
-  if (caption) return { highlight: false, level, excludedReason: caption };
+  if (!excludedReason && segment.classification === 'INSUFFICIENT_TEXT') {
+    excludedReason = isLikelyHeading(text) ? 'HEADING' : 'INSUFFICIENT_TEXT';
+  }
+  const score = segment.calibratedScore ?? null;
+  const evaluated = segment.classification !== 'INSUFFICIENT_TEXT' &&
+    typeof score === 'number' && Number.isFinite(score);
+  if (!evaluated && !excludedReason) excludedReason = 'UNSCORED';
+  const flagged = evaluated && typeof threshold === 'number' && Number.isFinite(threshold) && score! >= threshold;
 
-  if (segment.classification === 'INSUFFICIENT_TEXT') {
+  const rawEvidence = segment.evidence;
+  const record = rawEvidence && typeof rawEvidence === 'object' && !Array.isArray(rawEvidence)
+    ? rawEvidence as Record<string, unknown>
+    : null;
+  const rawGranularity = record?.granularity ?? record?.type;
+  const granularity: ReviewGranularity = rawGranularity === 'SPAN' ? 'SPAN' : 'PARAGRAPH';
+  const rawSpans = Array.isArray(record?.spans) ? record.spans : [];
+  const spans: ReviewSpan[] = rawSpans.map((value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new ReportReviewIntegrityError('ANALYSIS_SEGMENT_SPANS_INVALID');
+    }
+    const item = value as Record<string, unknown>;
+    if (item.startCodePoint !== undefined || item.endCodePoint !== undefined) {
+      if (
+        typeof item.startCodePoint !== 'number' ||
+        typeof item.endCodePoint !== 'number' ||
+        (item.confidence !== undefined && typeof item.confidence !== 'number') ||
+        (item.label !== undefined && typeof item.label !== 'string')
+      ) {
+        throw new ReportReviewIntegrityError('ANALYSIS_SEGMENT_SPANS_INVALID');
+      }
+      return convertPythonSpansToUtf16(text, [{
+        startCodePoint: item.startCodePoint,
+        endCodePoint: item.endCodePoint,
+        ...(typeof item.confidence === 'number' ? { confidence: item.confidence } : {}),
+        ...(typeof item.label === 'string' ? { label: item.label } : {}),
+      }])[0]!;
+    }
+    if (
+      typeof item.startChar !== 'number' ||
+      typeof item.endChar !== 'number' ||
+      (item.confidence !== undefined && typeof item.confidence !== 'number') ||
+      (item.label !== undefined && typeof item.label !== 'string')
+    ) {
+      throw new ReportReviewIntegrityError('ANALYSIS_SEGMENT_SPANS_INVALID');
+    }
     return {
-      highlight: false,
-      level,
-      excludedReason: isLikelyHeading(text) ? 'HEADING' : 'INSUFFICIENT_TEXT',
+      startChar: item.startChar,
+      endChar: item.endChar,
+      ...(typeof item.confidence === 'number' ? { confidence: item.confidence } : {}),
+      ...(typeof item.label === 'string' ? { label: item.label } : {}),
     };
-  }
-  if (!level) return { highlight: false, level, excludedReason: 'UNSCORED' };
-  if (level === 'LOW') {
-    return { highlight: false, level, excludedReason: 'LOW_SIGNAL' };
-  }
-  return { highlight: true, level };
+  });
+  validateReportReviewEvidenceSpans(text, spans);
+  const fallbackReason = granularity === 'SPAN' && flagged && spans.length === 0
+    ? 'SPAN_EVIDENCE_UNAVAILABLE' as const
+    : undefined;
+  const presentationExcluded = excludedReason !== undefined && excludedReason !== 'UNSCORED';
+
+  return {
+    evaluated,
+    flagged,
+    score,
+    threshold,
+    presentationExcluded,
+    ...(excludedReason ? { excludedReason } : {}),
+    granularity,
+    paragraphFlagged: flagged,
+    spans,
+    ...(fallbackReason ? { fallbackReason } : {}),
+  };
 }

@@ -9,8 +9,11 @@ import {
 import { AnalysisClassification, AnalysisRunStatus, AnalyzerMode, Prisma } from '@prisma/client';
 import { AiService, type AiAnalyzerModelStatus, type AiAnalyzerSegment, type AnalyzerModeName } from '../ai/ai.service.js';
 import {
+  convertPythonSegmentOffsetsToUtf16,
   createReviewDocumentContext,
+  getReviewEvidence,
   getReviewPresentation,
+  normalizeReviewSegmentOffsets,
   ReportReviewIntegrityError,
   type ReviewSegment,
 } from './review-presentation.js';
@@ -23,6 +26,24 @@ const MODEL_FOR_MODE: Record<string, string> = {
   V3_ONLY: 'CANDIDATE_MODEL_V3',
   ENSEMBLE: 'ENSEMBLE_V2_V3',
 };
+
+const REVIEW_CAPABILITIES = {
+  paragraphHighlighting: true,
+  spanHighlighting: false,
+} as const;
+
+function evaluatedSegment(segment: { classification: string; calibratedScore: number | null }) {
+  return segment.classification !== 'INSUFFICIENT_TEXT' &&
+    typeof segment.calibratedScore === 'number' && Number.isFinite(segment.calibratedScore);
+}
+
+function flaggedSegment(
+  segment: { classification: string; calibratedScore: number | null },
+  threshold: number | null,
+) {
+  return evaluatedSegment(segment) && typeof threshold === 'number' &&
+    Number.isFinite(threshold) && segment.calibratedScore! >= threshold;
+}
 
 export function sha256(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');
@@ -169,13 +190,24 @@ export class AnalysisService {
         && result.threshold === candidate.threshold
         && result.calibratedScore === candidate.documentScore
         && (dto.thresholdProfile !== 'CUSTOM' || result.threshold === dto.customThreshold);
-      const cached = candidates.find((candidate) =>
-        candidate.documentAggregation !== null
-        && candidate.documentScore !== null
-        && candidate.threshold !== null
-        && candidate.modelResults.some((result) => matchesCachedModel(result, candidate)));
+      const cached = candidates.find((candidate) => {
+        const matches = candidate.documentAggregation !== null
+          && candidate.documentScore !== null
+          && candidate.threshold !== null
+          && candidate.modelResults.some((result) => matchesCachedModel(result, candidate));
+        if (!matches) return false;
+        try {
+          normalizeReviewSegmentOffsets(text, candidate.segments);
+          return true;
+        } catch {
+          return false;
+        }
+      });
+      const cachedSegments = cached
+        ? normalizeReviewSegmentOffsets(text, cached.segments)
+        : null;
       const cachedModel = cached?.modelResults.find((result) => matchesCachedModel(result, cached));
-      if (cached && cachedModel) {
+      if (cached && cachedModel && cachedSegments) {
         await this.prisma.$transaction([
           this.prisma.analysisModelResult.create({
             data: {
@@ -195,7 +227,7 @@ export class AnalysisService {
             },
           }),
           this.prisma.analysisSegment.createMany({
-            data: cached.segments.map((segment) => ({
+            data: cachedSegments.map((segment) => ({
               analysisRunId: run.id,
               paragraphIndex: segment.paragraphIndex,
               textHash: segment.textHash,
@@ -250,6 +282,7 @@ export class AnalysisService {
         customThreshold: dto.customThreshold,
         paragraphMode: dto.paragraphMode,
       });
+      const normalizedSegments = convertPythonSegmentOffsetsToUtf16(text, result.segments);
       const modelName = MODEL_FOR_MODE[dto.analyzer];
       const modelVersion = await this.prisma.modelVersion.findUnique({ where: { name: modelName } });
       await this.prisma.$transaction([
@@ -271,7 +304,7 @@ export class AnalysisService {
           },
         }),
         this.prisma.analysisSegment.createMany({
-          data: result.segments.map((s: AiAnalyzerSegment) => ({
+          data: normalizedSegments.map((s: AiAnalyzerSegment) => ({
             analysisRunId: run.id,
             paragraphIndex: s.paragraphIndex,
             textHash: s.textHash,
@@ -372,6 +405,9 @@ export class AnalysisService {
       ...rest,
       documentScorePercent: displayPercent(rest.documentScore),
       documentId: documentVersion.documentId,
+      spanEvidenceSupported: false,
+      spanEvidenceGranularity: 'PARAGRAPH',
+      evidenceCapabilities: REVIEW_CAPABILITIES,
       disclaimer: DISCLAIMER,
     };
   }
@@ -384,12 +420,21 @@ export class AnalysisService {
       where: { documentVersionId: document.currentVersion.id },
       orderBy: { createdAt: 'desc' },
       take: 20,
-      include: { modelResults: true },
+      include: { modelResults: true, segments: { select: { classification: true, calibratedScore: true } } },
     });
-    return { items: items.map((item) => ({
-      ...item,
-      documentScorePercent: displayPercent(item.documentScore),
-    })) };
+    return { items: items.map((item) => {
+      const { segments: selectedSegments, ...run } = item;
+      const segments = selectedSegments ?? [];
+      return {
+        ...run,
+        documentScorePercent: displayPercent(item.documentScore),
+        evaluatedSegments: segments.filter(evaluatedSegment).length,
+        flaggedSegments: segments.filter((segment) => flaggedSegment(segment, item.threshold)).length,
+        spanEvidenceSupported: false,
+        spanEvidenceGranularity: 'PARAGRAPH' as const,
+        evidenceCapabilities: REVIEW_CAPABILITIES,
+      };
+    }) };
   }
 
   /** Segments with their text materialized from the canonical extracted text (not stored twice). */
@@ -402,9 +447,11 @@ export class AnalysisService {
     const text = run.documentVersion.extractedText ?? '';
     const textHashStale = run.textHash !== null && run.textHash !== sha256(text);
     let reviewContext: ReturnType<typeof createReviewDocumentContext> | null = null;
+    let reviewSegments = run.segments as ReviewSegment[];
     let integrityCode: string | null = null;
     try {
-      reviewContext = createReviewDocumentContext(text, run.segments as ReviewSegment[]);
+      reviewSegments = normalizeReviewSegmentOffsets(text, reviewSegments);
+      reviewContext = createReviewDocumentContext(text, reviewSegments);
     } catch (error) {
       if (!(error instanceof ReportReviewIntegrityError)) throw error;
       integrityCode = error.code;
@@ -416,7 +463,7 @@ export class AnalysisService {
         message: 'El texto de esta versión no coincide con el análisis; no se puede mostrar la revisión.',
       });
     }
-    let segments = run.segments;
+    let segments = reviewSegments;
     if (query?.filter && query.filter !== 'ALL') {
       segments = segments.filter((segment) => query.filter === 'INSUFFICIENT'
         ? segment.classification === 'INSUFFICIENT_TEXT'
@@ -434,13 +481,29 @@ export class AnalysisService {
     return {
       analysisId: run.id,
       stale,
+      spanEvidenceSupported: false,
+      spanEvidenceGranularity: 'PARAGRAPH',
+      evidenceCapabilities: REVIEW_CAPABILITIES,
       ...(query?.includeDocumentText ? { documentText: text } : {}),
       items: segments.map((s) => ({
         ...s,
         text: stale ? null : reviewContext?.byParagraphIndex.get(s.paragraphIndex)?.text ?? null,
         reviewPresentation: stale || !reviewContext
           ? { highlight: false, level: null, excludedReason: 'UNSCORED' as const }
-          : getReviewPresentation(s as ReviewSegment, reviewContext),
+          : getReviewPresentation(s as ReviewSegment, reviewContext, run.threshold),
+        evidence: stale || !reviewContext
+          ? {
+              evaluated: false,
+              flagged: false,
+              score: s.calibratedScore,
+              threshold: run.threshold,
+              presentationExcluded: true,
+              excludedReason: 'UNSCORED' as const,
+              granularity: 'PARAGRAPH' as const,
+              paragraphFlagged: false,
+              spans: [],
+            }
+          : getReviewEvidence(s as ReviewSegment, run.threshold, reviewContext),
         ...(run.paragraphMode === 'CONTEXTUAL_PARAGRAPH'
           ? {
               contextTokensBefore: paragraphContextTokenCounts(run.metadata, s.paragraphIndex, 'before'),
@@ -547,11 +610,47 @@ export class AnalysisService {
       return { ...a, baseScore, targetScore, delta, baseClassification: sa?.classification ?? null,
         targetClassification: sb?.classification ?? null };
     });
+    const baseFlagged = new Set(base.segments.filter((segment) => flaggedSegment(segment, base.threshold)).map((segment) => segment.paragraphIndex));
+    const targetFlagged = new Set(target.segments.filter((segment) => flaggedSegment(segment, target.threshold)).map((segment) => segment.paragraphIndex));
+    let newlyFlagged = 0;
+    let noLongerFlagged = 0;
+    let stillFlagged = 0;
+    for (const paragraph of paragraphs) {
+      if (paragraph.status === 'ADDED' && paragraph.targetParagraphIndex !== null) {
+        if (targetFlagged.has(paragraph.targetParagraphIndex)) newlyFlagged += 1;
+        continue;
+      }
+      if (paragraph.status === 'REMOVED' && paragraph.baseParagraphIndex !== null) {
+        if (baseFlagged.has(paragraph.baseParagraphIndex)) noLongerFlagged += 1;
+        continue;
+      }
+      if (paragraph.baseParagraphIndex === null || paragraph.targetParagraphIndex === null) continue;
+      const wasFlagged = baseFlagged.has(paragraph.baseParagraphIndex);
+      const isFlagged = targetFlagged.has(paragraph.targetParagraphIndex);
+      if (wasFlagged && isFlagged) stillFlagged += 1;
+      else if (!wasFlagged && isFlagged) newlyFlagged += 1;
+      else if (wasFlagged && !isFlagged) noLongerFlagged += 1;
+    }
     const count = (status: string) => paragraphs.filter((p) => p.status === status).length;
     const globalScoreDelta = base.documentScore === null || target.documentScore === null
       ? null : target.documentScore - base.documentScore;
-    const details = { paragraphs, unchangedDrift: driftStats(unchangedDrift), analyzerMode: base.analyzerMode,
-      thresholdProfile: base.thresholdProfile, baseDocumentScore: base.documentScore, targetDocumentScore: target.documentScore };
+    const details = {
+      paragraphs,
+      unchangedDrift: driftStats(unchangedDrift),
+      analyzerMode: base.analyzerMode,
+      thresholdProfile: base.thresholdProfile,
+      baseDocumentScore: base.documentScore,
+      targetDocumentScore: target.documentScore,
+      thresholdReview: {
+        previousFlagged: baseFlagged.size,
+        currentFlagged: targetFlagged.size,
+        newlyFlagged,
+        noLongerFlagged,
+        stillFlagged,
+        baseThreshold: base.threshold,
+        targetThreshold: target.threshold,
+      },
+    };
     const saved = await this.prisma.analysisComparison.create({
       data: {
         baseAnalysisRunId: base.id,

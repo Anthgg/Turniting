@@ -270,7 +270,8 @@ describe('ReportService', () => {
     expect(input.paragraphs[0]).toMatchObject({
       score: 0.42,
       signalLevel: 'MODERATE',
-      reviewPresentation: { highlight: true, level: 'MODERATE' },
+      reviewPresentation: { highlight: false, level: 'MODERATE' },
+      reviewEvidence: { evaluated: true, flagged: false, threshold: 0.58, granularity: 'PARAGRAPH', spans: [] },
     });
     expect(input.paragraphs[1]).toMatchObject({
       classification: 'INSUFFICIENT_TEXT',
