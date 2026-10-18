@@ -17,7 +17,11 @@ COMMON=(--drive $D --val $D/datasets/f006_1_1_validation.parquet --train-extra $
         --hard-pool $D/datasets/hard_human_pool_v3.parquet --es-hard-pool $D/datasets/spanish_hard_pool_v3.parquet --mixture f006_1_1
         --score f006_1_1 --para-frac 0.30 --loss weighted --hard-ratio 0.3 --aca-w 1.5 --es-mix 0.4,0.3,0.3
         --local /content/turniting-f0611/ckpt --cache-root /content/turniting-f0611/cache)
-T() { python scripts/f006_train.py "$@" "${COMMON[@]}" 2>&1 | grep --line-buffered -v -i "warn" | tee -a "$LOG/train_runs.log"; }
+T() {  # skip ablations that already finished (resume after an interruption)
+  local prev="" r=""
+  for x in "$@"; do [ "$prev" = "--run" ] && r="$x"; prev="$x"; done
+  if [ -n "$r" ] && [ -f "$D/runs/$r/run.json" ] && [ "$r" != "F00611_FULL" ]; then echo "=== skip $r (already done)"; return 0; fi
+  python scripts/f006_train.py "$@" "${COMMON[@]}" 2>&1 | grep --line-buffered -v -i "warn" | tee -a "$LOG/train_runs.log"; }
 S() { python scripts/f006_select.py "$@"; }
 W=${ABLATION_WINDOWS:-120000}
 BASEMIX=0.30,0.25,0.15,0.10,0.10,0.05,0.05
