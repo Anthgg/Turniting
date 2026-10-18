@@ -130,7 +130,18 @@ def mmarco(n_queries: int = 2000, top: int = 100) -> dict:
 
 
 def pawsx() -> dict:
-    p = dl("https://storage.googleapis.com/paws/pawsx/x-final.tar.gz", W / "x-final.tar.gz")
+    try:
+        p = dl("https://storage.googleapis.com/paws/pawsx/x-final.tar.gz", W / "x-final.tar.gz")
+    except Exception as e:  # GCS bucket now 403 -> Google's own HF org copy of the same release
+        from datasets import load_dataset
+
+        log(f"PAWS-X GCS failed ({e}); using google-research-datasets/paws-x (es)")
+        ds = load_dataset("google-research-datasets/paws-x", "es")
+        names = {"train": "translated_train", "validation": "dev_2k", "test": "test_2k"}
+        df = pd.concat([ds[k].to_pandas().assign(split=names[k]) for k in ds], ignore_index=True)
+        df.to_parquet(W / "pawsx_es.parquet", index=False)
+        return {"status": "DOWNLOADED", "source": "huggingface google-research-datasets/paws-x (official Google org)", "license": "PAWS-X: free use with attribution",
+                "pairs": len(df), "by_split": df["split"].value_counts().to_dict(), "paraphrase_share": float(df["label"].mean())}
     rows = []
     with tarfile.open(p) as tf:
         for m in tf.getmembers():
@@ -147,7 +158,13 @@ def pawsx() -> dict:
 def main() -> int:
     W.mkdir(parents=True, exist_ok=True)
     man = {"created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "datasets": {}}
+    only = set(sys.argv[1:])
+    mp = D / "manifests" / "f008_dataset_manifest.json"
+    if only and mp.exists():
+        man["datasets"] = json.loads(mp.read_text())["datasets"]
     for name, fn in (("pan2011_pan_pc_11", pan11), ("miracl_es", miracl), ("mmarco_es", mmarco), ("pawsx_es", pawsx)):
+        if only and name not in only:
+            continue
         t0 = time.time()
         try:
             man["datasets"][name] = {**fn(), "seconds": round(time.time() - t0, 1)}
