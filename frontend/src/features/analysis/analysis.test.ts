@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { analyzerModelListSchema, comparisonSchema, segmentListSchema } from '../../api/analysis'
+import { analysisRunSchema, analyzerModelListSchema, comparisonSchema, segmentListSchema } from '../../api/analysis'
 import {
+  DEFAULT_PARAGRAPH_MODE,
+  OPERATION_ERROR_MESSAGE,
   analysisErrorMessage,
   availabilityLabel,
   formatDelta,
+  formatPercent,
   formatSignal,
   isAnalyzerUsable,
+  segmentsBelongToRun,
+  selectAnalysisRun,
   signalLevel,
 } from './analysis-utils'
 
@@ -16,8 +21,29 @@ describe('analysis presentation', () => {
     expect(signalLevel(0.81)).toBe('HIGH')
     expect(signalLevel(null)).toBeNull()
     expect(formatSignal(0.81)).toBe('81 %')
+    expect(formatSignal(0.655)).toBe('66 %')
+    expect(formatPercent(0.645)).toBe('65 %')
     expect(formatDelta(-0.07)).toBe('-7 pp')
     expect(formatDelta(0.03)).toBe('+3 pp')
+  })
+
+  it('keeps selected history metadata and paragraph data on the same run', () => {
+    const history = [
+      { id: 'latest', paragraphMode: 'STRICT_PARAGRAPH', documentScorePercent: 66 },
+      { id: 'selected', paragraphMode: 'CONTEXTUAL_PARAGRAPH', documentScorePercent: 65 },
+    ]
+    const selected = selectAnalysisRun(history, 'selected')
+    expect(selected).toMatchObject({ id: 'selected', paragraphMode: 'CONTEXTUAL_PARAGRAPH', documentScorePercent: 65 })
+    expect(selectAnalysisRun(history, 'from-another-document')?.id).toBe('latest')
+    expect(segmentsBelongToRun('selected', { analysisId: 'selected' })).toBe(true)
+    expect(segmentsBelongToRun('selected', { analysisId: 'latest' })).toBe(false)
+    expect(DEFAULT_PARAGRAPH_MODE).toBe('STRICT_PARAGRAPH')
+  })
+
+  it('keeps API and UI failures scoped to their operation', () => {
+    expect(new Set(Object.values(OPERATION_ERROR_MESSAGE)).size).toBe(6)
+    expect(OPERATION_ERROR_MESSAGE.analysisError).not.toBe(OPERATION_ERROR_MESSAGE.segmentsError)
+    expect(OPERATION_ERROR_MESSAGE.comparisonError).not.toBe(OPERATION_ERROR_MESSAGE.historyError)
   })
 
   it('explains a missing model without a generic application error', () => {
@@ -55,6 +81,26 @@ describe('analysis presentation', () => {
           { status: 'UNCHANGED', baseParagraphIndex: 12, targetParagraphIndex: 12, similarity: 1, baseScore: 0.18,
             targetScore: 0.17, delta: -0.01 }] } })
     expect(formatDelta(comparison.details.paragraphs[0].delta)).toBe('-37 pp')
+  })
+
+  it('parses backend canonical percent and cache metadata from a persisted run', () => {
+    const run = analysisRunSchema.parse({
+      id: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
+      documentId: '7d0c1b2a-3e4f-4a5b-8c6d-7e8f9a0b1c2d',
+      status: 'COMPLETED', analyzerMode: 'V3_ONLY', analyzerVersion: 'F006_2_1', thresholdProfile: 'BALANCED',
+      threshold: 0.59, paragraphMode: 'STRICT_PARAGRAPH', documentAggregation: 'token_weighted_mean',
+      documentScore: 0.655, documentScorePercent: 66, documentClassification: 'MACHINE_SIGNAL',
+      signalLevel: 'HIGH', scoredSegments: 1, insufficientSegments: 0, inferenceMs: 1250, errorCode: null,
+      createdAt: '2026-10-17T12:00:00.000Z', completedAt: '2026-10-17T12:00:01.250Z',
+      metadata: { cacheHit: true, reusedAnalysisId: '9a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d' },
+      modelResults: [{ modelName: 'CANDIDATE_MODEL_V3', modelVariant: 'v3', calibratedScore: 0.655,
+        threshold: 0.59, thresholdProfile: 'BALANCED', classification: 'MACHINE_SIGNAL', calibration: 'isotonic',
+        preprocessing: 'V3_CANONICALIZED_V1', inferenceMs: 0 }],
+    })
+    expect(run.documentScorePercent).toBe(66)
+    expect(run.metadata).toMatchObject({ cacheHit: true })
+    expect(run.paragraphMode).toBe('STRICT_PARAGRAPH')
+    expect(run.documentAggregation).toBe('token_weighted_mean')
   })
 
   it('parses F006 as experimental and preserves its Spanish gate failure', () => {

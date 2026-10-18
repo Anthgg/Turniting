@@ -21,13 +21,20 @@ import { ApiRequestError } from "../../api/client";
 import { Icon } from "../../components/Icon";
 import {
   ANALYZER_LABEL,
+  DEFAULT_PARAGRAPH_MODE,
   PROFILE_LABEL,
   SIGNAL_LABEL,
   analysisErrorMessage,
   availabilityLabel,
+  formatPercent,
+  formatPercentPoints,
   formatSignal,
   isAnalyzerUsable,
+  operationErrorMessage,
+  segmentsBelongToRun,
+  selectAnalysisRun,
   signalLevel,
+  toDisplayPercent,
 } from "./analysis-utils";
 
 const MODEL_FOR_ANALYZER: Record<AnalyzerName, string> = {
@@ -50,6 +57,10 @@ function runDate(value: string) {
   }).format(new Date(value));
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export function AnalysisPanel({
   documentId,
   fileName,
@@ -70,7 +81,7 @@ export function AnalysisPanel({
   const [profile, setProfile] = useState<ThresholdProfileName>(
     researchMode ? "BALANCED" : "LOW_FALSE_POSITIVE",
   );
-  const [mode, setMode] = useState<ParagraphModeName>("STRICT_PARAGRAPH");
+  const [mode, setMode] = useState<ParagraphModeName>(DEFAULT_PARAGRAPH_MODE);
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
   const [sort, setSort] = useState<AnalysisSegmentSort>("PARAGRAPH");
   const [filter, setFilter] = useState<AnalysisSegmentFilter>("ALL");
@@ -90,8 +101,8 @@ export function AnalysisPanel({
     retry: 1,
   });
   const history = runs.data?.items ?? [];
-  const runId = selectedRun ?? history[0]?.id ?? null;
-  const run = history.find((item) => item.id === runId);
+  const run = selectAnalysisRun(history, selectedRun);
+  const runId = run?.id ?? null;
   const segmentQuery = researchMode
     ? { page, pageSize: 20, sort, filter }
     : undefined;
@@ -139,10 +150,28 @@ export function AnalysisPanel({
   const f006 = models.data?.items.find(
     (item) => item.name === "EXPERIMENTAL_F006_MODEL",
   );
-  const error = analyze.error instanceof ApiRequestError ? analyze.error : null;
-  const paragraphItems = segments.data?.items ?? [];
-  const totalParagraphs = segments.data?.total ?? paragraphItems.length;
-  const pageCount = segments.data?.pages ?? 1;
+  const analysisError = analyze.isError ? analyze.error : null;
+  const historyError = runs.isError ? runs.error : null;
+  const modelStatusError = models.isError ? models.error : null;
+  const segmentsError = segments.isError ? segments.error : null;
+  const segmentsMatchRun = segmentsBelongToRun(runId, segments.data);
+  const paragraphItems = segmentsMatchRun ? segments.data?.items ?? [] : [];
+  const totalParagraphs = segmentsMatchRun
+    ? (segments.data?.total ?? paragraphItems.length)
+    : 0;
+  const pageCount = segmentsMatchRun ? (segments.data?.pages ?? 1) : 1;
+  const runMetadata = run && isRecord(run.metadata) ? run.metadata : {};
+  const cacheHitLabel =
+    typeof runMetadata.cacheHit === "boolean"
+      ? runMetadata.cacheHit
+        ? "Sí"
+        : "No"
+      : "No registrado";
+  const runScorePercent = run
+    ? run.documentScorePercent === undefined
+      ? toDisplayPercent(run.documentScore)
+      : run.documentScorePercent
+    : null;
   const workflowStatus = analyze.isPending
     ? "ANALYZING"
     : run?.status === "COMPLETED"
@@ -201,9 +230,10 @@ export function AnalysisPanel({
           <span>Analizador</span>
           <select
             value={analyzer}
-            onChange={(event) =>
+            onChange={(event) => {
+              analyze.reset();
               setAnalyzer(event.currentTarget.value as AnalyzerName)
-            }
+            }}
           >
             {ANALYZERS.map((item) => (
               <option key={item} value={item}>
@@ -218,9 +248,10 @@ export function AnalysisPanel({
           <span>Perfil de umbral</span>
           <select
             value={profile}
-            onChange={(event) =>
+            onChange={(event) => {
+              analyze.reset();
               setProfile(event.currentTarget.value as ThresholdProfileName)
-            }
+            }}
           >
             {THRESHOLD_PROFILES.map((item) => (
               <option key={item} value={item}>
@@ -233,9 +264,10 @@ export function AnalysisPanel({
           <span>Párrafos</span>
           <select
             value={mode}
-            onChange={(event) =>
+            onChange={(event) => {
+              analyze.reset();
               setMode(event.currentTarget.value as ParagraphModeName)
-            }
+            }}
           >
             {PARAGRAPH_MODES.map((item) => (
               <option key={item} value={item}>
@@ -265,6 +297,7 @@ export function AnalysisPanel({
             <select
               value={runId ?? ""}
               onChange={(event) => {
+                analyze.reset();
                 setSelectedRun(event.currentTarget.value);
                 setPage(1);
                 setExpandedParagraphs({});
@@ -277,7 +310,9 @@ export function AnalysisPanel({
                   {PROFILE_LABEL[item.thresholdProfile] ??
                     item.thresholdProfile}
                   {" · "}
-                  {formatSignal(item.documentScore)} ·{" "}
+                  {item.documentScorePercent === undefined
+                    ? formatSignal(item.documentScore)
+                    : formatPercentPoints(item.documentScorePercent)} ·{" "}
                   {STATUS_LABEL[item.status] ?? item.status}
                 </option>
               ))}
@@ -303,9 +338,9 @@ export function AnalysisPanel({
           );
         })}
       </ul>
-      {models.isError && (
+      {modelStatusError && (
         <p className="analysis-notice" role="status">
-          No se pudo consultar el registro local de modelos; el análisis está
+          {operationErrorMessage("modelStatusError")} El análisis está
           deshabilitado hasta verificar su disponibilidad.
         </p>
       )}
@@ -321,9 +356,23 @@ export function AnalysisPanel({
           u OCR antes de analizarlo.
         </p>
       )}
-      {error && (
+      {historyError && researchMode && (
         <p className="analysis-notice analysis-error" role="alert">
-          {analysisErrorMessage(error.code, error.status)}
+          {operationErrorMessage("historyError")} El resultado que ya está
+          seleccionado permanece visible.
+          <button className="button button-quiet" type="button" onClick={() => void runs.refetch()}>
+            Reintentar historial
+          </button>
+        </p>
+      )}
+      {analysisError && (
+        <p className="analysis-notice analysis-error" role="alert">
+          {analysisError instanceof ApiRequestError
+            ? analysisErrorMessage(analysisError.code, analysisError.status)
+            : operationErrorMessage("analysisError")}
+          <button className="button button-quiet" type="button" onClick={() => analyze.mutate()}>
+            Reintentar análisis
+          </button>
         </p>
       )}
       {analyze.isPending && (
@@ -345,7 +394,15 @@ export function AnalysisPanel({
         <div className="analysis-summary" aria-label="Resultado del análisis">
           <div>
             <span>Estado</span>
-            <strong>{workflowStatus}</strong>
+            <strong>{STATUS_LABEL[run.status] ?? run.status}</strong>
+          </div>
+          <div>
+            <span>Run ID</span>
+            <strong title={run.id}>{run.id.slice(0, 8)}</strong>
+          </div>
+          <div>
+            <span>Fecha</span>
+            <strong>{runDate(run.createdAt)}</strong>
           </div>
           {fileName && (
             <div>
@@ -368,10 +425,24 @@ export function AnalysisPanel({
             </strong>
           </div>
           <div>
+            <span>Modo de párrafo</span>
+            <strong>
+              {run.paragraphMode === "STRICT_PARAGRAPH"
+                ? "Solo el párrafo"
+                : run.paragraphMode === "CONTEXTUAL_PARAGRAPH"
+                  ? "Con contexto breve"
+                  : run.paragraphMode ?? "—"}
+            </strong>
+          </div>
+          <div>
+            <span>Agregación</span>
+            <strong>{run.documentAggregation ?? "—"}</strong>
+          </div>
+          <div>
             <span>Señal global</span>
             <strong>
               {run.status === "COMPLETED"
-                ? formatSignal(run.documentScore)
+                ? formatPercentPoints(runScorePercent)
                 : "—"}
             </strong>
           </div>
@@ -391,24 +462,26 @@ export function AnalysisPanel({
             </strong>
           </div>
           <div>
-            <span>Duración / fecha</span>
+            <span>Duración de inferencia</span>
             <strong>
               {run.inferenceMs !== null
                 ? `${(run.inferenceMs / 1000).toFixed(1)} s`
-                : runDate(run.createdAt)}
+                : "—"}
             </strong>
           </div>
-          {run.threshold !== null && (
-            <div>
-              <span>Umbral aplicado</span>
-              <strong>{(run.threshold * 100).toFixed(0)} %</strong>
-            </div>
-          )}
+          <div>
+            <span>Umbral aplicado</span>
+            <strong>{formatPercent(run.threshold)}</strong>
+          </div>
+          <div>
+            <span>Cache hit</span>
+            <strong>{cacheHitLabel}</strong>
+          </div>
         </div>
       )}
       {run?.status === "FAILED" && (
         <p className="analysis-notice analysis-error" role="alert">
-          El último análisis no se completó ({run.errorCode ?? "error"}).
+          El análisis seleccionado no se completó ({run.errorCode ?? "error"}).
         </p>
       )}
 
@@ -452,12 +525,16 @@ export function AnalysisPanel({
           </span>
         </div>
       )}
-      {segments.isError && (
+      {segmentsError && researchMode && (
         <p className="analysis-notice analysis-error" role="alert">
-          No se pudieron cargar los párrafos de este análisis.
+          {operationErrorMessage("segmentsError")} Run {runId?.slice(0, 8)}.
+          La señal global del run sigue disponible.
+          <button className="button button-quiet" type="button" onClick={() => void segments.refetch()}>
+            Reintentar párrafos
+          </button>
         </p>
       )}
-      {segments.data && (
+      {segments.data && segmentsMatchRun && (
         <>
           {segments.data.stale && (
             <p className="analysis-notice" role="status">
@@ -555,6 +632,15 @@ export function AnalysisPanel({
             </nav>
           )}
         </>
+      )}
+      {segments.data && !segmentsMatchRun && run?.status === "COMPLETED" && researchMode && (
+        <p className="analysis-notice analysis-error" role="alert">
+          La respuesta de párrafos no corresponde al análisis seleccionado; no se
+          mostrarán fragmentos de otro run.
+          <button className="button button-quiet" type="button" onClick={() => void segments.refetch()}>
+            Volver a cargar párrafos
+          </button>
+        </p>
       )}
     </section>
   );

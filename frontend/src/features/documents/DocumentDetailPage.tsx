@@ -317,7 +317,7 @@ export function DocumentDetailPage() {
                 </button>
               </div>
               <AnalysisPanel
-                key={analysisMode}
+                key={`${id}:${analysisMode}`}
                 documentId={id}
                 fileName={record.originalName}
                 hasText={record.status === 'EXTRACTED' && (record.characterCount ?? 0) > 0}

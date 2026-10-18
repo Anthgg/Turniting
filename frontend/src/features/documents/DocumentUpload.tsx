@@ -7,6 +7,7 @@ import { Icon } from '../../components/Icon'
 import { ApiErrorNotice } from './ApiErrorNotice'
 import { formatBytes } from './document-utils'
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from './upload-limits'
+import { operationErrorMessage } from '../analysis/analysis-utils'
 
 const allowedExtensions = new Set(['pdf', 'docx', 'txt', 'png', 'jpg', 'jpeg'])
 
@@ -84,6 +85,8 @@ export function DocumentUpload() {
   const isCompleted = trackedDocument?.status === 'EXTRACTED'
   const isOcrRequired = trackedDocument?.status === 'OCR_REQUIRED'
   const isProcessingFailed = trackedDocument?.status === 'FAILED'
+  const uploadError = upload.isError ? upload.error : null
+  const uploadStatusError = activeDocumentId && uploadStatus.isError ? uploadStatus.error : null
 
   return (
     <section className="upload-card" aria-labelledby="upload-title">
@@ -152,7 +155,7 @@ export function DocumentUpload() {
           <div><strong>Revisa el archivo</strong><p>{clientIssue.message}</p><code>{clientIssue.code}</code></div>
         </div>
       )}
-      {upload.isError && <ApiErrorNotice error={upload.error} title="No se pudo subir el documento" />}
+      {uploadError && <ApiErrorNotice error={uploadError} title={operationErrorMessage('uploadError')} />}
 
       <div className="upload-card-actions">
         <p className="upload-privacy-note">El archivo se envía al backend para extraer texto y metadatos.</p>
@@ -206,8 +209,8 @@ export function DocumentUpload() {
         </div>
       )}
 
-      {activeDocumentId && uploadStatus.isError && (
-        <ApiErrorNotice error={uploadStatus.error} title="No se pudo actualizar el estado del documento" />
+      {uploadStatusError && (
+        <ApiErrorNotice error={uploadStatusError} title="No se pudo actualizar el estado del documento" />
       )}
 
     </section>

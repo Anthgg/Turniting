@@ -4,13 +4,22 @@ import { compareAnalyses, listDocumentAnalyses } from '../../api/analysis'
 import { ApiRequestError } from '../../api/client'
 import { documentQueryKeys, listDocuments } from '../../api/documents'
 import { ApiErrorNotice } from '../documents/ApiErrorNotice'
-import { ANALYZER_LABEL, COMPARISON_LABEL, PROFILE_LABEL, formatDelta, formatSignal } from './analysis-utils'
+import {
+  ANALYZER_LABEL,
+  COMPARISON_LABEL,
+  PROFILE_LABEL,
+  formatDelta,
+  formatPercentPoints,
+  formatSignal,
+  operationErrorMessage,
+} from './analysis-utils'
 
 function AnalysisPicker({ label, value, onChange }: { label: string; value: string; onChange: (id: string) => void }) {
   const [documentId, setDocumentId] = useState('')
   const docs = useQuery({ queryKey: documentQueryKeys.list(1, 100), queryFn: () => listDocuments(1, 100), retry: 1 })
   const runs = useQuery({ queryKey: ['analysis', 'document', documentId], queryFn: () => listDocumentAnalyses(documentId),
     enabled: Boolean(documentId), retry: 1 })
+  const historyError = runs.isError ? runs.error : null
   return (
     <fieldset className="compare-picker">
       <legend>{label}</legend>
@@ -21,13 +30,20 @@ function AnalysisPicker({ label, value, onChange }: { label: string; value: stri
           {docs.data?.items.map((d) => <option key={d.id} value={d.id}>{d.originalName}</option>)}
         </select>
       </label>
+      {docs.isError && <p className="analysis-notice analysis-error" role="alert">No se pudo cargar la lista de documentos.</p>}
+      {historyError && (
+        <p className="analysis-notice analysis-error" role="alert">
+          {operationErrorMessage('historyError')}
+          <button className="button button-quiet" type="button" onClick={() => void runs.refetch()}>Reintentar historial</button>
+        </p>
+      )}
       <label>
         <span>Análisis</span>
         <select value={value} onChange={(e) => onChange(e.currentTarget.value)} disabled={!documentId}>
           <option value="">Selecciona…</option>
           {runs.data?.items.filter((r) => r.status === 'COMPLETED').map((r) => (
             <option key={r.id} value={r.id}>
-              {ANALYZER_LABEL[r.analyzerMode]} · {PROFILE_LABEL[r.thresholdProfile] ?? r.thresholdProfile} · {formatSignal(r.documentScore)} · {new Date(r.createdAt).toLocaleString()}
+              {ANALYZER_LABEL[r.analyzerMode]} · {PROFILE_LABEL[r.thresholdProfile] ?? r.thresholdProfile} · {r.documentScorePercent === undefined ? formatSignal(r.documentScore) : formatPercentPoints(r.documentScorePercent)} · {new Date(r.createdAt).toLocaleString()}
             </option>
           ))}
         </select>
@@ -40,6 +56,9 @@ export function ComparePage() {
   const [base, setBase] = useState('')
   const [target, setTarget] = useState('')
   const compare = useMutation({ mutationFn: () => compareAnalyses(base, target) })
+  const comparisonError = compare.isError ? compare.error : null
+  const updateBase = (id: string) => { setBase(id); compare.reset() }
+  const updateTarget = (id: string) => { setTarget(id); compare.reset() }
   const data = compare.data
 
   return (
@@ -53,13 +72,19 @@ export function ComparePage() {
       </div>
       <section className="document-panel">
         <div className="compare-pickers">
-          <AnalysisPicker label="Versión A" value={base} onChange={setBase} />
-          <AnalysisPicker label="Versión B" value={target} onChange={setTarget} />
+          <AnalysisPicker label="Versión A" value={base} onChange={updateBase} />
+          <AnalysisPicker label="Versión B" value={target} onChange={updateTarget} />
         </div>
-        <button className="button button-primary" type="button" disabled={!base || !target || compare.isPending} onClick={() => compare.mutate()}>
+        <button className="button button-primary" type="button" disabled={!base || !target || compare.isPending} onClick={() => { compare.reset(); compare.mutate() }}>
           {compare.isPending ? 'Comparando…' : 'Comparar'}
         </button>
-        {compare.error instanceof ApiRequestError && <ApiErrorNotice error={compare.error} title="No se pudo comparar" />}
+        {comparisonError instanceof ApiRequestError && <ApiErrorNotice error={comparisonError} title={operationErrorMessage('comparisonError')} />}
+        {comparisonError && !(comparisonError instanceof ApiRequestError) && (
+          <p className="analysis-notice analysis-error" role="alert">
+            {operationErrorMessage('comparisonError')}
+            <button className="button button-quiet" type="button" onClick={() => { compare.reset(); compare.mutate() }}>Reintentar comparación</button>
+          </p>
+        )}
       </section>
 
       {data && (

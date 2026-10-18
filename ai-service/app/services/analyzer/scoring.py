@@ -159,7 +159,7 @@ def score_paragraphs(
         logits = backend.window_logits(windows) if windows else np.zeros(0)
         scores: list[float | None] = [None] * len(paragraphs)
         counts = [0] * len(paragraphs)
-        for i in set(owners):
+        for i in sorted(set(owners)):
             sel = [k for k, o in enumerate(owners) if o == i]
             w = np.array([weights[k] for k in sel], dtype=np.float64)
             scores[i] = float(np.average(logits[sel], weights=w))

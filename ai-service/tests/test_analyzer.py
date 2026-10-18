@@ -3,8 +3,10 @@
 import asyncio
 import json
 import re
+import sys
 import zlib
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 import numpy as np
@@ -258,6 +260,105 @@ def test_paragraph_local_scoring_isolates_edits():
     assert [a == b for a, b in zip(s0, s1)] == [True, False, True, True]
     c0, c1 = _scores(base, CONTEXTUAL), _scores(edited, CONTEXTUAL)
     assert c0[3] == c1[3]  # two paragraphs away: untouched even with context
+
+
+def test_fresh_synthetic_paragraph_inference_is_deterministic_for_five_runs(manager):
+    text = f"{PARA_A}\n\n{PARA_B}\n\n{PARA_C}"
+    results = [
+        manager.analyze_paragraphs(V3, text, "BALANCED", None, STRICT)
+        for _ in range(5)
+    ]
+    scores = [result["documentScore"] for result in results]
+    assert all(result["paragraphMode"] == "STRICT_PARAGRAPH" for result in results)
+    assert max(scores) - min(scores) == 0
+    assert all(result["segments"] == results[0]["segments"] for result in results)
+
+
+def test_fresh_synthetic_ensemble_is_deterministic_for_five_runs(manager):
+    text = f"{PARA_A}\n\n{PARA_B}\n\n{PARA_C}"
+    profile = Path(manager.settings.ai_analyzer_profiles_dir) / "ENSEMBLE_V2_V3.json"
+    profile.write_text(
+        json.dumps(
+            {
+                "method": "weighted_logodds",
+                "w2": 0.5,
+                "thresholds": {"BALANCED": 0.59},
+                "documentAggregation": "token_weighted_mean",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    results = [
+        service.analyze(manager, text, "ENSEMBLE", "BALANCED", None, STRICT)
+        for _ in range(5)
+    ]
+    scores = [result["documentScore"] for result in results]
+    assert max(scores) - min(scores) == 0
+    assert results[0]["ensembleWeights"] == {"V2": 0.5, "V3": 0.5}
+    assert all(result["paragraphMode"] == "STRICT_PARAGRAPH" for result in results)
+    assert all(result["segments"] == results[0]["segments"] for result in results)
+
+
+def test_paragraph_mode_request_defaults_to_strict():
+    from app.schemas.analyzer import ParagraphAnalysisRequest
+
+    assert ParagraphAnalysisRequest(text=PARA_A).paragraphMode == "STRICT_PARAGRAPH"
+
+
+def test_transformer_backend_uses_eval_and_inference_mode_for_stable_windows(monkeypatch):
+    torch = pytest.importorskip("torch")
+    from app.services.analyzer.backends import TransformerBackend
+
+    class FakeTokenizer:
+        cls_token_id = 1
+        sep_token_id = 2
+        pad_token_id = 0
+
+    class FakeTokenizerLoader:
+        @staticmethod
+        def from_pretrained(_path):
+            return FakeTokenizer()
+
+    class FakeModel:
+        evaluated = False
+
+        def to(self, _device):
+            return self
+
+        def eval(self):
+            self.evaluated = True
+            return self
+
+        def parameters(self):
+            return []
+
+    fake_model = FakeModel()
+    monkeypatch.setitem(
+        sys.modules,
+        "transformers",
+        SimpleNamespace(AutoTokenizer=FakeTokenizerLoader),
+    )
+    backend = TransformerBackend(Path("synthetic"), "cpu", 1)
+    backend._load_model = lambda: fake_model
+    original_threads = torch.get_num_threads()
+    try:
+        backend.load()
+        assert fake_model.evaluated
+        inference_flags = []
+
+        def forward(ids, _mask):
+            inference_flags.append(torch.is_inference_mode_enabled())
+            return ids[:, 1].float()
+
+        backend._forward = forward
+        windows = [[1, 11, 2], [1, 17, 2], [1, 23, 2]]
+        outputs = [backend.window_logits(windows).tolist() for _ in range(5)]
+        assert all(inference_flags)
+        assert all(output == outputs[0] for output in outputs)
+        assert outputs[0] == [11.0, 17.0, 23.0]
+    finally:
+        torch.set_num_threads(original_threads)
 
 
 def test_short_paragraphs_are_insufficient(manager):

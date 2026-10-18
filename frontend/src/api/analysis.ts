@@ -39,6 +39,7 @@ export const analysisRunSchema = z.object({
   paragraphMode: nullableString,
   documentAggregation: nullableString,
   documentScore: nullableNumber,
+  documentScorePercent: z.number().int().nullable().optional(),
   documentClassification: classification.nullable(),
   signalLevel: nullableString,
   scoredSegments: z.number(),
@@ -48,6 +49,7 @@ export const analysisRunSchema = z.object({
   createdAt: z.string(),
   completedAt: nullableString,
   modelResults: z.array(modelResultSchema).optional(),
+  metadata: z.unknown().nullable().optional(),
   disclaimer: z.string().optional(),
 }).passthrough()
 

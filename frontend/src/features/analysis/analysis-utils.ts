@@ -1,6 +1,22 @@
 /** Neutral presentation helpers for the AI-signal analyzer (no accusatory wording). */
 
 export type SignalLevel = 'LOW' | 'MODERATE' | 'HIGH'
+export const DEFAULT_PARAGRAPH_MODE = 'STRICT_PARAGRAPH' as const
+
+export const OPERATION_ERROR_MESSAGE = {
+  analysisError: 'No se pudo completar el análisis solicitado.',
+  segmentsError: 'No se pudieron cargar los párrafos de este análisis.',
+  historyError: 'No se pudo cargar el historial de análisis.',
+  comparisonError: 'No se pudo completar la comparación solicitada.',
+  modelStatusError: 'No se pudo consultar el registro local de modelos.',
+  uploadError: 'No se pudo subir el documento.',
+} as const
+
+export type AnalysisOperationError = keyof typeof OPERATION_ERROR_MESSAGE
+
+export function operationErrorMessage(operation: AnalysisOperationError): string {
+  return OPERATION_ERROR_MESSAGE[operation]
+}
 
 export function signalLevel(score: number | null | undefined): SignalLevel | null {
   if (score === null || score === undefined || Number.isNaN(score)) return null
@@ -35,15 +51,46 @@ export const COMPARISON_LABEL: Record<string, string> = {
   REMOVED: 'Eliminado',
 }
 
+export function toDisplayPercent(score: number | null | undefined): number | null {
+  if (score === null || score === undefined || !Number.isFinite(score)) return null
+  return Math.round(score * 100)
+}
+
+export function formatPercentPoints(points: number | null | undefined): string {
+  if (points === null || points === undefined || !Number.isFinite(points)) return '—'
+  return `${Math.round(points)} %`
+}
+
+export function formatPercent(score: number | null | undefined): string {
+  return formatPercentPoints(toDisplayPercent(score))
+}
+
 export function formatSignal(score: number | null | undefined): string {
-  if (score === null || score === undefined || Number.isNaN(score)) return '—'
-  return `${Math.round(score * 100)} %`
+  return formatPercent(score)
 }
 
 export function formatDelta(delta: number | null | undefined): string {
-  if (delta === null || delta === undefined || Number.isNaN(delta)) return '—'
-  const pp = Math.round(delta * 100)
+  const pp = toDisplayPercent(delta)
+  if (pp === null) return '—'
   return `${pp > 0 ? '+' : ''}${pp} pp`
+}
+
+export function selectAnalysisRun<T extends { id: string }>(
+  history: T[],
+  selectedId: string | null | undefined,
+): T | undefined {
+  if (selectedId) {
+    const selected = history.find((item) => item.id === selectedId)
+    if (selected) return selected
+  }
+  return history[0]
+}
+
+export function segmentsBelongToRun(
+  runId: string | null | undefined,
+  segments: { analysisId: string } | null | undefined,
+): boolean {
+  return Boolean(runId && segments && segments.analysisId === runId)
 }
 
 export function availabilityLabel(state: string): string {

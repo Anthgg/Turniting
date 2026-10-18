@@ -22,6 +22,12 @@ export function sha256(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
+export function displayPercent(score: number | null | undefined): number | null {
+  return score === null || score === undefined || !Number.isFinite(score)
+    ? null
+    : Math.round(score * 100);
+}
+
 export function driftStats(values: number[]) {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -81,6 +87,7 @@ export class AnalysisService {
         cacheIdentity.preprocessingVersion,
         dto.thresholdProfile,
         dto.customThreshold ?? '',
+        dto.granularity,
         dto.paragraphMode,
         ANALYZER_VERSION,
       ].join('\0'));
@@ -91,6 +98,7 @@ export class AnalysisService {
           analyzerMode: dto.analyzer as AnalyzerMode,
           analyzerVersion: ANALYZER_VERSION,
           thresholdProfile: dto.thresholdProfile,
+          granularity: dto.granularity,
           paragraphMode: dto.paragraphMode,
           status: AnalysisRunStatus.COMPLETED,
         },
@@ -98,13 +106,20 @@ export class AnalysisService {
         take: 20,
         include: { modelResults: true, segments: { orderBy: { paragraphIndex: 'asc' } } },
       });
-      const cached = candidates.find((candidate) => candidate.modelResults.some((result) =>
+      const matchesCachedModel = (result: (typeof candidates)[number]['modelResults'][number], candidate: (typeof candidates)[number]) =>
         result.modelName === MODEL_FOR_MODE[dto.analyzer]
         && result.modelVariant === cacheIdentity.modelVersion
         && result.preprocessing === cacheIdentity.preprocessingVersion
         && result.thresholdProfile === dto.thresholdProfile
-        && (dto.thresholdProfile !== 'CUSTOM' || result.threshold === dto.customThreshold)));
-      const cachedModel = cached?.modelResults.find((result) => result.modelName === MODEL_FOR_MODE[dto.analyzer]);
+        && result.threshold === candidate.threshold
+        && result.calibratedScore === candidate.documentScore
+        && (dto.thresholdProfile !== 'CUSTOM' || result.threshold === dto.customThreshold);
+      const cached = candidates.find((candidate) =>
+        candidate.documentAggregation !== null
+        && candidate.documentScore !== null
+        && candidate.threshold !== null
+        && candidate.modelResults.some((result) => matchesCachedModel(result, candidate)));
+      const cachedModel = cached?.modelResults.find((result) => matchesCachedModel(result, cached));
       if (cached && cachedModel) {
         await this.prisma.$transaction([
           this.prisma.analysisModelResult.create({
@@ -225,9 +240,9 @@ export class AnalysisService {
             insufficientSegments: result.insufficientParagraphs,
             inferenceMs: result.inferenceMs,
             completedAt: new Date(),
-            metadata: { thresholdSource: result.thresholdSource, model: result.model,
+            metadata: { cacheHit: false, thresholdSource: result.thresholdSource, model: result.model,
               cacheKey: cacheIdentity ? sha256([textHash, cacheIdentity.modelVersion, cacheIdentity.preprocessingVersion,
-                dto.thresholdProfile, dto.customThreshold ?? '', dto.paragraphMode, ANALYZER_VERSION].join('\0')) : null } as Prisma.InputJsonValue,
+                dto.thresholdProfile, dto.customThreshold ?? '', dto.granularity, dto.paragraphMode, ANALYZER_VERSION].join('\0')) : null } as Prisma.InputJsonValue,
           },
         }),
       ]);
@@ -275,7 +290,12 @@ export class AnalysisService {
     });
     if (!run) throw new NotFoundException('Analysis not found');
     const { documentVersion, ...rest } = run;
-    return { ...rest, documentId: documentVersion.documentId, disclaimer: DISCLAIMER };
+    return {
+      ...rest,
+      documentScorePercent: displayPercent(rest.documentScore),
+      documentId: documentVersion.documentId,
+      disclaimer: DISCLAIMER,
+    };
   }
 
   async listForDocument(documentId: string) {
@@ -286,8 +306,12 @@ export class AnalysisService {
       where: { documentVersionId: document.currentVersion.id },
       orderBy: { createdAt: 'desc' },
       take: 20,
+      include: { modelResults: true },
     });
-    return { items };
+    return { items: items.map((item) => ({
+      ...item,
+      documentScorePercent: displayPercent(item.documentScore),
+    })) };
   }
 
   /** Segments with their text materialized from the canonical extracted text (not stored twice). */
