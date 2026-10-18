@@ -37,6 +37,12 @@ D = Path("/content/drive/MyDrive/turniting/f008")
 REPO = Path(__file__).resolve().parents[1]
 SEED = 8008
 PAN_DISTRACTORS = 300
+# Evaluation protocol (fixed before any holdout access; deterministic hash-ordered subsets):
+# retrieval metrics on capped positive query passages; reranking on a capped subset (one batched call, depth 50);
+# span alignment on hash-selected whole documents with reranking depth 10 (PAN suspicious docs are book-length).
+PROTOCOL = {"retrieval_caps": {"pan": 4000, "es_synth": 3000, "paws": 1000}, "rerank_caps": {"pan": 1500, "es_synth": 1000, "paws": 500},
+            "rerank_depth": 50, "span_docs": {"validation": {"pan": 25, "es_synth": 150, "paws": 150}, "holdout": {"pan": 80, "es_synth": 100000, "paws": 100000}},
+            "span_top_rerank": 10}
 ES_DISTRACTORS = 250_000
 BOILER = ["El presente estudio tiene como objetivo analizar los factores que inciden en el fenómeno estudiado.",
           "Los resultados muestran que existe una relación significativa entre las variables analizadas.",
@@ -363,46 +369,66 @@ def align_stage(prep, sysm: Systems, rer, char, cfg: dict, top_align: int = 3) -
     return preds
 
 
+def capped_positive(qp, caps):
+    out = []
+    for fam, cap in caps.items():
+        f = sorted((i for i, q in enumerate(qp) if q["gold_sources"] and q["family"] == fam), key=lambda i: h(f"{qp[i]['doc_id']}:{qp[i]['start']}"))
+        out += f[:cap]
+    return sorted(out)
+
+
+def span_doc_subset(docs, split):
+    out = []
+    for fam, n in PROTOCOL["span_docs"][split].items():
+        out += sorted((d for d in docs if d["family"] == fam), key=lambda d: h(d["doc_id"]))[:n]
+    return out
+
+
+def rerank_batched(rer, texts, rankings, depth, ps):
+    pairs = [(t, ps["text"].iat[p]) for t, r in zip(texts, rankings) for p in r[:depth]]
+    sc = rer.score(pairs, batch=256)
+    out, k = [], 0
+    for r in rankings:
+        c = r[:depth]
+        out.append([c[j] for j in np.argsort(-sc[k:k + len(c)])])
+        k += len(c)
+    return out
+
+
 def bakeoff() -> int:
     ps = load_passages()
     sysm = Systems(ps)
     docs = queries("validation")
     qp = query_passages(docs)
-    rng = np.random.default_rng(SEED)
-    pos_all = [i for i, q in enumerate(qp) if q["gold_sources"]]
-    caps = {"pan": 4000, "es_synth": 3000, "paws": 1000}
-    pos = []
-    for fam, cap in caps.items():
-        f = [i for i in pos_all if qp[i]["family"] == fam]
-        pos += sorted(rng.choice(f, min(cap, len(f)), replace=False).tolist()) if f else []
-    log(f"validation query passages {len(qp):,}; positive {len(pos_all):,}; evaluated {len(pos):,}")
+    pos = capped_positive(qp, PROTOCOL["retrieval_caps"])
+    log(f"validation query passages {len(qp):,}; positive {sum(1 for q in qp if q['gold_sources']):,}; evaluated {len(pos):,}")
     texts = [qp[i]["text"] for i in pos]
     gold = [qp[i]["gold_sources"] for i in pos]
     fam_of = [qp[i]["family"] for i in pos]
     t0 = time.time()
     res = fused(sysm.run(texts, 100))
     log(f"retrieval systems on {len(texts):,} queries in {time.time() - t0:.0f}s")
-    ret = {}
-    for fam in caps:
-        idx = [k for k, f in enumerate(fam_of) if f == fam]
-        ret[fam] = {name: retrieval_metrics([r[k] for k in idx], [gold[k] for k in idx], ps) for name, r in res.items()}
+    fams = list(PROTOCOL["retrieval_caps"])
+    ret = {fam: {name: retrieval_metrics([r[k] for k, f in enumerate(fam_of) if f == fam], [gold[k] for k, f in enumerate(fam_of) if f == fam], ps)
+                 for name, r in res.items()} for fam in fams}
     best = max(res, key=lambda n: np.mean([ret[f][n]["mrr"] for f in ret if ret[f][n]["queries"]]))
     log("MRR by system: " + json.dumps({n: round(float(np.mean([ret[f][n]["mrr"] for f in ret if ret[f][n]["queries"]])), 4) for n in res}))
+    write_json(REPO / "reports" / "f008" / "retrieval_validation.json", {"retrieval": ret, "best": best, "protocol": PROTOCOL})
     rer = Reranker()
-    rr_rank = []
+    rsel = [k for fam in fams for k in [k for k, f in enumerate(fam_of) if f == fam][:PROTOCOL["rerank_caps"][fam]]]
     t0 = time.time()
-    for k in range(len(texts)):
-        c = res[best][k][:100]
-        sc = rer.score([(texts[k], ps["text"].iat[p]) for p in c])
-        rr_rank.append([c[j] for j in np.argsort(-sc)])
-    log(f"reranked top-100 for {len(texts):,} queries in {time.time() - t0:.0f}s")
-    rer_metrics = {fam: retrieval_metrics([rr_rank[k] for k, f in enumerate(fam_of) if f == fam], [gold[k] for k, f in enumerate(fam_of) if f == fam], ps)
-                   for fam in caps}
+    rr = rerank_batched(rer, [texts[k] for k in rsel], [res[best][k] for k in rsel], PROTOCOL["rerank_depth"], ps)
+    log(f"reranked top-{PROTOCOL['rerank_depth']} for {len(rsel):,} queries in {time.time() - t0:.0f}s")
+    rer_metrics = {}
+    for fam in fams:
+        ks = [j for j, k in enumerate(rsel) if fam_of[k] == fam]
+        rer_metrics[fam] = {"first_stage": retrieval_metrics([res[best][rsel[j]][:PROTOCOL["rerank_depth"]] for j in ks], [gold[rsel[j]] for j in ks], ps),
+                            "reranked": retrieval_metrics([rr[j] for j in ks], [gold[rsel[j]] for j in ks], ps)}
+    write_json(REPO / "reports" / "f008" / "reranker_validation.json", {"system": best, "metrics": rer_metrics, "protocol": PROTOCOL})
     char = CharNgram()
     grid = [{"tau_doc": td, "tau_sem": ts, "tau_rr": tr} for td in (0.2, 0.4) for ts in (0.78, 0.85) for tr in (0.4, 0.7)]
-    by = {f: [d for d in docs if d["family"] == f] for f in caps}
-    sub = by["pan"][:: max(1, len(by["pan"]) // 60)] + by["es_synth"][:: max(1, len(by["es_synth"]) // 300)] + by["paws"][:: max(1, len(by["paws"]) // 300)]
-    prep = prepare(sub, sysm, best, rer)
+    sub = span_doc_subset(docs, "validation")
+    prep = prepare(sub, sysm, best, rer, top_rerank=PROTOCOL["span_top_rerank"])
     span_res = []
     for cfg in grid:
         preds = align_stage(prep, sysm, rer, char, cfg)
@@ -412,14 +438,11 @@ def bakeoff() -> int:
         span_res.append(sc)
         log(f"span cfg {cfg}: {json.dumps({k: round(v, 3) for k, v in sc.items() if isinstance(v, float)})}")
     chosen = max(span_res, key=lambda x: x["objective"])
-    out = {"set": "F008_VALIDATION", "retrieval_queries": {"total_query_passages": len(qp), "positive": len(pos_all), "evaluated": len(pos), "caps": caps},
-           "retrieval_zero_shot": ret, "best_retrieval_system": best, "reranker_bge_v2_m3": rer_metrics, "span_docs": len(sub),
-           "span_alignment_grid": span_res, "chosen_alignment": chosen["config"], "performance_span_subset": prep["perf"],
+    out = {"set": "F008_VALIDATION", "protocol": PROTOCOL, "retrieval_zero_shot": ret, "best_retrieval_system": best, "reranker_bge_v2_m3": rer_metrics,
+           "span_docs": len(sub), "span_alignment_grid": span_res, "chosen_alignment": chosen["config"], "performance_span_subset": prep["perf"],
            "fine_tune_decision": "not run: zero-shot BGE-M3 hybrid + reranker is the baseline; see report for whether validation justifies training"}
     write_json(D / "reports" / "zero_shot_bakeoff.json", out)
     write_json(REPO / "reports" / "f008" / "zero_shot_bakeoff.json", out)
-    write_json(REPO / "reports" / "f008" / "retrieval_validation.json", {"retrieval": ret, "best": best})
-    write_json(REPO / "reports" / "f008" / "reranker_validation.json", rer_metrics)
     write_json(REPO / "reports" / "f008" / "span_validation.json", {"grid": span_res, "chosen": chosen})
     log(f"best retrieval {best}; chosen alignment {chosen['config']}")
     return 0
@@ -479,16 +502,31 @@ def final() -> int:
     ps = load_passages()
     sysm = Systems(ps)
     rer, char = Reranker(), CharNgram()
-    docs = queries("holdout")
-    prep = prepare(docs, sysm, lock["retriever"], rer)
+    all_docs = queries("holdout")
+    qp = query_passages(all_docs)
+    pos = capped_positive(qp, PROTOCOL["retrieval_caps"])
+    texts = [qp[i]["text"] for i in pos]
+    gold = [qp[i]["gold_sources"] for i in pos]
+    fam_of = [qp[i]["family"] for i in pos]
+    t0 = time.time()
+    rankings = fused(sysm.run(texts, 100))[lock["retriever"]]
+    t_ret = time.time() - t0
+    rsel = [k for fam in PROTOCOL["rerank_caps"] for k in [k for k, f in enumerate(fam_of) if f == fam][:PROTOCOL["rerank_caps"][fam]]]
+    t1 = time.time()
+    rr = rerank_batched(rer, [texts[k] for k in rsel], [rankings[k] for k in rsel], PROTOCOL["rerank_depth"], ps)
+    t_rr = time.time() - t1
+    docs = span_doc_subset(all_docs, "holdout")
+    prep = prepare(docs, sysm, lock["retriever"], rer, top_rerank=PROTOCOL["span_top_rerank"])
     preds = align_stage(prep, sysm, rer, char, lock["alignment"])
-    qp, rankings, reranked, gold, pos, perf = prep["qp"], prep["rankings"], prep["reranked"], prep["gold"], prep["pos"], prep["perf"]
-    out = {"set": "F008_FINAL_HOLDOUT", "evaluatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "lock": lock, "holdout_docs": hman["docs"], "performance": perf}
+    perf = {**prep["perf"], "retrieval_queries": len(texts), "retrieval_s_capped": t_ret, "rerank_queries": len(rsel), "rerank_s_capped": t_rr}
+    out = {"set": "F008_FINAL_HOLDOUT", "evaluatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "lock": lock, "protocol": PROTOCOL,
+           "holdout_docs": hman["docs"], "span_docs_evaluated": len(docs), "performance": perf}
     for fam in ("pan", "es_synth", "paws"):
-        idx = [i for i in pos if qp[i]["family"] == fam]
+        ks = [k for k, f in enumerate(fam_of) if f == fam]
+        js = [j for j, k in enumerate(rsel) if fam_of[k] == fam]
         fdocs = [d for d in docs if d["family"] == fam]
-        out[fam] = {"retrieval": retrieval_metrics([rankings[i] for i in idx], [gold[i] for i in idx], ps),
-                    "reranked": retrieval_metrics([reranked[i] for i in idx], [gold[i] for i in idx], ps),
+        out[fam] = {"retrieval": retrieval_metrics([rankings[k] for k in ks], [gold[k] for k in ks], ps),
+                    "reranked": retrieval_metrics([rr[j] for j in js], [gold[rsel[j]] for j in js], ps),
                     "spans": span_scores(fdocs, preds)}
     out["all_spans"] = span_scores(docs, preds)
     cov = []
