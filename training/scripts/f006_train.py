@@ -97,6 +97,20 @@ def sampler_weights(meta: pd.DataFrame, hard: np.ndarray, sp: dict, a) -> tuple[
         base = (m_w + norm(wh, es_hard & human, hsh * fh) + norm(w0, es & human & ~es_hard, hsh * fn)
                 + norm(w0, g_h & ~hard, hsh * fg * (1 - a.hard_ratio)) + norm(wh, g_h & hard, hsh * fg * a.hard_ratio))
         comp = {"base": 1.0, "human_component": {"spanish_hard": fh, "spanish_normal": fn, "global": fg}}
+    if a.mixture == "f006_1_1":
+        mix = dict(zip(["replay", "hard_human", "spanish_human", "mixed", "span", "ai_edited", "robustness"], a.mix))
+        aca_hard = es_hard | hard
+        has_span = meta["has_span"].values.astype(bool) if "has_span" in meta else np.zeros(len(meta), bool)
+        mixed = meta["fine_label"].isin([A.MIXED, A.HUMAN_EDITED_AI]).values
+        edited = meta["fine_label"].isin([A.AI_EDITED, A.PARAPHRASED_AI]).values
+        total = base * mix["replay"]
+        total += norm(wh, aca_hard & human, mix["hard_human"])
+        total += norm(w0, es & human & ~aca_hard, mix["spanish_human"])
+        total += norm(w0, mixed, mix["mixed"])
+        total += norm(w0, has_span, mix["span"])
+        total += norm(w0, edited, mix["ai_edited"])
+        total += norm(w0, adv, mix["robustness"])
+        return total, mix
     if a.stage == "full" and a.mixture == "f006_1":
         aca = (meta["domain"].astype(str) == "academic").values
         edit = meta["fine_label"].isin(EDIT_LABELS).values
@@ -257,7 +271,7 @@ def _tok_docs(docs: list[dict]):
 
 def cache_key(a) -> str:
     keys = ["windows", "human_share", "hard_ratio", "es_w", "aca_w", "para_frac", "stage", "emphasis", "hard_pool", "seed",
-            "es_mix", "es_hard_pool", "train_extra", "mixture"]
+            "es_mix", "es_hard_pool", "train_extra", "mixture", "mix"]
     s = json.dumps({k: getattr(a, k) for k in keys}, sort_keys=True, default=str)
     return hashlib.sha256(s.encode()).hexdigest()[:12]
 
@@ -276,6 +290,12 @@ def build_cache(a, cfg, tok_path, cache: Path) -> dict:
     meta = meta[meta["fine_label"].isin(list(FINE_TO_B))].reset_index(drop=True)
     if a.es_hard_pool:
         meta["es_hard"] = meta["id"].isin(set(pd.read_parquet(a.es_hard_pool, columns=["id"])["id"])).values
+    if a.mixture == "f006_1_1":
+        spidx = pd.read_parquet("/content/drive/MyDrive/turniting/v3/datasets/index_v2.parquet", columns=["id", "span_labels_present", "split"])
+        span_ids = set(spidx.loc[(spidx["split"] == "train") & spidx["span_labels_present"].fillna(False).astype(bool), "id"])
+        if extra is not None:
+            span_ids |= set(extra.loc[extra["span_labels"].notna(), "id"])
+        meta["has_span"] = meta["id"].isin(span_ids).values
     pool = pd.read_parquet(a.hard_pool, columns=["id"]) if a.hard_pool else pd.DataFrame({"id": []})
     hard = meta["id"].isin(set(pool["id"])).values & (meta["fine_label"] == A.HUMAN).values
     w, comp = sampler_weights(meta, hard, cfg["sampling"], a)
@@ -350,6 +370,15 @@ def doc_logits(model, tok, texts: list[str], icfg: dict, device) -> np.ndarray:
 def run_eval(model, tok, val: pd.DataFrame, icfg, device) -> tuple[dict, np.ndarray]:
     lg = doc_logits(model, tok, val["text_original"].tolist(), icfg, device)
     p = 1 / (1 + np.exp(-lg))
+    if "span_labels" in val and (val["primary"] == "span").any():
+        from f006_lib import selection_score
+        from f0611_span import span_eval
+
+        sp = val[(val["primary"] == "span") & val["span_labels"].notna()].head(800)
+        ev = evaluate_scores(val, p)
+        ev["subsets"]["span_head"] = span_eval(model, tok, sp["text_original"].tolist(), sp["span_labels"].tolist(), device=device)
+        ev["selection"] = selection_score(ev["subsets"])
+        return ev, lg
     return evaluate_scores(val, p), lg
 
 
@@ -390,8 +419,10 @@ def main() -> int:
     ap.add_argument("--es-hard-pool", default=None)
     ap.add_argument("--es-mix", default=None, help="Spanish-hard,Spanish-normal,global shares of the human component, e.g. 0.4,0.3,0.3")
     ap.add_argument("--train-extra", default=None)
-    ap.add_argument("--mixture", default="f006", choices=["f006", "f006_1"])
-    ap.add_argument("--score", default="f006", choices=["f006", "f006_1"])
+    ap.add_argument("--mixture", default="f006", choices=["f006", "f006_1", "f006_1_1"])
+    ap.add_argument("--mix", default="0.30,0.25,0.15,0.10,0.10,0.05,0.05", help="f006_1_1: replay,hard,spanish,mixed,span,edited,robust")
+    ap.add_argument("--token-weight", type=float, default=None, help="override head-C loss weight (multi-task ablation)")
+    ap.add_argument("--score", default="f006", choices=["f006", "f006_1", "f006_1_1"])
     ap.add_argument("--master", default="/content/f006work/master_v2")
     ap.add_argument("--val", default="/content/drive/MyDrive/turniting/f006/datasets/f006_validation.parquet")
     ap.add_argument("--drive", default="/content/drive/MyDrive/turniting/f006")
@@ -402,6 +433,7 @@ def main() -> int:
     ap.add_argument("--val-cap", type=int, help="smoke tests only")
     a = ap.parse_args()
     a.es_mix = tuple(float(x) for x in a.es_mix.split(",")) if a.es_mix else None
+    a.mix = tuple(float(x) for x in a.mix.split(","))
     set_score(a.score)
     cfg = load_yaml(CONFIG_DIR / "v3.yaml")["train"]
     sel = json.loads(Path("/content/drive/MyDrive/turniting/v3/manifests/weight_selection.json").read_text()) \
@@ -475,7 +507,9 @@ def main() -> int:
         log(f"  EVAL step 0 (V3 init): {brief(ev0)}")
         history.append({"step": 0, "epoch": 0.0, **ev0})
 
-    hw = cfg["heads"]
+    hw = dict(cfg["heads"])
+    if a.token_weight is not None:
+        hw["token_weight"] = a.token_weight
     bce = torch.nn.BCEWithLogitsLoss(reduction="none")
     ce = torch.nn.CrossEntropyLoss()
 
@@ -573,7 +607,7 @@ def main() -> int:
         "run": a.run, "stage": a.stage, "timestamp": utc_now(), "gitCommit": git_commit(), "init": a.init,
         "config": {k: getattr(a, k) for k in ("windows", "human_share", "hard_ratio", "es_w", "aca_w", "para_frac", "emphasis",
                                                "loss", "human_weight", "focal_gamma", "lr", "epochs", "seed", "hard_pool",
-                                               "es_mix", "es_hard_pool", "train_extra", "mixture", "score")},
+                                               "es_mix", "es_hard_pool", "train_extra", "mixture", "score", "mix", "token_weight")},
         "sampleAudit": {k: v for k, v in audit.items() if k != "by_dataset"}, "microBatch": micro, "accumulation": accum,
         "stepsPerEpoch": steps_per_epoch, "totalSteps": total, "stoppedAtStep": step, "trainSeconds": round(train_s, 1),
         "throughputWindowsPerSec": round(seen / max(train_s, 1), 1), "gpuMonitor": mon.summary(),

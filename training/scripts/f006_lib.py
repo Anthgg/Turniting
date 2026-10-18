@@ -235,8 +235,41 @@ def set_score(mode: str) -> None:
     SCORE_MODE["mode"] = mode
 
 
+F00611_WEIGHTS = {"general_macro_f1": 0.10, "spanish_macro_f1": 0.15, "academic_macro_f1": 0.05, "mixed_recall": 0.15,
+                  "ai_edited_macro_f1": 0.10, "ood_macro_f1": 0.10, "unseen_generator_recall": 0.10, "adversarial_recall": 0.05,
+                  "span_token_f1": 0.20}
+F00611_PENALTIES = [("fpr_all_humans", 0.05, 3.0), ("spanish_fpr", 0.05, 3.0), ("academic_fpr", 0.05, 2.0),
+                    ("unseen_generator_fpr", 0.10, 2.0), ("ood_fpr", 0.10, 1.0), ("unseen_domain_fpr", 0.10, 1.0)]
+
+
+def _score_f00611(rep: dict) -> dict:
+    """F006_1_1_SELECTION_SCORE (fixed before any F006.1.1 training), same operating point as F006/F006.1:
+    + 0.10 F1 general + 0.15 F1 Spanish + 0.05 F1 academic + 0.15 recall mixed + 0.10 F1 AI-edited + 0.10 F1 OOD
+    + 0.10 recall unseen-generator proxy + 0.05 recall adversarial + 0.20 span token F1 (head C, span subset)
+    - 3*max(0, FPR_all - 0.05) - 3*max(0, FPR_es - 0.05) - 2*max(0, FPR_aca - 0.05) - 2*max(0, FPR_ugen - 0.10)
+    - 1*max(0, FPR_ood - 0.10) - 1*max(0, FPR_udom - 0.10); eligible iff FPR_all <= 0.05 and FPR_es <= 0.08."""
+    def g(sub, key):
+        v = rep.get(sub, {}).get(key)
+        return None if v is None else float(v)
+
+    terms = {"general_macro_f1": g("general", "macro_f1"), "spanish_macro_f1": g("spanish", "macro_f1"), "academic_macro_f1": g("academic", "macro_f1"),
+             "mixed_recall": g("mixed", "recall"), "ai_edited_macro_f1": g("ai_edited", "macro_f1"), "ood_macro_f1": g("ood", "macro_f1"),
+             "unseen_generator_recall": g("unseen_generator", "recall"), "adversarial_recall": g("adversarial", "recall"),
+             "span_token_f1": g("span_head", "token_f1")}
+    fprs = {"fpr_all_humans": g("all", "fpr"), "spanish_fpr": g("spanish", "fpr"), "academic_fpr": g("academic", "fpr"),
+            "unseen_generator_fpr": g("unseen_generator", "fpr"), "ood_fpr": g("ood", "fpr"), "unseen_domain_fpr": g("unseen_domain", "fpr")}
+    avail = {k: v for k, v in terms.items() if v is not None}
+    wsum = sum(F00611_WEIGHTS[k] for k in avail) or 1.0
+    pos = sum(F00611_WEIGHTS[k] * v for k, v in avail.items()) / wsum
+    pen = sum(w * max(0.0, fprs[k] - lim) for k, lim, w in F00611_PENALTIES if fprs.get(k) is not None)
+    eligible = (fprs["fpr_all_humans"] is not None and fprs["fpr_all_humans"] <= 0.05 and fprs["spanish_fpr"] is not None and fprs["spanish_fpr"] <= 0.08)
+    return {"score": pos - pen, "positive": pos, "penalty": pen, "eligible": bool(eligible), "terms": terms, "fprs": fprs, "mode": "f006_1_1"}
+
+
 def selection_score(rep: dict) -> dict:
-    """F006_SELECTION_SCORE (or F006_1_SELECTION_SCORE after set_score('f006_1')) from a subset_report."""
+    """F006 / F006_1 / F006_1_1 selection score (see set_score) from a subset_report."""
+    if SCORE_MODE["mode"] == "f006_1_1":
+        return _score_f00611(rep)
     if SCORE_MODE["mode"] == "f006_1":
         return _score_f0061(rep)
     def g(sub, key):
