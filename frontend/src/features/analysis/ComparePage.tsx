@@ -14,7 +14,7 @@ import {
   operationErrorMessage,
 } from './analysis-utils'
 
-function AnalysisPicker({ label, value, onChange }: { label: string; value: string; onChange: (id: string) => void }) {
+function AnalysisPicker({ label, value, onChange }: { label: string; value: string; onChange: (id: string, paragraphMode: string | null) => void }) {
   const [documentId, setDocumentId] = useState('')
   const docs = useQuery({ queryKey: documentQueryKeys.list(1, 100), queryFn: () => listDocuments(1, 100), retry: 1 })
   const runs = useQuery({ queryKey: ['analysis', 'document', documentId], queryFn: () => listDocumentAnalyses(documentId),
@@ -25,7 +25,7 @@ function AnalysisPicker({ label, value, onChange }: { label: string; value: stri
       <legend>{label}</legend>
       <label>
         <span>Documento</span>
-        <select value={documentId} onChange={(e) => { setDocumentId(e.currentTarget.value); onChange('') }}>
+        <select value={documentId} onChange={(e) => { setDocumentId(e.currentTarget.value); onChange('', null) }}>
           <option value="">Selecciona…</option>
           {docs.data?.items.map((d) => <option key={d.id} value={d.id}>{d.originalName}</option>)}
         </select>
@@ -39,11 +39,14 @@ function AnalysisPicker({ label, value, onChange }: { label: string; value: stri
       )}
       <label>
         <span>Análisis</span>
-        <select value={value} onChange={(e) => onChange(e.currentTarget.value)} disabled={!documentId}>
+        <select value={value} onChange={(e) => {
+          const id = e.currentTarget.value
+          onChange(id, runs.data?.items.find((run) => run.id === id)?.paragraphMode ?? null)
+        }} disabled={!documentId}>
           <option value="">Selecciona…</option>
           {runs.data?.items.filter((r) => r.status === 'COMPLETED').map((r) => (
             <option key={r.id} value={r.id}>
-              {ANALYZER_LABEL[r.analyzerMode]} · {PROFILE_LABEL[r.thresholdProfile] ?? r.thresholdProfile} · {r.documentScorePercent === undefined ? formatSignal(r.documentScore) : formatPercentPoints(r.documentScorePercent)} · {new Date(r.createdAt).toLocaleString()}
+              {ANALYZER_LABEL[r.analyzerMode]} · {r.paragraphMode === 'CONTEXTUAL_PARAGRAPH' ? 'Con contexto breve' : 'Solo el párrafo'} · {PROFILE_LABEL[r.thresholdProfile] ?? r.thresholdProfile} · {r.documentScorePercent === undefined ? formatSignal(r.documentScore) : formatPercentPoints(r.documentScorePercent)} · {new Date(r.createdAt).toLocaleString()}
             </option>
           ))}
         </select>
@@ -52,13 +55,32 @@ function AnalysisPicker({ label, value, onChange }: { label: string; value: stri
   )
 }
 
+export function ContextualComparisonNotice({ paragraphModes }: { paragraphModes: Array<string | null> }) {
+  if (!paragraphModes.includes('CONTEXTUAL_PARAGRAPH')) return null
+  return (
+    <p className="analysis-notice analysis-context-comparison-warning" role="status">
+      En modo contextual, modificar un párrafo puede cambiar también la señal de párrafos vecinos porque forman parte del contexto de inferencia.
+    </p>
+  )
+}
+
 export function ComparePage() {
   const [base, setBase] = useState('')
   const [target, setTarget] = useState('')
+  const [baseParagraphMode, setBaseParagraphMode] = useState<string | null>(null)
+  const [targetParagraphMode, setTargetParagraphMode] = useState<string | null>(null)
   const compare = useMutation({ mutationFn: () => compareAnalyses(base, target) })
   const comparisonError = compare.isError ? compare.error : null
-  const updateBase = (id: string) => { setBase(id); compare.reset() }
-  const updateTarget = (id: string) => { setTarget(id); compare.reset() }
+  const updateBase = (id: string, paragraphMode: string | null) => {
+    setBase(id)
+    setBaseParagraphMode(paragraphMode)
+    compare.reset()
+  }
+  const updateTarget = (id: string, paragraphMode: string | null) => {
+    setTarget(id)
+    setTargetParagraphMode(paragraphMode)
+    compare.reset()
+  }
   const data = compare.data
 
   return (
@@ -75,6 +97,7 @@ export function ComparePage() {
           <AnalysisPicker label="Versión A" value={base} onChange={updateBase} />
           <AnalysisPicker label="Versión B" value={target} onChange={updateTarget} />
         </div>
+        <ContextualComparisonNotice paragraphModes={[baseParagraphMode, targetParagraphMode]} />
         <button className="button button-primary" type="button" disabled={!base || !target || compare.isPending} onClick={() => { compare.reset(); compare.mutate() }}>
           {compare.isPending ? 'Comparando…' : 'Comparar'}
         </button>

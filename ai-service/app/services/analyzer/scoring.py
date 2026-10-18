@@ -105,6 +105,7 @@ class ParagraphScore:
     tokens: int
     insufficient: bool
     chunks: int = 0
+    context_tokens_used: dict[str, dict[str, int]] | None = None
 
 
 def score_paragraphs(
@@ -124,7 +125,11 @@ def score_paragraphs(
     per_view: list[list[float | None]] = []
     token_counts: list[int] = []
     chunk_counts: list[int] = []
+    context_usage: list[dict[str, dict[str, int]]] = [
+        {} for _ in paragraphs
+    ]
     for v, profile in enumerate(profiles):
+        profile_name = getattr(profile, "name", f"profile-{v}")
         encoded = [backend.encode(profile.apply(p.text))[0] for p in paragraphs]
         if v == 0:
             token_counts = [len(ids) for ids in encoded]
@@ -146,6 +151,11 @@ def score_paragraphs(
                 if mode == CONTEXTUAL and i + 1 < len(paragraphs) and context_tokens
                 else []
             )
+            if mode == CONTEXTUAL:
+                context_usage[i][profile_name] = {
+                    "before": len(prev),
+                    "after": len(nxt),
+                }
             for s in range(0, len(ids), target):
                 chunk = ids[s : s + target]
                 if (
@@ -178,6 +188,9 @@ def score_paragraphs(
                 tokens=token_counts[i] if token_counts else 0,
                 insufficient=lg is None,
                 chunks=chunk_counts[i] if chunk_counts else 0,
+                context_tokens_used=(
+                    context_usage[i] if mode == CONTEXTUAL else None
+                ),
             )
         )
     return out

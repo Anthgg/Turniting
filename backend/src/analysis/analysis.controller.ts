@@ -30,6 +30,14 @@ export class AnalysisController {
     return this.analysis.getSegments(id, query);
   }
 
+  @Get('analyses/:id/segments/:segmentId/context')
+  context(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('segmentId', ParseUUIDPipe) segmentId: string,
+  ) {
+    return this.analysis.getSegmentContext(id, segmentId);
+  }
+
   @Post('analyses/compare')
   compare(@Body() body: CompareAnalysesDto) {
     return this.analysis.compare(body);

@@ -29,17 +29,17 @@ function modelList() {
   }
 }
 
-function historyQuery(isError = false) {
+function historyQuery(isError = false, status = 'COMPLETED', paragraphMode = 'CONTEXTUAL_PARAGRAPH') {
   return {
     data: {
       items: [{
         id: RUN_ID,
-        status: 'COMPLETED',
+        status,
         analyzerMode: 'V3_ONLY',
         analyzerVersion: 'f005-local-analyzer-v1',
         thresholdProfile: 'LOW_FALSE_POSITIVE',
         threshold: 0.8,
-        paragraphMode: 'CONTEXTUAL_PARAGRAPH',
+        paragraphMode,
         documentAggregation: 'token_weighted_mean',
         documentScore: 0.655,
         documentScorePercent: 66,
@@ -71,6 +71,7 @@ function segmentsQuery(analysisId = RUN_ID, isError = false) {
       total: 1,
       pages: 1,
       items: [{
+        id: '00000000-0000-4000-8000-000000000011',
         paragraphIndex: 0,
         charStart: 0,
         charEnd: 25,
@@ -92,21 +93,30 @@ function segmentsQuery(analysisId = RUN_ID, isError = false) {
   }
 }
 
+function contextQuery() {
+  return { data: undefined, error: null, isError: false, isPending: false, refetch: vi.fn() }
+}
+
 function renderPanel({
   historyError = false,
   segmentsRunId = RUN_ID,
   segmentsError = false,
   analysisError = false,
+  runStatus = 'COMPLETED',
+  paragraphMode = 'CONTEXTUAL_PARAGRAPH',
 }: {
   historyError?: boolean
   segmentsRunId?: string
   segmentsError?: boolean
   analysisError?: boolean
+  runStatus?: string
+  paragraphMode?: string
 } = {}) {
   queryMocks.useQuery
     .mockReturnValueOnce(modelList())
-    .mockReturnValueOnce(historyQuery(historyError))
+    .mockReturnValueOnce(historyQuery(historyError, runStatus, paragraphMode))
     .mockReturnValueOnce(segmentsQuery(segmentsRunId, segmentsError))
+    .mockReturnValueOnce(contextQuery())
   queryMocks.useMutation.mockReturnValue({
     error: analysisError ? new Error('synthetic analysis failure') : null,
     isError: analysisError,
@@ -132,17 +142,50 @@ describe('AnalysisPanel run provenance and operation errors', () => {
     queryMocks.useQueryClient.mockClear()
   })
 
-  it('keeps the selected completed score and config visible when analysis, history, and segments fail', () => {
+  it('suppresses the fatal analysis error for a completed run and scopes secondary errors locally', () => {
     const html = renderPanel({ historyError: true, segmentsError: true, analysisError: true })
 
     expect(html).toContain('66 %')
     expect(html).toContain('token_weighted_mean')
     expect(html).toContain('Con contexto breve')
     expect(html).toContain('Solo el párrafo')
-    expect(html).toContain('No se pudo completar el análisis solicitado.')
+    expect(html).not.toContain('No se pudo completar el análisis solicitado.')
     expect(html).toContain('No se pudo cargar el historial de análisis.')
     expect(html).toContain('No se pudieron cargar los párrafos de este análisis.')
     expect(html).toContain('Synthetic run paragraph')
+  })
+
+  it('keeps a contextual run label from history while the new analysis form defaults to strict', () => {
+    const html = renderPanel()
+
+    expect(html).toContain('Con contexto breve')
+    expect(html).toContain('Solo el párrafo')
+    expect(html).toContain('66 %')
+    expect(html).toContain('Contexto utilizado')
+  })
+
+  it('does not show a context badge or drawer action for a strict historical run', () => {
+    const html = renderPanel({ paragraphMode: 'STRICT_PARAGRAPH' })
+
+    expect(html).toContain('Modo de párrafo')
+    expect(html).toContain('Solo el párrafo')
+    expect(html).not.toContain('Contexto utilizado')
+    expect(html).not.toContain('Ver contexto utilizado')
+  })
+
+  it('renders a collapsed context drawer trigger for contextual paragraphs', () => {
+    const html = renderPanel()
+
+    expect(html).toContain('Ver contexto utilizado')
+    expect(html).toContain('aria-expanded="false"')
+    expect(html).not.toContain('analysis-context-drawer')
+  })
+
+  it('keeps the analysis retry for a failed run', () => {
+    const html = renderPanel({ analysisError: true, runStatus: 'FAILED' })
+
+    expect(html).toContain('No se pudo completar el análisis solicitado.')
+    expect(html).toContain('Reintentar análisis')
   })
 
   it('does not render segments returned for a different analysisRunId', () => {

@@ -13,7 +13,7 @@ from app.services.analyzer.comparison import align_paragraphs, document_similari
 from app.services.analyzer.manager import ModelManager, ModelUnavailableError
 from app.services.analyzer.paragraphs import split_paragraphs
 from app.services.analyzer.registry import V2, V3
-from app.services.analyzer.scoring import aggregate_document
+from app.services.analyzer.scoring import CONTEXTUAL, aggregate_document
 
 ENSEMBLE_PROFILE = "ENSEMBLE_V2_V3"
 MODE_MODEL = {"V2_ONLY": V2, "V3_ONLY": V3}
@@ -102,6 +102,17 @@ def analyze(
             )
             probs.append(p)
             toks.append(seg["tokens"])
+        if mode == CONTEXTUAL:
+            seg["contextTokensUsed"] = {
+                **{
+                    f"V2/{name}": usage
+                    for name, usage in (s2.get("contextTokensUsed") or {}).items()
+                },
+                **{
+                    f"V3/{name}": usage
+                    for name, usage in (s3.get("contextTokensUsed") or {}).items()
+                },
+            }
         segs.append(seg)
     agg = prof.get("documentAggregation", r3["documentAggregation"])
     doc = aggregate_document(probs, toks, agg, threshold)
@@ -112,6 +123,16 @@ def analyze(
         "ensembleMethod": method,
         "ensembleWeights": {"V2": w2, "V3": round(1 - w2, 4)},
         "paragraphMode": mode,
+        "contextMetadata": {
+            "tokenLimitPerSide": r3["contextMetadata"]["tokenLimitPerSide"],
+            "measurement": "tokens_per_window",
+            "preprocessingProfiles": [
+                *(f"V2/{name}" for name in r2["contextMetadata"]["preprocessingProfiles"]),
+                *(f"V3/{name}" for name in r3["contextMetadata"]["preprocessingProfiles"]),
+            ],
+        }
+        if mode == CONTEXTUAL
+        else None,
         "thresholdProfile": profile,
         "threshold": threshold,
         "thresholdSource": prof.get("calibrationVersion", "ensemble-profile"),

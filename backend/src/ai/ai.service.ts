@@ -179,6 +179,7 @@ export type AiAnalyzerSegment = {
   signalLevel: string | null;
   confidence: string | null;
   agreement?: string | null;
+  contextTokensUsed?: Record<string, { before: number; after: number }> | null;
 };
 
 export type AiParagraphAnalysis = {
@@ -198,6 +199,11 @@ export type AiParagraphAnalysis = {
   scoredParagraphs: number;
   insufficientParagraphs: number;
   segments: AiAnalyzerSegment[];
+  contextMetadata?: {
+    tokenLimitPerSide: number;
+    measurement: string;
+    preprocessingProfiles: string[];
+  } | null;
   preprocessingVersion: string;
   inferenceMs: number;
 };

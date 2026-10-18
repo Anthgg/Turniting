@@ -552,6 +552,16 @@
 .analysis-disclaimer { margin: 6px 0 12px; color: #5f717c; font-size: 10px; line-height: 1.5; }
 .analysis-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
 .analysis-controls label { display: flex; min-width: 150px; flex-direction: column; gap: 5px; color: #566b77; font-size: 10px; font-weight: 620; }
+.analysis-paragraph-mode-field { display: flex; position: relative; min-width: 185px; flex-direction: column; gap: 5px; color: #566b77; font-size: 10px; font-weight: 620; }
+.analysis-paragraph-mode-label { display: flex; align-items: center; gap: 6px; }
+.analysis-paragraph-mode-label > label { color: inherit; font-size: inherit; font-weight: inherit; }
+.analysis-paragraph-mode-field select { min-height: 36px; padding: 6px 9px; border: 1px solid #dbe4e7; border-radius: 8px; color: #405561; background: #fff; font: inherit; }
+.analysis-mode-help { position: relative; font-weight: 500; }
+.analysis-mode-help summary { display: grid; width: 17px; height: 17px; place-items: center; border: 1px solid #afc0c8; border-radius: 50%; color: #516b79; cursor: pointer; font-size: 10px; list-style: none; }
+.analysis-mode-help summary::-webkit-details-marker { display: none; }
+.analysis-mode-help-content { position: absolute; z-index: 5; top: 24px; left: -4px; width: min(310px, 80vw); padding: 11px 12px; border: 1px solid #dbe4e7; border-radius: 9px; color: #435762; background: #fff; box-shadow: 0 8px 24px #263b471c; line-height: 1.5; }
+.analysis-mode-help-content p { margin: 3px 0 8px; font-weight: 400; }
+.analysis-mode-description { margin: 0; color: #71828b; font-size: 9px; font-weight: 400; line-height: 1.4; }
 .analysis-controls select, .compare-picker select { min-height: 36px; padding: 6px 9px; border: 1px solid #dbe4e7; border-radius: 8px; color: #405561; background: #fff; font: inherit; }
 .analysis-model-status { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
 .analysis-model-status li { display: flex; gap: 6px; padding: 5px 9px; border: 1px solid #e3e9ec; border-radius: 99px; color: #5b6d78; font-size: 9px; }
@@ -568,8 +578,19 @@
 .analysis-paragraph.level-high { border-left-color: #5d7a91; }
 .analysis-paragraph-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #45596a; font-size: 10px; }
 .analysis-paragraph-head small { color: #84939b; }
+.analysis-context-badge { padding: 3px 7px; border: 1px solid #dce8e5; border-radius: 99px; color: #4f7169; background: #f3f8f6; font-size: 8px; font-weight: 650; }
 .analysis-level { padding: 3px 7px; border-radius: 99px; color: #4b5f6e; background: #eef2f5; font-size: 8px; font-weight: 700; }
 .analysis-paragraph p { margin: 7px 0 0; color: #55666f; font-size: 10px; line-height: 1.55; }
+.analysis-context-control { margin-top: 7px; }
+.analysis-context-drawer { display: grid; gap: 8px; margin-top: 8px; padding: 10px; border: 1px solid #e0e8e9; border-radius: 8px; background: #fafcfc; }
+.analysis-context-explanation { margin: 0 !important; color: #71828b !important; font-size: 9px !important; }
+.analysis-context-neighbor, .analysis-context-target { padding: 8px 9px; border-radius: 7px; }
+.analysis-context-neighbor { border: 1px solid #e5ebed; background: #fff; }
+.analysis-context-target { border: 1px solid #9cb8b0; border-left: 4px solid #5b897d; background: #f3f8f6; }
+.analysis-context-neighbor h4, .analysis-context-target h4 { margin: 0; color: #425a62; font-size: 9px; }
+.analysis-context-neighbor p, .analysis-context-target p { margin: 5px 0 0; color: #55666f; font-size: 10px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.analysis-context-neighbor small { display: block; margin-top: 5px; color: #7a8990; font-size: 8px; line-height: 1.4; }
+.analysis-context-message { margin: 0 !important; }
 .compare-pickers { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 12px; }
 .compare-picker { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 10px 12px; border: 1px solid #e6ebee; border-radius: 10px; }
 .compare-picker legend { color: #44596a; font-size: 10px; font-weight: 700; }

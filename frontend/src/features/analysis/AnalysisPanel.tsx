@@ -11,6 +11,7 @@ import {
   getAnalysisSegments,
   listAnalyzerModels,
   listDocumentAnalyses,
+  getAnalysisSegmentContext,
   type AnalysisSegmentFilter,
   type AnalysisSegmentSort,
   type AnalyzerName,
@@ -61,6 +62,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function contextTokenLabel(tokens: Record<string, number> | null) {
+  if (!tokens || Object.keys(tokens).length === 0) return "Conteo no registrado para este run.";
+  return Object.entries(tokens)
+    .map(([profile, count]) => `${profile}: ${count} tokens`)
+    .join(" · ");
+}
+
 export function AnalysisPanel({
   documentId,
   fileName,
@@ -89,6 +97,7 @@ export function AnalysisPanel({
   const [expandedParagraphs, setExpandedParagraphs] = useState<
     Record<number, boolean>
   >({});
+  const [contextSegmentId, setContextSegmentId] = useState<string | null>(null);
 
   const models = useQuery({
     queryKey: analysisQueryKeys.models(),
@@ -125,6 +134,7 @@ export function AnalysisPanel({
       setPage(1);
       setFilter("ALL");
       setExpandedParagraphs({});
+      setContextSegmentId(null);
       await queryClient.invalidateQueries({
         queryKey: analysisQueryKeys.documentAnalyses(documentId),
       });
@@ -150,12 +160,30 @@ export function AnalysisPanel({
   const f006 = models.data?.items.find(
     (item) => item.name === "EXPERIMENTAL_F006_MODEL",
   );
-  const analysisError = analyze.isError ? analyze.error : null;
+  const analysisError =
+    run?.status === "COMPLETED" ? null : analyze.isError ? analyze.error : null;
   const historyError = runs.isError ? runs.error : null;
   const modelStatusError = models.isError ? models.error : null;
   const segmentsError = segments.isError ? segments.error : null;
   const segmentsMatchRun = segmentsBelongToRun(runId, segments.data);
   const paragraphItems = segmentsMatchRun ? segments.data?.items ?? [] : [];
+  const contextSegment = paragraphItems.find(
+    (segment) => segment.id === contextSegmentId,
+  );
+  const segmentContext = useQuery({
+    queryKey: analysisQueryKeys.segmentContext(
+      runId ?? "none",
+      contextSegmentId ?? "none",
+    ),
+    queryFn: () => getAnalysisSegmentContext(runId as string, contextSegmentId as string),
+    enabled: Boolean(
+      runId
+      && run?.status === "COMPLETED"
+      && run.paragraphMode === "CONTEXTUAL_PARAGRAPH"
+      && contextSegment?.id,
+    ),
+    retry: 1,
+  });
   const totalParagraphs = segmentsMatchRun
     ? (segments.data?.total ?? paragraphItems.length)
     : 0;
@@ -260,9 +288,21 @@ export function AnalysisPanel({
             ))}
           </select>
         </label>
-        <label>
-          <span>Párrafos</span>
+        <div className="analysis-paragraph-mode-field">
+          <div className="analysis-paragraph-mode-label">
+            <label htmlFor="analysis-paragraph-mode">Párrafos</label>
+            <details className="analysis-mode-help">
+              <summary aria-label="Información sobre los modos de párrafo" title="Información sobre los modos de párrafo">ⓘ</summary>
+              <div className="analysis-mode-help-content" role="note">
+                <strong>Solo el párrafo</strong>
+                <p>Analiza únicamente el párrafo objetivo. Mantiene mayor estabilidad entre versiones y es el modo recomendado.</p>
+                <strong>Con contexto breve</strong>
+                <p>Incluye contexto limitado de los párrafos vecinos. Ayuda con referencias como «este enfoque» o «estos resultados»; la señal puede cambiar si cambia ese contexto.</p>
+              </div>
+            </details>
+          </div>
           <select
+            id="analysis-paragraph-mode"
             value={mode}
             onChange={(event) => {
               analyze.reset();
@@ -272,12 +312,17 @@ export function AnalysisPanel({
             {PARAGRAPH_MODES.map((item) => (
               <option key={item} value={item}>
                 {item === "STRICT_PARAGRAPH"
-                  ? "Solo el párrafo"
-                  : "Con contexto breve"}
+                  ? "Solo el párrafo · Recomendado"
+                  : "Con contexto breve · Experimental"}
               </option>
             ))}
           </select>
-        </label>
+          <p className="analysis-mode-description">
+            {mode === "STRICT_PARAGRAPH"
+              ? "Analiza cada párrafo de forma independiente. Recomendado para comparar versiones."
+              : "Añade una pequeña porción de los párrafos vecinos. El porcentaje sigue perteneciendo únicamente al párrafo objetivo."}
+          </p>
+        </div>
         <button
           className="button button-primary"
           type="button"
@@ -301,6 +346,7 @@ export function AnalysisPanel({
                 setSelectedRun(event.currentTarget.value);
                 setPage(1);
                 setExpandedParagraphs({});
+                setContextSegmentId(null);
               }}
             >
               {history.map((item) => (
@@ -575,6 +621,13 @@ export function AnalysisPanel({
                       {segment.pageNumber !== null && (
                         <small>pág. {segment.pageNumber}</small>
                       )}
+                      {run?.paragraphMode === "CONTEXTUAL_PARAGRAPH" && (
+                        <span className="analysis-context-badge">
+                          {segment.classification === "INSUFFICIENT_TEXT"
+                            ? "Contexto no aplicado"
+                            : "Contexto utilizado"}
+                        </span>
+                      )}
                       <small>
                         {segment.modelName} · {run?.analyzerMode} ·{" "}
                         {run?.analyzerVersion} · {segment.classification}
@@ -598,6 +651,74 @@ export function AnalysisPanel({
                           : "Ver texto completo"}
                       </button>
                     )}
+                    {run?.paragraphMode === "CONTEXTUAL_PARAGRAPH"
+                      && segment.classification !== "INSUFFICIENT_TEXT"
+                      && segment.id && (
+                        <div className="analysis-context-control">
+                          <button
+                            className="analysis-text-toggle"
+                            type="button"
+                            aria-expanded={contextSegmentId === segment.id}
+                            aria-controls={`analysis-context-${segment.id}`}
+                            onClick={() => setContextSegmentId((current) =>
+                              current === segment.id ? null : segment.id ?? null,
+                            )}
+                          >
+                            {contextSegmentId === segment.id
+                              ? "Ocultar contexto utilizado"
+                              : "Ver contexto utilizado"}
+                          </button>
+                          {contextSegmentId === segment.id && (
+                            <div
+                              className="analysis-context-drawer"
+                              id={`analysis-context-${segment.id}`}
+                              role="region"
+                              aria-label={`Contexto del párrafo ${segment.paragraphIndex + 1}`}
+                            >
+                              {segmentContext.isError && (
+                                <p className="analysis-context-message" role="alert">
+                                  No se pudo cargar el contexto utilizado.
+                                  <button className="button button-quiet" type="button" onClick={() => void segmentContext.refetch()}>
+                                    Reintentar
+                                  </button>
+                                </p>
+                              )}
+                              {segmentContext.isPending && !segmentContext.data && (
+                                <p className="analysis-context-message" role="status">Cargando contexto…</p>
+                              )}
+                              {segmentContext.data && (
+                                <>
+                                  <p className="analysis-context-explanation">
+                                    El modelo usa hasta {segmentContext.data.contextMetadata.tokenLimitPerSide ?? "un límite no registrado"} tokens por lado y ventana. Se muestran los párrafos vecinos completos como referencia; el porcentaje pertenece solo al párrafo evaluado.
+                                  </p>
+                                  <section className="analysis-context-neighbor">
+                                    <h4>Anterior</h4>
+                                    {segmentContext.data.before.paragraphIndex === null
+                                      ? <p>No disponible: es el primer párrafo.</p>
+                                      : <p>{segmentContext.data.before.text}</p>}
+                                    {segmentContext.data.before.paragraphIndex !== null && (
+                                      <small>Tokens usados por ventana · {contextTokenLabel(segmentContext.data.before.tokensUsed)}</small>
+                                    )}
+                                  </section>
+                                  <section className="analysis-context-target">
+                                    <h4>Párrafo evaluado · Señal IA {formatSignal(segment.calibratedScore)}</h4>
+                                    <p>{segmentContext.data.target.text}</p>
+                                  </section>
+                                  <section className="analysis-context-neighbor">
+                                    <h4>Siguiente</h4>
+                                    {segmentContext.data.after.paragraphIndex === null
+                                      ? <p>No disponible: es el último párrafo.</p>
+                                      : <p>{segmentContext.data.after.text}</p>}
+                                    {segmentContext.data.after.paragraphIndex !== null && (
+                                      <small>Tokens usados por ventana · {contextTokenLabel(segmentContext.data.after.tokensUsed)}</small>
+                                    )}
+                                  </section>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                   </li>
                 );
               })}

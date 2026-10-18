@@ -24,6 +24,7 @@ from app.services.analyzer.paragraphs import split_paragraphs
 from app.services.analyzer.preprocessing import PROFILES, profile_for_view
 from app.services.analyzer.registry import MODELS, V2, V3, ModelSpec, artifact_path
 from app.services.analyzer.scoring import (
+    CONTEXTUAL,
     STRICT,
     aggregate_document,
     score_document,
@@ -303,13 +304,14 @@ class ModelManager:
         threshold, th_source = self.resolve_threshold(name, profile, custom)
         s = self.settings
         paragraphs = split_paragraphs(text)
+        profiles = self.profiles(name)
         with self._job():
             backend = self.load(name)
             t0 = time.perf_counter()
             scores = score_paragraphs(
                 backend,
                 paragraphs,
-                self.profiles(name),
+                profiles,
                 mode,
                 s.paragraph_target_tokens,
                 s.paragraph_context_tokens,
@@ -332,6 +334,7 @@ class ModelManager:
                 "textHash": p.text_hash,
                 "words": p.words,
                 "tokens": sc.tokens,
+                "contextTokensUsed": sc.context_tokens_used,
             }
             if sc.insufficient:
                 seg.update(
@@ -361,6 +364,13 @@ class ModelManager:
             "model": name,
             "modelVersion": st.check.manifest.get("variant") or st.spec.variant,
             "paragraphMode": mode,
+            "contextMetadata": {
+                "tokenLimitPerSide": s.paragraph_context_tokens,
+                "measurement": "tokens_per_window",
+                "preprocessingProfiles": [profile.name for profile in profiles],
+            }
+            if mode == CONTEXTUAL
+            else None,
             "thresholdProfile": profile,
             "threshold": threshold,
             "thresholdSource": th_source,

@@ -22,6 +22,30 @@ export function sha256(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function paragraphContextTokenCounts(
+  metadata: unknown,
+  paragraphIndex: number,
+  side: 'before' | 'after',
+): Record<string, number> | null {
+  const paragraphContext = asRecord(asRecord(metadata)?.paragraphContext);
+  const byParagraph = asRecord(paragraphContext?.byParagraph);
+  const usage = asRecord(byParagraph?.[String(paragraphIndex)]);
+  if (!usage) return null;
+  const counts = Object.entries(usage).flatMap(([profile, value]) => {
+    const count = asRecord(value)?.[side];
+    return typeof count === 'number' && Number.isSafeInteger(count) && count >= 0
+      ? [[profile, count] as const]
+      : [];
+  });
+  return counts.length ? Object.fromEntries(counts) : null;
+}
+
 export function displayPercent(score: number | null | undefined): number | null {
   return score === null || score === undefined || !Number.isFinite(score)
     ? null
@@ -171,7 +195,14 @@ export class AnalysisService {
               insufficientSegments: cached.insufficientSegments,
               inferenceMs: 0,
               completedAt: new Date(),
-              metadata: { cacheHit: true, cacheKey, reusedAnalysisId: cached.id } as Prisma.InputJsonValue,
+              metadata: {
+                cacheHit: true,
+                cacheKey,
+                reusedAnalysisId: cached.id,
+                ...(asRecord(cached.metadata)?.paragraphContext
+                  ? { paragraphContext: asRecord(cached.metadata)?.paragraphContext }
+                  : {}),
+              } as Prisma.InputJsonValue,
             },
           }),
         ]);
@@ -241,6 +272,14 @@ export class AnalysisService {
             inferenceMs: result.inferenceMs,
             completedAt: new Date(),
             metadata: { cacheHit: false, thresholdSource: result.thresholdSource, model: result.model,
+              ...(dto.paragraphMode === 'CONTEXTUAL_PARAGRAPH' && result.contextMetadata ? {
+                paragraphContext: {
+                  ...result.contextMetadata,
+                  byParagraph: Object.fromEntries(result.segments.map((segment) => [
+                    String(segment.paragraphIndex), segment.contextTokensUsed ?? null,
+                  ])),
+                },
+              } : {}),
               cacheKey: cacheIdentity ? sha256([textHash, cacheIdentity.modelVersion, cacheIdentity.preprocessingVersion,
                 dto.thresholdProfile, dto.customThreshold ?? '', dto.granularity, dto.paragraphMode, ANALYZER_VERSION].join('\0')) : null } as Prisma.InputJsonValue,
           },
@@ -343,6 +382,73 @@ export class AnalysisService {
       stale,
       items: segments.map((s) => ({ ...s, text: stale ? null : text.slice(s.charStart, s.charEnd) })),
       ...(paginated ? { page, pageSize, total, pages: Math.ceil(total / pageSize) } : {}),
+    };
+  }
+
+  /** Reconstruct contextual neighbours from the run's own version and stored target offsets. */
+  async getSegmentContext(analysisId: string, segmentId: string) {
+    const run = await this.prisma.analysisRun.findUnique({
+      where: { id: analysisId },
+      include: { segments: { orderBy: { paragraphIndex: 'asc' } }, documentVersion: true },
+    });
+    if (!run) throw new NotFoundException('Analysis not found');
+    if (run.status !== AnalysisRunStatus.COMPLETED) {
+      throw new ConflictException('Analysis must be completed before showing paragraph context');
+    }
+    if (run.paragraphMode !== 'CONTEXTUAL_PARAGRAPH') {
+      throw new BadRequestException('Paragraph context is only available for contextual analyses');
+    }
+    const position = run.segments.findIndex((segment) => segment.id === segmentId);
+    if (position < 0) throw new NotFoundException('Analysis segment not found');
+
+    const text = run.documentVersion.extractedText ?? '';
+    if (run.textHash !== null && run.textHash !== sha256(text)) {
+      throw new ConflictException('Analysis text changed after this run');
+    }
+    const target = run.segments[position]!;
+    const materialize = (segment: typeof target) => {
+      if (!Number.isSafeInteger(segment.charStart) || !Number.isSafeInteger(segment.charEnd)
+        || segment.charStart < 0 || segment.charEnd < segment.charStart || segment.charEnd > text.length) {
+        throw new ConflictException('Analysis paragraph offsets are invalid');
+      }
+      return text.slice(segment.charStart, segment.charEnd);
+    };
+    const targetText = materialize(target);
+    if (sha256(targetText) !== target.textHash) {
+      throw new ConflictException('Analysis target offsets no longer match the paragraph');
+    }
+    const metadata = asRecord(run.metadata);
+    const paragraphContext = asRecord(metadata?.paragraphContext);
+    const tokenLimitPerSide = paragraphContext?.tokenLimitPerSide;
+    const preprocessingProfiles = Array.isArray(paragraphContext?.preprocessingProfiles)
+      ? paragraphContext.preprocessingProfiles.filter((profile): profile is string => typeof profile === 'string')
+      : [];
+    const neighbor = (index: number, side: 'before' | 'after') => {
+      const segment = run.segments[index];
+      return segment
+        ? {
+            paragraphIndex: segment.paragraphIndex,
+            text: materialize(segment),
+            tokensUsed: paragraphContextTokenCounts(run.metadata, target.paragraphIndex, side),
+          }
+        : { paragraphIndex: null, text: null, tokensUsed: null };
+    };
+    return {
+      analysisId: run.id,
+      paragraphMode: run.paragraphMode,
+      contextMetadata: {
+        tokenLimitPerSide: typeof tokenLimitPerSide === 'number' ? tokenLimitPerSide : null,
+        measurement: typeof paragraphContext?.measurement === 'string' ? paragraphContext.measurement : null,
+        preprocessingProfiles,
+      },
+      target: {
+        paragraphIndex: target.paragraphIndex,
+        charStart: target.charStart,
+        charEnd: target.charEnd,
+        text: targetText,
+      },
+      before: neighbor(position - 1, 'before'),
+      after: neighbor(position + 1, 'after'),
     };
   }
 

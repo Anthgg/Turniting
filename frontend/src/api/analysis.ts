@@ -56,6 +56,7 @@ export const analysisRunSchema = z.object({
 export const analysisListSchema = z.object({ items: z.array(analysisRunSchema) })
 
 export const segmentSchema = z.object({
+  id: z.string().uuid().optional(),
   paragraphIndex: z.number(),
   charStart: z.number(),
   charEnd: z.number(),
@@ -70,6 +71,30 @@ export const segmentSchema = z.object({
   confidence: nullableString,
   text: nullableString,
 }).passthrough()
+
+const contextNeighborSchema = z.object({
+  paragraphIndex: nullableNumber,
+  text: nullableString,
+  tokensUsed: z.record(z.string(), z.number()).nullable(),
+})
+
+export const analysisSegmentContextSchema = z.object({
+  analysisId: z.string().uuid(),
+  paragraphMode: z.literal('CONTEXTUAL_PARAGRAPH'),
+  contextMetadata: z.object({
+    tokenLimitPerSide: nullableNumber,
+    measurement: nullableString,
+    preprocessingProfiles: z.array(z.string()),
+  }),
+  target: z.object({
+    paragraphIndex: z.number(),
+    charStart: z.number(),
+    charEnd: z.number(),
+    text: z.string(),
+  }),
+  before: contextNeighborSchema,
+  after: contextNeighborSchema,
+})
 
 export const segmentListSchema = z.object({
   analysisId: z.string().uuid(),
@@ -209,6 +234,7 @@ export const analysisQueryKeys = {
   documentAnalyses: (documentId: string) => ['analysis', 'document', documentId] as const,
   run: (id: string) => ['analysis', 'run', id] as const,
   segments: (id: string, query?: AnalysisSegmentsQuery) => ['analysis', 'segments', id, query ?? null] as const,
+  segmentContext: (analysisId: string, segmentId: string) => ['analysis', 'segment-context', analysisId, segmentId] as const,
 }
 
 export function listAnalyzerModels() {
@@ -236,6 +262,10 @@ export function getAnalysisSegments(analysisId: string, query?: AnalysisSegments
   }) : null
   const suffix = params ? `?${params.toString()}` : ''
   return getJson(`/analyses/${analysisId}/segments${suffix}`, segmentListSchema)
+}
+
+export function getAnalysisSegmentContext(analysisId: string, segmentId: string) {
+  return getJson(`/analyses/${analysisId}/segments/${segmentId}/context`, analysisSegmentContextSchema)
 }
 
 export function compareAnalyses(baseAnalysisId: string, targetAnalysisId: string) {

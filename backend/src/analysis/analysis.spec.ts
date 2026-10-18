@@ -18,11 +18,13 @@ function aiResult() {
     thresholdSource: 'f005-test', calibration: 'isotonic', documentAggregation: 'token_weighted_mean',
     documentScore: 0.42, rawDocumentScore: 0.31, documentClassification: 'LOW_SIGNAL', documentSignalLevel: 'MODERATE', scoredParagraphs: 1,
     insufficientParagraphs: 1, preprocessingVersion: 'V3_CANONICALIZED_V1', inferenceMs: 12,
+    contextMetadata: { tokenLimitPerSide: 64, measurement: 'tokens_per_window', preprocessingProfiles: ['V3_CANONICALIZED_V1'] },
     segments: [
       { paragraphIndex: 0, charStart: 0, charEnd: 55, pageNumber: null, textHash: 'a'.repeat(64), words: 8, tokens: 14,
+        contextTokensUsed: { V3_CANONICALIZED_V1: { before: 0, after: 7 } },
         rawScore: 0.5, calibratedScore: 0.42, classification: 'LOW_SIGNAL', signalLevel: 'MODERATE', confidence: 'LOW' },
       { paragraphIndex: 1, charStart: 57, charEnd: 93, pageNumber: null, textHash: 'b'.repeat(64), words: 6, tokens: 9,
-        rawScore: null, calibratedScore: null, classification: 'INSUFFICIENT_TEXT', signalLevel: null, confidence: null },
+        contextTokensUsed: {}, rawScore: null, calibratedScore: null, classification: 'INSUFFICIENT_TEXT', signalLevel: null, confidence: null },
     ],
   };
 }
@@ -73,6 +75,12 @@ describe('AnalysisService', () => {
     const completed = prisma.analysisRun.update.mock.calls.at(-1)[0].data;
     expect(completed.status).toBe(AnalysisRunStatus.COMPLETED);
     expect(completed.metadata).toMatchObject({ cacheHit: false });
+    expect(completed.metadata.paragraphContext).toMatchObject({
+      tokenLimitPerSide: 64,
+      measurement: 'tokens_per_window',
+      byParagraph: { '0': { V3_CANONICALIZED_V1: { before: 0, after: 7 } }, '1': {} },
+    });
+    expect(JSON.stringify(completed.metadata.paragraphContext)).not.toContain(SECRET_TEXT);
     expect(prisma.analysisModelResult.create.mock.calls[0][0].data).toMatchObject({ rawScore: 0.31, calibratedScore: 0.42 });
     expect(completed.documentScore).toBe(prisma.analysisModelResult.create.mock.calls[0][0].data.calibratedScore);
   });
@@ -130,6 +138,134 @@ describe('AnalysisService', () => {
     const stale = await service.getSegments(RUN);
     expect(stale.stale).toBe(true);
     expect(stale.items[0].text).toBeNull();
+  });
+
+  it('keeps contextual segment offsets and hashes anchored to the target paragraph', async () => {
+    const target = 'Este es el párrafo objetivo que se debe puntuar con contexto.';
+    const extractedText = `Nota corta previa\n\n${target}\n\nNota corta siguiente`;
+    const charStart = extractedText.indexOf(target);
+    const segment = {
+      paragraphIndex: 1,
+      charStart,
+      charEnd: charStart + target.length,
+      textHash: sha256(target),
+      pageNumber: null,
+      calibratedScore: 0.65,
+    };
+    prisma.analysisRun.findUnique.mockResolvedValueOnce({
+      id: RUN,
+      paragraphMode: 'CONTEXTUAL_PARAGRAPH',
+      textHash: sha256(extractedText),
+      segments: [segment],
+      documentVersion: { extractedText },
+    });
+
+    const result = await service.getSegments(RUN);
+
+    expect(result.items[0]).toMatchObject({
+      paragraphIndex: 1,
+      charStart,
+      charEnd: charStart + target.length,
+      textHash: sha256(target),
+      pageNumber: null,
+      text: target,
+    });
+  });
+
+  it('reconstructs contextual target and adjacent paragraphs from the same run version', async () => {
+    const beforeText = 'Este es el párrafo anterior completo.';
+    const targetText = 'Este es el párrafo objetivo completo.';
+    const afterText = 'Este es el párrafo siguiente completo.';
+    const extractedText = `${beforeText}\n\n${targetText}\n\n${afterText}`;
+    const targetStart = extractedText.indexOf(targetText);
+    const afterStart = extractedText.indexOf(afterText);
+    const segments = [
+      { id: '00000000-0000-4000-8000-000000000001', paragraphIndex: 0, charStart: 0, charEnd: beforeText.length, textHash: sha256(beforeText) },
+      { id: '00000000-0000-4000-8000-000000000002', paragraphIndex: 1, charStart: targetStart, charEnd: targetStart + targetText.length, textHash: sha256(targetText) },
+      { id: '00000000-0000-4000-8000-000000000003', paragraphIndex: 2, charStart: afterStart, charEnd: afterStart + afterText.length, textHash: sha256(afterText) },
+    ];
+    prisma.analysisRun.findUnique.mockResolvedValueOnce({
+      id: RUN,
+      status: 'COMPLETED',
+      paragraphMode: 'CONTEXTUAL_PARAGRAPH',
+      textHash: sha256(extractedText),
+      metadata: { paragraphContext: {
+        tokenLimitPerSide: 64,
+        measurement: 'tokens_per_window',
+        preprocessingProfiles: ['V3_CANONICALIZED_V1'],
+        byParagraph: { '1': { V3_CANONICALIZED_V1: { before: 8, after: 11 } } },
+      } },
+      segments,
+      documentVersion: { extractedText },
+    });
+
+    const result = await service.getSegmentContext(RUN, segments[1].id);
+
+    expect(result).toMatchObject({
+      analysisId: RUN,
+      paragraphMode: 'CONTEXTUAL_PARAGRAPH',
+      target: { paragraphIndex: 1, charStart: targetStart, charEnd: targetStart + targetText.length, text: targetText },
+      before: { paragraphIndex: 0, text: beforeText, tokensUsed: { V3_CANONICALIZED_V1: 8 } },
+      after: { paragraphIndex: 2, text: afterText, tokensUsed: { V3_CANONICALIZED_V1: 11 } },
+      contextMetadata: { tokenLimitPerSide: 64, measurement: 'tokens_per_window', preprocessingProfiles: ['V3_CANONICALIZED_V1'] },
+    });
+  });
+
+  it('does not return a segment from another run or document version', async () => {
+    const text = 'Párrafo sintético del mismo run.';
+    const segment = {
+      id: '00000000-0000-4000-8000-000000000011',
+      paragraphIndex: 0,
+      charStart: 0,
+      charEnd: text.length,
+      textHash: sha256(text),
+    };
+    prisma.analysisRun.findUnique.mockResolvedValueOnce({
+      id: RUN,
+      status: 'COMPLETED',
+      paragraphMode: 'CONTEXTUAL_PARAGRAPH',
+      textHash: sha256(text),
+      metadata: null,
+      segments: [segment],
+      documentVersion: { extractedText: text },
+    });
+
+    await expect(service.getSegmentContext(RUN, '00000000-0000-4000-8000-000000000099'))
+      .rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.analysisRun.findUnique).toHaveBeenCalledWith({
+      where: { id: RUN },
+      include: { segments: { orderBy: { paragraphIndex: 'asc' } }, documentVersion: true },
+    });
+  });
+
+  it('reports unavailable neighbours at the first and last paragraph boundaries', async () => {
+    const firstText = 'Primer párrafo contextual suficientemente largo.';
+    const middleText = 'Párrafo del medio con contenido sintético.';
+    const lastText = 'Último párrafo contextual suficientemente largo.';
+    const extractedText = `${firstText}\n\n${middleText}\n\n${lastText}`;
+    const middleStart = extractedText.indexOf(middleText);
+    const lastStart = extractedText.indexOf(lastText);
+    const segments = [
+      { id: '00000000-0000-4000-8000-000000000021', paragraphIndex: 0, charStart: 0, charEnd: firstText.length, textHash: sha256(firstText) },
+      { id: '00000000-0000-4000-8000-000000000022', paragraphIndex: 1, charStart: middleStart, charEnd: middleStart + middleText.length, textHash: sha256(middleText) },
+      { id: '00000000-0000-4000-8000-000000000023', paragraphIndex: 2, charStart: lastStart, charEnd: lastStart + lastText.length, textHash: sha256(lastText) },
+    ];
+    const makeRun = () => ({
+      id: RUN,
+      status: 'COMPLETED',
+      paragraphMode: 'CONTEXTUAL_PARAGRAPH',
+      textHash: sha256(extractedText),
+      metadata: null,
+      segments,
+      documentVersion: { extractedText },
+    });
+    prisma.analysisRun.findUnique.mockResolvedValueOnce(makeRun()).mockResolvedValueOnce(makeRun());
+
+    const first = await service.getSegmentContext(RUN, segments[0].id);
+    const last = await service.getSegmentContext(RUN, segments[2].id);
+
+    expect(first.before).toEqual({ paragraphIndex: null, text: null, tokensUsed: null });
+    expect(last.after).toEqual({ paragraphIndex: null, text: null, tokensUsed: null });
   });
 
   it('paginates, sorts and filters the segment list for the research UI', async () => {
@@ -225,6 +361,29 @@ describe('AnalysisService', () => {
       granularity: 'PARAGRAPH', paragraphMode: 'STRICT_PARAGRAPH' });
     expect(ai.analyzeParagraphs).toHaveBeenCalledOnce();
     expect(prisma.analysisRun.update.mock.calls.at(-1)?.[0].data.documentScore).toBe(0.42);
+  });
+
+  it('uses distinct cache identity and candidate filters for strict and contextual runs', async () => {
+    ai.listAnalyzerModels.mockResolvedValue({ models: [{
+      model: 'CANDIDATE_MODEL_V3', status: 'CANDIDATE', state: 'AVAILABLE', artifactPresent: true,
+      artifactValid: true, servable: true, variant: 'spec-v3', modelVersion: 'test-v3',
+      preprocessing: ['V3_PREPROCESSING_V1'],
+    }] });
+    prisma.analysisRun.findMany.mockResolvedValue([]);
+    ai.analyzeParagraphs.mockResolvedValue(aiResult());
+
+    await service.analyzeDocument(DOC, { analyzer: 'V3_ONLY', thresholdProfile: 'LOW_FALSE_POSITIVE',
+      granularity: 'PARAGRAPH', paragraphMode: 'CONTEXTUAL_PARAGRAPH' });
+    await service.analyzeDocument(DOC, { analyzer: 'V3_ONLY', thresholdProfile: 'LOW_FALSE_POSITIVE',
+      granularity: 'PARAGRAPH', paragraphMode: 'STRICT_PARAGRAPH' });
+
+    expect(prisma.analysisRun.findMany.mock.calls.map(([args]) => args.where.paragraphMode)).toEqual([
+      'CONTEXTUAL_PARAGRAPH', 'STRICT_PARAGRAPH',
+    ]);
+    const cacheKeys = prisma.analysisRun.update.mock.calls.map(([args]) => args.data.metadata.cacheKey);
+    expect(cacheKeys).toHaveLength(2);
+    expect(cacheKeys[0]).not.toBe(cacheKeys[1]);
+    expect(ai.analyzeParagraphs).toHaveBeenCalledTimes(2);
   });
 
   it('compares two analyses paragraph by paragraph', async () => {

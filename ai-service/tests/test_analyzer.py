@@ -77,6 +77,16 @@ class FakeBackend:
         )
 
 
+class RecordingBackend(FakeBackend):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.windows = []
+
+    def window_logits(self, windows, batch_size=16):
+        self.windows.extend([list(window) for window in windows])
+        return super().window_logits(windows, batch_size)
+
+
 def make_artifact(root: Path, spec, thresholds=None, calibration=None):
     for rel in spec.required_files:
         path = root / rel
@@ -260,6 +270,99 @@ def test_paragraph_local_scoring_isolates_edits():
     assert [a == b for a, b in zip(s0, s1)] == [True, False, True, True]
     c0, c1 = _scores(base, CONTEXTUAL), _scores(edited, CONTEXTUAL)
     assert c0[3] == c1[3]  # two paragraphs away: untouched even with context
+
+
+def test_contextual_analysis_completes_successfully(manager):
+    text = f"{PARA_A}\n\n{PARA_B}"
+    result = manager.analyze_paragraphs(V3, text, "BALANCED", None, CONTEXTUAL)
+
+    assert result["paragraphMode"] == CONTEXTUAL
+    assert result["documentScore"] is not None
+    assert result["scoredParagraphs"] == 2
+    assert len(result["segments"]) == 2
+    assert result["contextMetadata"]["tokenLimitPerSide"] == manager.settings.paragraph_context_tokens
+    assert result["contextMetadata"]["measurement"] == "tokens_per_window"
+    assert result["segments"][0]["contextTokensUsed"]
+
+
+def test_contextual_uses_short_insufficient_neighbors_as_context():
+    short_previous = "Nota breve."
+    target = PARA_A
+    short_next = "Fin breve."
+    text = f"{short_previous}\n\n{target}\n\n{short_next}"
+    paragraphs = split_paragraphs(text)
+    backend = RecordingBackend()
+
+    results = score_paragraphs(
+        backend, paragraphs, [V3_CANONICALIZED_V1], CONTEXTUAL, 384, 8, 40, 8, 8
+    )
+
+    assert [result.insufficient for result in results] == [True, False, True]
+    assert len(backend.windows) == 1
+    previous_tokens = backend.encode(short_previous)[0]
+    target_tokens = backend.encode(target)[0]
+    next_tokens = backend.encode(short_next)[0]
+    window = backend.windows[0]
+    target_start = 1 + len(previous_tokens)
+    assert window[1:target_start] == previous_tokens
+    assert window[target_start : target_start + len(target_tokens)] == target_tokens
+    assert window[target_start + len(target_tokens) : -1] == next_tokens
+    assert list(results[1].context_tokens_used.values()) == [
+        {"before": len(previous_tokens), "after": len(next_tokens)}
+    ]
+    assert results[0].context_tokens_used == {}
+
+
+def test_contextual_first_and_last_evaluable_paragraphs_respect_document_boundaries():
+    text = f"{PARA_A}\n\n{PARA_B}\n\n{PARA_C}"
+    paragraphs = split_paragraphs(text)
+    backend = RecordingBackend()
+
+    results = score_paragraphs(
+        backend, paragraphs, [V3_CANONICALIZED_V1], CONTEXTUAL, 384, 8, 40, 8, 8
+    )
+
+    assert all(not result.insufficient for result in results)
+    first, middle, last = [backend.encode(p.text)[0] for p in paragraphs]
+    assert backend.windows[0] == [1, *first, *middle[:8], 2]
+    assert backend.windows[-1] == [1, *middle[-8:], *last, 2]
+
+
+def test_contextual_scores_keep_original_target_offsets_and_hashes():
+    text = f"{PARA_A}\n\n{PARA_B}\n\n{PARA_C}"
+    paragraphs = split_paragraphs(text)
+    results = score_paragraphs(
+        RecordingBackend(), paragraphs, [V3_CANONICALIZED_V1], CONTEXTUAL, 384, 8, 40, 8, 8
+    )
+
+    assert [result.paragraph.index for result in results] == [0, 1, 2]
+    for original, result in zip(paragraphs, results):
+        target = result.paragraph
+        assert target is original
+        assert target.char_start == text.index(original.text)
+        assert target.char_end == target.char_start + len(original.text)
+        assert target.text_hash == original.text_hash
+        assert text[target.char_start : target.char_end] == original.text
+
+
+def test_contextual_windows_respect_model_token_budget():
+    long_paragraph = " ".join(f"palabra{i}" for i in range(14))
+    text = f"{long_paragraph}\n\n{long_paragraph}\n\n{long_paragraph}"
+    paragraphs = split_paragraphs(text)
+    backend = RecordingBackend()
+    profile = SimpleNamespace(max_length=14, apply=lambda value: value)
+
+    results = score_paragraphs(
+        backend, paragraphs, [profile], CONTEXTUAL, 100, 4, 1, 1, 1
+    )
+
+    assert all(not result.insufficient for result in results)
+    assert len(backend.windows) > len(paragraphs)
+    assert all(len(window) <= profile.max_length for window in backend.windows)
+    target_tokens = backend.encode(paragraphs[1].text)[0]
+    target_windows = backend.windows[4:8]
+    assert len(target_windows) == 4
+    assert [token for window in target_windows for token in window[5:-5]] == target_tokens
 
 
 def test_fresh_synthetic_paragraph_inference_is_deterministic_for_five_runs(manager):
