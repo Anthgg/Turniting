@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "phase": "F006_1_3R_INDEPENDENT_UNIFIED_ENSEMBLE",
+  "generated_at_utc": "2026-10-19T21:21:06Z",
+  "status": "STOP",
+  "independent_data_certified": false,
+  "decision": "STOP_BEFORE_SPLIT_LOCK_AND_TRAINING",
+  "historical_scan": {
+    "sample_exact_audit_status": "PARTIAL_LONG_TEXT_EXACT_SCREEN_ONLY",
+    "historical_text_rows_scanned": 8815028,
+    "historical_text_values_hashed": 9421519,
+    "text_bearing_files_scanned": 120,
+    "read_failures": 0
+  },
+  "candidates": [
+    {
+      "candidate": "A1",
+      "dataset_id": "SINAI/ALIA-es-legal-administrative",
+      "revision": "e26369da12bfeaa305a7fefe39ee168ec7c48c43",
+      "classification": "REJECTED",
+      "sample_rows": 1000,
+      "sample_status": "SAMPLED",
+      "sampled_historical_long_exact_hits": 0,
+      "exact_overlap_status": "NO_MATCH_IN_AVAILABLE_SAMPLE_ONLY",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "KNOWN_OVERLAP",
+        "evidence": "Synthetic card says generations are grounded in ALIA human legal documents; per-item source/context IDs are absent."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    },
+    {
+      "candidate": "A2",
+      "dataset_id": "SINAI/ALIA-es-legal-administrative-synthetic-instructions",
+      "revision": "8cec767c0f82240538e04f086c4dd59b6c732af3",
+      "classification": "REJECTED",
+      "sample_rows": 1000,
+      "sample_status": "SAMPLED",
+      "sampled_historical_long_exact_hits": 0,
+      "exact_overlap_status": "NO_MATCH_IN_AVAILABLE_SAMPLE_ONLY",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "KNOWN_OVERLAP",
+        "evidence": "Synthetic card says generations are grounded in ALIA human legal documents; per-item source/context IDs are absent."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    },
+    {
+      "candidate": "A3",
+      "dataset_id": "SINAI/ALIA-es-biomedical",
+      "revision": "6a782417d7183bcf6476cc91f2629ad1c5426a10",
+      "classification": "REJECTED",
+      "sample_rows": 900,
+      "sample_status": "PARTIAL",
+      "sampled_historical_long_exact_hits": 0,
+      "exact_overlap_status": "NO_MATCH_IN_AVAILABLE_SAMPLE_ONLY",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "POSSIBLE_OVERLAP",
+        "evidence": "Same ALIA source family; synthetic per-item lineage IDs absent."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    },
+    {
+      "candidate": "A4",
+      "dataset_id": "SINAI/ALIA-es-biomedical-synthetic-instructions",
+      "revision": "9c85b78c0944841551e1b9d5b5f968f0350c156b",
+      "classification": "REJECTED",
+      "sample_rows": 500,
+      "sample_status": "PARTIAL",
+      "sampled_historical_long_exact_hits": 0,
+      "exact_overlap_status": "NO_MATCH_IN_AVAILABLE_SAMPLE_ONLY",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "POSSIBLE_OVERLAP",
+        "evidence": "Same ALIA source family; synthetic per-item lineage IDs absent."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    },
+    {
+      "candidate": "A5",
+      "dataset_id": "SINAI/ALIA-es-cultural-heritage",
+      "revision": "7abee97fe5d79db21293ccc0aca60c4e982a9078",
+      "classification": "REJECTED",
+      "sample_rows": 900,
+      "sample_status": "PARTIAL",
+      "sampled_historical_long_exact_hits": 0,
+      "exact_overlap_status": "NO_MATCH_IN_AVAILABLE_SAMPLE_ONLY",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "POSSIBLE_OVERLAP",
+        "evidence": "Synthetic heritage examples may derive from human source documents; parent IDs absent."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    },
+    {
+      "candidate": "A6",
+      "dataset_id": "SINAI/ALIA-es-cultural-heritage-synthetic-instructions",
+      "revision": "f43cae5feea29bb52c1f73ec3439f72618f5e6cc",
+      "classification": "REJECTED",
+      "sample_rows": 800,
+      "sample_status": "PARTIAL",
+      "sampled_historical_long_exact_hits": 0,
+      "exact_overlap_status": "NO_MATCH_IN_AVAILABLE_SAMPLE_ONLY",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "POSSIBLE_OVERLAP",
+        "evidence": "Synthetic heritage examples may derive from human source documents; parent IDs absent."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    },
+    {
+      "candidate": "A7",
+      "dataset_id": "marianbasti/boletin-oficial-argentina",
+      "revision": "f5dffdf364bdd21ee1e1c0728ed0ea38392c0f6c",
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "sample_status": "FAILED",
+      "sampled_historical_long_exact_hits": null,
+      "exact_overlap_status": "NOT_EVALUATED_NO_SAMPLE",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "POSSIBLE_OVERLAP",
+        "evidence": "Both include public government/legal texts; URL/document intersection not tested."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    },
+    {
+      "candidate": "A8",
+      "dataset_id": "redasers/Unmasking-the-Imposters",
+      "revision": "48d1eee50c389d12f49bb0af285a37dba4d23a6a",
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "sample_status": "FAILED",
+      "sampled_historical_long_exact_hits": null,
+      "exact_overlap_status": "NOT_EVALUATED_NO_SAMPLE",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "KNOWN_OVERLAP",
+        "evidence": "Card identifies TweetEval emotion tweets as human source; human rows repeat across nine configs."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    },
+    {
+      "candidate": "A9",
+      "dataset_id": "turingbench/TuringBench",
+      "revision": "940fa0c860325e199aeaa8d6dbfceec69f13a7e8",
+      "classification": "EVAL_ONLY",
+      "sample_rows": 0,
+      "sample_status": "SKIPPED",
+      "sampled_historical_long_exact_hits": null,
+      "exact_overlap_status": "NOT_EVALUATED_NO_SAMPLE",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "POSSIBLE_OVERLAP",
+        "evidence": "Prompt flags possible direct/indirect aggregate inclusion; archive uninspected."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    }
+  ],
+  "gates": {
+    "historic_manifests_and_text_parquets": "PASS_SCAN_ONLY",
+    "pinned_metadata_recorded": "PASS_FOR_HF_CANDIDATES",
+    "sample_1000_every_candidate": "FAIL",
+    "full_candidate_exact_audit": "NOT_EVALUATED",
+    "near_duplicate_minHash_and_ngrams": "NOT_EVALUATED",
+    "source_url_document_lineage": "NOT_EVALUATED",
+    "group_prompt_parent_child_lineage": "NOT_EVALUATED",
+    "new_clean_train_validation_holdout": "FAIL",
+    "training": "NOT_RUN_BY_GATE"
+  },
+  "private_document_used": false,
+  "user_thesis_used": false,
+  "turnitin_data_used": false,
+  "training_performed": false
+}
