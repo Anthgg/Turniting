@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "phase": "F006_1_3R_INDEPENDENT_UNIFIED_ENSEMBLE",
+  "generated_at_utc": "2026-10-19T21:21:06Z",
+  "status": "NOT_LOCKED_GATE_FAILED",
+  "independent_data_certified": false,
+  "selected_dataset_ids": [],
+  "split_sizes": {
+    "train": 0,
+    "validation": 0,
+    "calibration": 0,
+    "final_holdout": 0
+  },
+  "candidates": [
+    {
+      "candidate": "A1",
+      "dataset_id": "SINAI/ALIA-es-legal-administrative",
+      "revision": "e26369da12bfeaa305a7fefe39ee168ec7c48c43",
+      "selected": false,
+      "classification": "REJECTED",
+      "sample_rows": 1000,
+      "reason": "independence gates incomplete"
+    },
+    {
+      "candidate": "A2",
+      "dataset_id": "SINAI/ALIA-es-legal-administrative-synthetic-instructions",
+      "revision": "8cec767c0f82240538e04f086c4dd59b6c732af3",
+      "selected": false,
+      "classification": "REJECTED",
+      "sample_rows": 1000,
+      "reason": "independence gates incomplete"
+    },
+    {
+      "candidate": "A3",
+      "dataset_id": "SINAI/ALIA-es-biomedical",
+      "revision": "6a782417d7183bcf6476cc91f2629ad1c5426a10",
+      "selected": false,
+      "classification": "REJECTED",
+      "sample_rows": 900,
+      "reason": "independence gates incomplete"
+    },
+    {
+      "candidate": "A4",
+      "dataset_id": "SINAI/ALIA-es-biomedical-synthetic-instructions",
+      "revision": "9c85b78c0944841551e1b9d5b5f968f0350c156b",
+      "selected": false,
+      "classification": "REJECTED",
+      "sample_rows": 500,
+      "reason": "independence gates incomplete"
+    },
+    {
+      "candidate": "A5",
+      "dataset_id": "SINAI/ALIA-es-cultural-heritage",
+      "revision": "7abee97fe5d79db21293ccc0aca60c4e982a9078",
+      "selected": false,
+      "classification": "REJECTED",
+      "sample_rows": 900,
+      "reason": "independence gates incomplete"
+    },
+    {
+      "candidate": "A6",
+      "dataset_id": "SINAI/ALIA-es-cultural-heritage-synthetic-instructions",
+      "revision": "f43cae5feea29bb52c1f73ec3439f72618f5e6cc",
+      "selected": false,
+      "classification": "REJECTED",
+      "sample_rows": 800,
+      "reason": "independence gates incomplete"
+    },
+    {
+      "candidate": "A7",
+      "dataset_id": "marianbasti/boletin-oficial-argentina",
+      "revision": "f5dffdf364bdd21ee1e1c0728ed0ea38392c0f6c",
+      "selected": false,
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "reason": "independence gates incomplete"
+    },
+    {
+      "candidate": "A8",
+      "dataset_id": "redasers/Unmasking-the-Imposters",
+      "revision": "48d1eee50c389d12f49bb0af285a37dba4d23a6a",
+      "selected": false,
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "reason": "independence gates incomplete"
+    },
+    {
+      "candidate": "A9",
+      "dataset_id": "turingbench/TuringBench",
+      "revision": "940fa0c860325e199aeaa8d6dbfceec69f13a7e8",
+      "selected": false,
+      "classification": "EVAL_ONLY",
+      "sample_rows": 0,
+      "reason": "independence gates incomplete"
+    }
+  ],
+  "this_is_not_a_split_lock": true,
+  "split_lock_created": false,
+  "final_holdout_locked": false,
+  "model_lock_created": false,
+  "training_performed": false
+}
