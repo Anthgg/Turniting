@@ -14,6 +14,7 @@ from app.core.config import Settings
 V2, V3, BASELINE = "CANDIDATE_MODEL_V2", "CANDIDATE_MODEL_V3", "BEST_BASELINE"
 F006 = "EXPERIMENTAL_F006_MODEL"
 F006_1 = "EXPERIMENTAL_F006_1_MODEL"
+F006_1_1 = "EXPERIMENTAL_F006_1_1_MODEL"
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,11 @@ class ModelSpec:
     preprocessing: str
     required_files: tuple[str, ...]
     setting: str
+    expected_model_sha256: str | None = None
+    expected_parent_model: str | None = None
+    expected_training_commit: str | None = None
+    expected_global_threshold: float | None = None
+    expected_spanish_threshold: float | None = None
     checkpoint_logical_path: str | None = None
     approx_memory_mb: int = 0
     warnings: tuple[str, ...] = field(default_factory=tuple)
@@ -139,11 +145,48 @@ MODELS: dict[str, ModelSpec] = {
             "model_manifest.json",
         ),
         setting="ai_model_f006_1_path",
+        expected_model_sha256="c451a0062321189f026a1cc3779f50aa1b398a580d4cedfb9365a9486c835a90",
         warnings=(
             "F006_1_GATES_FAILED: A_overall_human_fpr_le_0.05, D_unseen_generator_fpr_le_0.10, "
             "E_mixed_recall_ge_0.64, H_span_f1_ge_0.86",
             "Paragraph stability was not evaluated.",
-            "Experimental registry metadata only; this model is not served by the analyzer API.",
+        ),
+        active=False,
+        candidate=False,
+    ),
+    F006_1_1: ModelSpec(
+        name=F006_1_1,
+        kind="v3_multitask",
+        architecture="microsoft/mdeberta-v3-base + F006.1.1 detector-hardening heads",
+        variant="F006_1_1_C8_TOK06_ES_PLATT_EXPERIMENTAL",
+        dataset="F006_1_1",
+        status="EXPERIMENTAL",
+        artifact_provider="GOOGLE_DRIVE",
+        artifact_logical_path="MyDrive/turniting/f006_1_1/models/experimental_f006_1_1",
+        checkpoint_logical_path="MyDrive/turniting/f006_1_1/runs/F00611_FULL/best",
+        preprocessing="V3_CANONICALIZED_V1",
+        required_files=(
+            "backbone/config.json",
+            "backbone/model.safetensors",
+            "heads.pt",
+            "v3_config.json",
+            "inference_config.json",
+            "thresholds.json",
+            "calibration.json",
+            "model_manifest.json",
+        ),
+        setting="ai_model_f006_1_1_path",
+        expected_parent_model="C3_f006",
+        expected_training_commit="632dc6f7a852ee9c1dfc511a35a76cd1ce63428e",
+        expected_global_threshold=0.767241379310345,
+        expected_spanish_threshold=0.767241379310345,
+        approx_memory_mb=1400,
+        warnings=(
+            "F006_1_1_GATES_FAILED: A_overall_human_fpr_le_0.05, H_mixed_recall_ge_0.65, "
+            "I_span_token_f1_ge_0.86",
+            "Paragraph stability was not evaluated.",
+            "No expected SHA-256 for the F006.1.1 weight files is locked in the available report.",
+            "Experimental research model; it is neither active nor a candidate.",
         ),
         active=False,
         candidate=False,

@@ -640,6 +640,8 @@ enum AnalyzerMode {
   V2_ONLY
   V3_ONLY
   ENSEMBLE
+  F006_1_ONLY
+  F006_1_1_ONLY
 }
 
 enum AnalysisGranularity {

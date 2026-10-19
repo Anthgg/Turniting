@@ -1,7 +1,8 @@
 import { Transform, Type } from 'class-transformer';
 import { IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsUUID, Max, Min } from 'class-validator';
 
-export const ANALYZER_MODES = ['V2_ONLY', 'V3_ONLY', 'ENSEMBLE'] as const;
+export const ANALYZER_MODES = ['V2_ONLY', 'V3_ONLY', 'ENSEMBLE', 'F006_1_ONLY', 'F006_1_1_ONLY'] as const;
+export const LANGUAGE_CODES = ['es', 'en', 'other'] as const;
 export const THRESHOLD_PROFILES = ['BALANCED', 'LOW_FALSE_POSITIVE', 'VERY_LOW_FALSE_POSITIVE', 'CUSTOM'] as const;
 export const GRANULARITIES = ['PARAGRAPH', 'DOCUMENT'] as const;
 export const PARAGRAPH_MODES = ['STRICT_PARAGRAPH', 'CONTEXTUAL_PARAGRAPH'] as const;
@@ -27,6 +28,9 @@ export class AnalyzeDocumentDto {
 
   @IsIn(PARAGRAPH_MODES)
   paragraphMode: (typeof PARAGRAPH_MODES)[number] = 'STRICT_PARAGRAPH';
+
+  @IsIn(LANGUAGE_CODES)
+  languageCode?: (typeof LANGUAGE_CODES)[number] = 'other';
 }
 
 export class CompareAnalysesDto {

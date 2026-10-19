@@ -24,7 +24,10 @@ function modelList() {
         { name: 'CANDIDATE_MODEL_V2', servable: true, availability: 'AVAILABLE' },
         { name: 'CANDIDATE_MODEL_V3', servable: true, availability: 'READY' },
         { name: 'EXPERIMENTAL_F006_MODEL', servable: false, availability: 'UNAVAILABLE' },
+        { name: 'EXPERIMENTAL_F006_1_MODEL', servable: true, availability: 'AVAILABLE' },
+        { name: 'EXPERIMENTAL_F006_1_1_MODEL', servable: false, availability: 'UNAVAILABLE' },
       ],
+      resolvedLocalPreferredAnalyzer: 'EXPERIMENTAL_F006_1_MODEL',
     },
     isError: false,
   }
@@ -206,6 +209,14 @@ describe('AnalysisPanel run provenance and operation errors', () => {
     queryMocks.useQuery.mockReset()
     queryMocks.useMutation.mockReset()
     queryMocks.useQueryClient.mockClear()
+  })
+
+  it('defaults research analysis to the available local F006.1 model', () => {
+    const html = renderPanel()
+
+    expect(html).toContain('<option value="F006_1_ONLY" selected="">F006.1 · Experimental</option>')
+    expect(html).not.toContain('<option value="F006_1_1_ONLY"')
+    expect(html).toContain('F006 base no disponible para inferencia')
   })
 
   it('suppresses the fatal analysis error for a completed run and scopes secondary errors locally', () => {

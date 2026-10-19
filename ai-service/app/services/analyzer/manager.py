@@ -22,7 +22,15 @@ from app.services.analyzer.artifacts import ArtifactCheck, validate_artifact
 from app.services.analyzer.backends import BACKENDS
 from app.services.analyzer.paragraphs import split_paragraphs
 from app.services.analyzer.preprocessing import PROFILES, profile_for_view
-from app.services.analyzer.registry import MODELS, V2, V3, ModelSpec, artifact_path
+from app.services.analyzer.registry import (
+    F006_1,
+    F006_1_1,
+    MODELS,
+    V2,
+    V3,
+    ModelSpec,
+    artifact_path,
+)
 from app.services.analyzer.scoring import (
     CONTEXTUAL,
     STRICT,
@@ -32,7 +40,7 @@ from app.services.analyzer.scoring import (
 )
 
 logger = logging.getLogger(__name__)
-SERVABLE = (V2, V3)
+SERVABLE = (V2, V3, F006_1, F006_1_1)
 UNAVAILABLE, AVAILABLE, LOADING, READY, ERROR = (
     "UNAVAILABLE",
     "AVAILABLE",
@@ -85,6 +93,9 @@ class ModelManager:
             for name, st in self.states.items():
                 if st.state in (READY, LOADING):
                     continue
+                if st.state == AVAILABLE and st.check and st.check.valid:
+                    st.analyzer_profile = self._analyzer_profile(name)
+                    continue
                 st.check = validate_artifact(
                     st.spec, artifact_path(st.spec, self.settings)
                 )
@@ -111,8 +122,20 @@ class ModelManager:
                 logger.warning("analyzer profile for %s is unreadable", name)
         return {}
 
-    def calibrator(self, name: str) -> tuple[cal.Calibrator, str]:
+    def calibrator(
+        self, name: str, language_code: str = "other"
+    ) -> tuple[cal.Calibrator, str]:
         st = self.states[name]
+        if name in (F006_1, F006_1_1):
+            artifact_calibration = st.check.calibration if st.check else None
+            curve_name = "spanish" if language_code == "es" else "selected"
+            curve = (artifact_calibration or {}).get(curve_name)
+            method = str((curve or {}).get("method", "")).lower()
+            method_label = {"isotonic": "ISO", "platt": "PLATT"}.get(
+                method, method.upper()
+            )
+            language_label = "ES" if curve_name == "spanish" else "GLOBAL"
+            return cal.Calibrator.from_dict(curve), f"{language_label}_{method_label}"
         prof = st.analyzer_profile
         if prof.get("calibration"):
             return cal.Calibrator.from_dict(prof["calibration"]), prof.get(
@@ -148,6 +171,10 @@ class ModelManager:
             "candidate": st.spec.candidate or st.spec.status == "CANDIDATE",
             "artifactPresent": bool(st.check and st.check.present),
             "artifactValid": bool(st.check and st.check.valid),
+            "artifactChecksumExpected": bool(st.spec.expected_model_sha256),
+            "artifactChecksumValidated": bool(
+                st.spec.expected_model_sha256 and st.check and st.check.valid
+            ),
             "missing": list(st.check.missing) if st.check else [],
             "error": st.error,
             "architecture": st.spec.architecture,
@@ -159,10 +186,74 @@ class ModelManager:
             "preprocessing": self._preprocessing_names(name),
             "thresholdProfiles": sorted(thresholds),
             "thresholdSource": th_source,
+            "thresholds": dict(st.check.thresholds) if st.check else {},
+            "modelId": st.spec.name,
+            "parentModel": st.check.manifest.get("parentModel") if st.check else None,
+            "sourceCommit": st.check.manifest.get("gitCommit") if st.check else None,
+            "calibrationSources": (
+                ["GLOBAL_ISO", "ES_ISO"]
+                if name == F006_1
+                else ["GLOBAL_ISO", "ES_PLATT"]
+                if name == F006_1_1
+                else []
+            ),
+            "languageRouting": (
+                "explicit_language_code"
+                if name in (F006_1, F006_1_1)
+                else None
+            ),
             "approxMemoryMb": st.spec.approx_memory_mb,
             "loadMs": st.load_ms,
-            "servable": name in SERVABLE,
+            "servable": bool(
+                name in SERVABLE and st.check and st.check.valid
+            ),
             "warnings": list(st.spec.warnings),
+        }
+
+    def local_preferred_policy(self) -> dict:
+        requested = self.settings.local_preferred_analyzer
+        fallback = self.settings.local_preferred_analyzer_fallback
+
+        def ready(name: str | None) -> bool:
+            if name == "ENSEMBLE_V2_V3":
+                return all(
+                    model in self.states
+                    and self.states[model].check is not None
+                    and self.states[model].check.valid
+                    and self.states[model].state in (AVAILABLE, READY)
+                    for model in (V2, V3)
+                )
+            state = self.states.get(name) if name else None
+            return bool(
+                state
+                and name in SERVABLE
+                and state.check
+                and state.check.valid
+                and state.state in (AVAILABLE, READY)
+            )
+
+        preferred_available = ready(requested)
+        fallback_available = ready(fallback)
+        resolved = requested if preferred_available else fallback if fallback_available else None
+        warning = None
+        if requested and not preferred_available:
+            if fallback_available:
+                warning = (
+                    f"Local preferred analyzer {requested} is unavailable; "
+                    f"using configured fallback {fallback}."
+                )
+            else:
+                warning = (
+                    f"Local preferred analyzer {requested} and configured fallback "
+                    f"{fallback} are unavailable."
+                )
+        return {
+            "localPreferredAnalyzer": requested,
+            "localPreferredAvailable": preferred_available,
+            "resolvedLocalPreferredAnalyzer": resolved,
+            "localPreferredFallback": fallback,
+            "localPreferredFallbackAvailable": fallback_available,
+            "localPreferredWarning": warning,
         }
 
     def _preprocessing_names(self, name: str) -> list[str]:
@@ -238,7 +329,11 @@ class ModelManager:
         return _Job()
 
     def resolve_threshold(
-        self, name: str, profile: str, custom: float | None
+        self,
+        name: str,
+        profile: str,
+        custom: float | None,
+        language_code: str = "other",
     ) -> tuple[float, str]:
         st = self.states[name]
         if st.state not in (READY, LOADING):
@@ -249,6 +344,16 @@ class ModelManager:
             if custom is None or not 0 < custom < 1:
                 raise ValueError("CUSTOM profile needs 0 < customThreshold < 1")
             return float(custom), "request"
+        if name in (F006_1, F006_1_1) and profile == "BALANCED":
+            model_thresholds = st.check.thresholds if st.check else {}
+            threshold_key = (
+                "SPANISH_THRESHOLD" if language_code == "es" else "GLOBAL_THRESHOLD"
+            )
+            if threshold_key in model_thresholds:
+                return (
+                    float(model_thresholds[threshold_key]),
+                    f"model-thresholds.json:{threshold_key}",
+                )
         thresholds, source = self.thresholds(name)
         if profile not in thresholds:
             raise ValueError(f"threshold profile {profile} is not available for {name}")
@@ -260,8 +365,11 @@ class ModelManager:
         text: str,
         profile: str = "BALANCED",
         custom: float | None = None,
+        language_code: str = "other",
     ) -> dict:
-        threshold, th_source = self.resolve_threshold(name, profile, custom)
+        threshold, th_source = self.resolve_threshold(
+            name, profile, custom, language_code
+        )
         with self._job():
             backend = self.load(name)
             st = self.states[name]
@@ -271,7 +379,7 @@ class ModelManager:
                 backend, text, self.profiles(name), icfg.get("aggregation", "mean")
             )
             ms = int((time.perf_counter() - t0) * 1000)
-        calibrator, cal_source = self.calibrator(name)
+        calibrator, cal_source = self.calibrator(name, language_code)
         p_cal = float(calibrator.predict([doc.logit])[0])
         return {
             "model": name,
@@ -280,6 +388,10 @@ class ModelManager:
             "calibratedProbability": p_cal,
             "calibration": calibrator.method,
             "calibrationSource": cal_source,
+            "languageCode": language_code if name in (F006_1, F006_1_1) else None,
+            "languageRouting": (
+                "explicit_language_code" if name in (F006_1, F006_1_1) else None
+            ),
             "thresholdProfile": profile,
             "threshold": threshold,
             "thresholdSource": th_source,
@@ -301,8 +413,11 @@ class ModelManager:
         profile: str = "BALANCED",
         custom: float | None = None,
         mode: str = STRICT,
+        language_code: str = "other",
     ) -> dict:
-        threshold, th_source = self.resolve_threshold(name, profile, custom)
+        threshold, th_source = self.resolve_threshold(
+            name, profile, custom, language_code
+        )
         s = self.settings
         paragraphs = split_paragraphs(text)
         profiles = self.profiles(name)
@@ -321,7 +436,7 @@ class ModelManager:
                 s.min_paragraph_tokens,
             )
             ms = int((time.perf_counter() - t0) * 1000)
-        calibrator, cal_source = self.calibrator(name)
+        calibrator, cal_source = self.calibrator(name, language_code)
         st = self.states[name]
         agg = st.analyzer_profile.get("documentAggregation", DEFAULT_DOC_AGGREGATION)
         segs, probs, raw_probs, toks = [], [], [], []
@@ -377,6 +492,10 @@ class ModelManager:
             "thresholdSource": th_source,
             "calibration": calibrator.method,
             "calibrationSource": cal_source,
+            "languageCode": language_code if name in (F006_1, F006_1_1) else None,
+            "languageRouting": (
+                "explicit_language_code" if name in (F006_1, F006_1_1) else None
+            ),
             "documentAggregation": agg,
             "documentScore": doc_score,
             "rawDocumentScore": aggregate_document(raw_probs, toks, agg, threshold),

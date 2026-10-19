@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   ANALYZERS,
@@ -17,6 +17,7 @@ import {
   type AnalysisSegmentFilter,
   type AnalysisSegmentSort,
   type AnalyzerName,
+  type LanguageCode,
   type ParagraphModeName,
   type ThresholdProfileName,
 } from "../../api/analysis";
@@ -46,6 +47,16 @@ const MODEL_FOR_ANALYZER: Record<AnalyzerName, string> = {
   V3_ONLY: "CANDIDATE_MODEL_V3",
   V2_ONLY: "CANDIDATE_MODEL_V2",
   ENSEMBLE: "ENSEMBLE_V2_V3",
+  F006_1_ONLY: "EXPERIMENTAL_F006_1_MODEL",
+  F006_1_1_ONLY: "EXPERIMENTAL_F006_1_1_MODEL",
+};
+
+const ANALYZER_FOR_MODEL: Record<string, AnalyzerName> = {
+  CANDIDATE_MODEL_V2: "V2_ONLY",
+  CANDIDATE_MODEL_V3: "V3_ONLY",
+  ENSEMBLE_V2_V3: "ENSEMBLE",
+  EXPERIMENTAL_F006_1_MODEL: "F006_1_ONLY",
+  EXPERIMENTAL_F006_1_1_MODEL: "F006_1_1_ONLY",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -120,13 +131,24 @@ export function AnalysisPanel({
   initialView?: AnalysisView;
 }) {
   const queryClient = useQueryClient();
+  const models = useQuery({
+    queryKey: analysisQueryKeys.models(),
+    queryFn: listAnalyzerModels,
+    retry: 1,
+  });
+  const analyzerTouched = useRef(false);
+  const preferredAnalyzer = models.data?.resolvedLocalPreferredAnalyzer;
+  const preferredMode = preferredAnalyzer
+    ? ANALYZER_FOR_MODEL[preferredAnalyzer]
+    : undefined;
   const [analyzer, setAnalyzer] = useState<AnalyzerName>(
-    researchMode ? "ENSEMBLE" : "V3_ONLY",
+    () => preferredMode ?? (researchMode ? "ENSEMBLE" : "V3_ONLY"),
   );
   const [profile, setProfile] = useState<ThresholdProfileName>(
     researchMode ? "BALANCED" : "LOW_FALSE_POSITIVE",
   );
   const [mode, setMode] = useState<ParagraphModeName>(DEFAULT_PARAGRAPH_MODE);
+  const [languageCode, setLanguageCode] = useState<LanguageCode>("es");
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
   const [sort, setSort] = useState<AnalysisSegmentSort>("PARAGRAPH");
   const [filter, setFilter] = useState<AnalysisSegmentFilter>("ALL");
@@ -146,11 +168,16 @@ export function AnalysisPanel({
     sequence: 0,
   });
 
-  const models = useQuery({
-    queryKey: analysisQueryKeys.models(),
-    queryFn: listAnalyzerModels,
-    retry: 1,
-  });
+  useEffect(() => {
+    if (!models.data || analyzerTouched.current) return;
+    const preferred = models.data.resolvedLocalPreferredAnalyzer;
+    const preferredMode = preferred ? ANALYZER_FOR_MODEL[preferred] : undefined;
+    if (!preferredMode) return;
+    setAnalyzer(preferredMode);
+    if (preferredMode === "F006_1_ONLY" || preferredMode === "F006_1_1_ONLY") {
+      setProfile("BALANCED");
+    }
+  }, [models.data, researchMode]);
   const runs = useQuery({
     queryKey: analysisQueryKeys.documentAnalyses(documentId),
     queryFn: () => listDocumentAnalyses(documentId),
@@ -181,6 +208,9 @@ export function AnalysisPanel({
         analyzer,
         thresholdProfile: profile,
         paragraphMode: mode,
+        ...(analyzer === "F006_1_ONLY" || analyzer === "F006_1_1_ONLY"
+          ? { languageCode }
+          : {}),
       }),
     onSuccess: async (result) => {
       setSelectedRun(result.id);
@@ -218,6 +248,14 @@ export function AnalysisPanel({
   const f006 = models.data?.items.find(
     (item) => item.name === "EXPERIMENTAL_F006_MODEL",
   );
+  const f0061 = models.data?.items.find(
+    (item) => item.name === "EXPERIMENTAL_F006_1_MODEL",
+  );
+  const f00611 = models.data?.items.find(
+    (item) => item.name === "EXPERIMENTAL_F006_1_1_MODEL",
+  );
+  const f0061Usable = Boolean(f0061?.servable && isAnalyzerUsable(f0061.availability));
+  const f00611Usable = Boolean(f00611?.servable && isAnalyzerUsable(f00611.availability));
   const analysisError =
     run?.status === "COMPLETED" ? null : analyze.isError ? analyze.error : null;
   const historyError = runs.isError ? runs.error : null;
@@ -639,23 +677,63 @@ export function AnalysisPanel({
             value={analyzer}
             onChange={(event) => {
               analyze.reset();
-              setAnalyzer(event.currentTarget.value as AnalyzerName);
+              analyzerTouched.current = true;
+              const next = event.currentTarget.value as AnalyzerName;
+              setAnalyzer(next);
+              if (next === "F006_1_ONLY" || next === "F006_1_1_ONLY") {
+                setProfile("BALANCED");
+              }
             }}
           >
-            {ANALYZERS.map((item) => (
+            {ANALYZERS.filter((item) => item !== "F006_1_ONLY" && item !== "F006_1_1_ONLY").map((item) => (
               <option key={item} value={item}>
                 {item === "ENSEMBLE"
                   ? "ENSEMBLE_V2_V3 · V2 + V3"
                   : ANALYZER_LABEL[item]}
               </option>
             ))}
-            {models.data?.items.some((item) => item.name === "EXPERIMENTAL_F006_1_MODEL") && (
+            {(researchMode || models.data?.localPreferredAnalyzer === "EXPERIMENTAL_F006_1_MODEL") && f0061Usable && (
+              <option value="F006_1_ONLY">F006.1 · Experimental</option>
+            )}
+            {(researchMode || models.data?.localPreferredAnalyzer === "EXPERIMENTAL_F006_1_MODEL") && f0061 && !f0061Usable && (
               <option value="" disabled>
-                EXPERIMENTAL_F006_1_MODEL · No disponible localmente
+                F006.1 · Experimental · No disponible localmente
+              </option>
+            )}
+            {researchMode && f00611Usable && (
+              <option value="F006_1_1_ONLY">F006.1.1 · Experimental</option>
+            )}
+            {researchMode && f00611 && !f00611Usable && (
+              <option value="" disabled>
+                F006.1.1 · Experimental · No disponible localmente
               </option>
             )}
           </select>
         </label>
+
+        {(analyzer === "F006_1_ONLY" || analyzer === "F006_1_1_ONLY") && (
+          <label className="analysis-toolbar-field">
+            <span>Idioma para calibración</span>
+            <select
+              id="analysis-language-code"
+              value={languageCode}
+              onChange={(event) => {
+                analyze.reset();
+                setLanguageCode(event.currentTarget.value as LanguageCode);
+              }}
+            >
+              <option value="es">Español · calibración española</option>
+              <option value="en">Inglés · calibración global</option>
+              <option value="other">Otro o desconocido · calibración global</option>
+            </select>
+          </label>
+        )}
+
+        {models.data?.localPreferredWarning && (
+          <p className="analysis-disclaimer analysis-preferred-warning" role="status">
+            {models.data.localPreferredWarning}
+          </p>
+        )}
 
         <label className="analysis-toolbar-field">
           <span>Perfil</span>
@@ -769,7 +847,7 @@ export function AnalysisPanel({
         {researchMode && (!f006 || !f006.servable) && (
           <p className="analysis-inline-note analysis-inline-warning" role="status">
             <span>
-              <strong>F006 no disponible para inferencia:</strong>{" "}
+              <strong>F006 base no disponible para inferencia:</strong>{" "}
               {f006
                 ? availabilityLabel(f006.availability)
                 : "No habilitado en el registro local."}

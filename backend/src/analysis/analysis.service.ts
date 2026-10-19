@@ -25,6 +25,8 @@ const MODEL_FOR_MODE: Record<string, string> = {
   V2_ONLY: 'CANDIDATE_MODEL_V2',
   V3_ONLY: 'CANDIDATE_MODEL_V3',
   ENSEMBLE: 'ENSEMBLE_V2_V3',
+  F006_1_ONLY: 'EXPERIMENTAL_F006_1_MODEL',
+  F006_1_1_ONLY: 'EXPERIMENTAL_F006_1_1_MODEL',
 };
 
 const REVIEW_CAPABILITIES = {
@@ -142,6 +144,11 @@ export class AnalysisService {
     const text = version?.extractedText ?? '';
     if (!version || !text.trim()) throw new ConflictException('Document has no extracted text to analyze');
     const textHash = sha256(text);
+    const usesExplicitLanguage = dto.analyzer === 'F006_1_ONLY' || dto.analyzer === 'F006_1_1_ONLY';
+    const languageCode = usesExplicitLanguage ? (dto.languageCode ?? 'other') : undefined;
+    const cacheCalibrationProfile = languageCode
+      ? `${dto.thresholdProfile}:${languageCode}`
+      : dto.thresholdProfile;
 
     const run = await this.prisma.analysisRun.create({
       data: {
@@ -160,7 +167,7 @@ export class AnalysisService {
     if (cacheIdentity) {
       const cacheKey = buildAnalysisCacheKey({
         ...cacheIdentity,
-        calibrationProfile: dto.thresholdProfile,
+        calibrationProfile: cacheCalibrationProfile,
         paragraphMode: dto.paragraphMode,
         textVersionHash: textHash,
         customThreshold: dto.customThreshold,
@@ -189,7 +196,8 @@ export class AnalysisService {
         && result.thresholdProfile === dto.thresholdProfile
         && result.threshold === candidate.threshold
         && result.calibratedScore === candidate.documentScore
-        && (dto.thresholdProfile !== 'CUSTOM' || result.threshold === dto.customThreshold);
+        && (dto.thresholdProfile !== 'CUSTOM' || result.threshold === dto.customThreshold)
+        && (languageCode === undefined || (asRecord(candidate.metadata)?.languageCode ?? 'other') === languageCode);
       const cached = candidates.find((candidate) => {
         const matches = candidate.documentAggregation !== null
           && candidate.documentScore !== null
@@ -262,6 +270,14 @@ export class AnalysisService {
                 cacheHit: true,
                 cacheKey,
                 reusedAnalysisId: cached.id,
+                modelId: cachedModel.modelName,
+                modelVersion: cachedModel.modelVariant,
+                ...(languageCode ? {
+                  languageCode,
+                  calibrationSource: languageCode === 'es'
+                    ? (dto.analyzer === 'F006_1_1_ONLY' ? 'ES_PLATT' : 'ES_ISO')
+                    : 'GLOBAL_ISO',
+                } : {}),
                 ...(asRecord(cached.metadata)?.paragraphContext
                   ? { paragraphContext: asRecord(cached.metadata)?.paragraphContext }
                   : {}),
@@ -281,6 +297,7 @@ export class AnalysisService {
         thresholdProfile: dto.thresholdProfile,
         customThreshold: dto.customThreshold,
         paragraphMode: dto.paragraphMode,
+        languageCode,
       });
       const normalizedSegments = convertPythonSegmentOffsetsToUtf16(text, result.segments);
       const modelName = MODEL_FOR_MODE[dto.analyzer];
@@ -336,6 +353,14 @@ export class AnalysisService {
             inferenceMs: result.inferenceMs,
             completedAt: new Date(),
             metadata: { cacheHit: false, thresholdSource: result.thresholdSource, model: result.model,
+              modelId: modelName,
+              modelVersion: result.modelVersion,
+              ...(languageCode ? {
+                languageCode,
+                calibrationSource: result.calibrationSource ?? (languageCode === 'es'
+                  ? (dto.analyzer === 'F006_1_1_ONLY' ? 'ES_PLATT' : 'ES_ISO')
+                  : 'GLOBAL_ISO'),
+              } : {}),
               ...(dto.paragraphMode === 'CONTEXTUAL_PARAGRAPH' && result.contextMetadata ? {
                 paragraphContext: {
                   ...result.contextMetadata,
@@ -346,7 +371,7 @@ export class AnalysisService {
               } : {}),
               cacheKey: cacheIdentity ? buildAnalysisCacheKey({
                 ...cacheIdentity,
-                calibrationProfile: dto.thresholdProfile,
+                calibrationProfile: cacheCalibrationProfile,
                 paragraphMode: dto.paragraphMode,
                 textVersionHash: textHash,
                 customThreshold: dto.customThreshold,

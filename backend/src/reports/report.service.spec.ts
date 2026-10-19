@@ -482,13 +482,13 @@ describe('ReportService', () => {
   });
 
   it('cleans expired files idempotently while preserving the run association', async () => {
+    const now = new Date('2026-10-18T12:00:00.000Z');
     const artifact = makeArtifact({
-      generatedAt: new Date(Date.now() - 48 * 60 * 60 * 1000),
-      expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      generatedAt: new Date(now.getTime() - 48 * 60 * 60 * 1000),
+      expiresAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
     });
     h.rows.push(artifact);
     h.storage.delete.mockResolvedValueOnce(false);
-    const now = new Date('2026-10-18T12:00:00.000Z');
 
     expect(await h.service.cleanupExpired(now)).toEqual({
       expiredCount: 1,

@@ -139,7 +139,7 @@ export type AiTurnitinAlignmentResponse = {
 
 
 // ------------------------------------------------------------------ F005 local AI analyzer
-export type AnalyzerModeName = 'V2_ONLY' | 'V3_ONLY' | 'ENSEMBLE';
+export type AnalyzerModeName = 'V2_ONLY' | 'V3_ONLY' | 'ENSEMBLE' | 'F006_1_ONLY' | 'F006_1_1_ONLY';
 export type AnalyzerClassification = 'MACHINE_SIGNAL' | 'LOW_SIGNAL' | 'INSUFFICIENT_TEXT';
 
 export type AiAnalyzerModelStatus = {
@@ -152,6 +152,8 @@ export type AiAnalyzerModelStatus = {
   candidate: boolean;
   artifactPresent: boolean;
   artifactValid: boolean;
+  artifactChecksumExpected?: boolean;
+  artifactChecksumValidated?: boolean;
   missing: string[];
   error: string | null;
   architecture: string;
@@ -162,6 +164,12 @@ export type AiAnalyzerModelStatus = {
   preprocessing: string[];
   thresholdProfiles: string[];
   thresholdSource: string | null;
+  thresholds?: Record<string, unknown>;
+  modelId?: string;
+  parentModel?: string | null;
+  sourceCommit?: string | null;
+  calibrationSources?: string[];
+  languageRouting?: string | null;
   approxMemoryMb: number;
   loadMs: number | null;
   servable: boolean;
@@ -185,6 +193,23 @@ export type AiAnalyzerSegment = {
   contextTokensUsed?: Record<string, { before: number; after: number }> | null;
 };
 
+/** Type-only contract for a later unified run. It is not part of the serving API yet. */
+export type FutureUnifiedEnsembleResult = {
+  modelId: string;
+  modelVersion: string;
+  componentModels: string[];
+  languageCode: 'es' | 'en' | 'other';
+  thresholdProfile: string;
+  documentScore: number;
+  threshold: number;
+  paragraphResults: Array<Pick<AiAnalyzerSegment, 'paragraphIndex' | 'charStart' | 'charEnd' | 'calibratedScore' | 'classification'>>;
+  spanEvidence?: Array<{
+    paragraphIndex: number;
+    startToken: number;
+    endToken: number;
+  }>;
+};
+
 export type AiParagraphAnalysis = {
   analyzer: AnalyzerModeName;
   model: string;
@@ -194,6 +219,9 @@ export type AiParagraphAnalysis = {
   threshold: number;
   thresholdSource: string | null;
   calibration: string;
+  calibrationSource?: string;
+  languageCode?: string | null;
+  languageRouting?: string | null;
   documentAggregation: string;
   documentScore: number | null;
   rawDocumentScore?: number | null;
@@ -443,6 +471,7 @@ export class AiService {
     thresholdProfile: string;
     customThreshold?: number;
     paragraphMode: string;
+    languageCode?: string;
   }): Promise<AiParagraphAnalysis> {
     return this.analyzerRequest('/analysis/paragraphs', { method: 'POST', body: JSON.stringify(body) },
       this.analysisTimeoutMs);

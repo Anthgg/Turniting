@@ -45,6 +45,15 @@ def validate_artifact(spec: ModelSpec, root: Path | None) -> ArtifactCheck:
             check.missing.append("tokenizer (spm.model / tokenizer.json)")
     if check.missing:
         return check
+    if spec.expected_model_sha256:
+        weight_files = sorted(
+            [root / "heads.pt", *sorted((root / "backbone").glob("*.safetensors"))]
+        )
+        digest = hashlib.sha256()
+        for path in weight_files:
+            digest.update(sha256_file(path).encode("ascii"))
+        if digest.hexdigest() != spec.expected_model_sha256:
+            check.problems.append("model weights SHA256 does not match the locked digest")
     try:
         if spec.kind != "baseline_joblib":
             check.manifest = _read_json(root / "model_manifest.json")
@@ -67,6 +76,49 @@ def validate_artifact(spec: ModelSpec, root: Path | None) -> ArtifactCheck:
         check.problems.append("inference_config.json lacks a valid V3 'view'")
     if spec.kind != "baseline_joblib" and "BALANCED" not in check.thresholds:
         check.problems.append("thresholds.json lacks BALANCED")
+    if spec.expected_parent_model:
+        manifest = check.manifest
+        if manifest.get("modelVersion") != spec.name:
+            check.problems.append("model_manifest.json modelVersion does not match the registry")
+        if manifest.get("parentModel") != spec.expected_parent_model:
+            check.problems.append("model_manifest.json parentModel does not match the locked report")
+        if manifest.get("gitCommit") != spec.expected_training_commit:
+            check.problems.append("model_manifest.json gitCommit does not match the locked artifact")
+        if manifest.get("status") != "EXPERIMENTAL" or manifest.get("active") is not False:
+            check.problems.append("F006.1.1 must remain EXPERIMENTAL and inactive")
+
+        calibration = check.calibration or {}
+        global_curve = calibration.get("selected")
+        global_params = global_curve.get("params") if isinstance(global_curve, dict) else None
+        if (
+            not isinstance(global_params, dict)
+            or global_curve.get("method") != "isotonic"
+            or not isinstance(global_params.get("x"), list)
+            or not isinstance(global_params.get("y"), list)
+            or len(global_params["x"]) < 2
+            or len(global_params["x"]) != len(global_params["y"])
+        ):
+            check.problems.append("calibration.json lacks the locked global isotonic curve")
+
+        spanish_curve = calibration.get("spanish")
+        spanish_params = spanish_curve.get("params") if isinstance(spanish_curve, dict) else None
+        if (
+            not isinstance(spanish_params, dict)
+            or spanish_curve.get("method") != "platt"
+            or not isinstance(spanish_params.get("a"), (int, float))
+            or not isinstance(spanish_params.get("b"), (int, float))
+        ):
+            check.problems.append("calibration.json lacks the locked Spanish Platt curve")
+
+        for key, expected in (
+            ("GLOBAL_THRESHOLD", spec.expected_global_threshold),
+            ("SPANISH_THRESHOLD", spec.expected_spanish_threshold),
+        ):
+            actual = check.thresholds.get(key)
+            if expected is not None and (
+                not isinstance(actual, (int, float)) or abs(float(actual) - expected) > 1e-12
+            ):
+                check.problems.append(f"thresholds.json {key} does not match the locked artifact")
     check.valid = not check.problems
     return check
 

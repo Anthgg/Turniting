@@ -76,6 +76,9 @@ describe('AnalysisService', () => {
     const key = buildAnalysisCacheKey(base);
     expect(buildAnalysisCacheKey({ ...base, modelId: 'EXPERIMENTAL_F006_1_MODEL' })).not.toBe(key);
     expect(buildAnalysisCacheKey({ ...base, calibrationProfile: 'LOW_FALSE_POSITIVE' })).not.toBe(key);
+    expect(buildAnalysisCacheKey({ ...base, calibrationProfile: 'BALANCED:es' })).not.toBe(
+      buildAnalysisCacheKey({ ...base, calibrationProfile: 'BALANCED:en' }),
+    );
     expect(buildAnalysisCacheKey({ ...base, paragraphMode: 'CONTEXTUAL_PARAGRAPH' })).not.toBe(key);
     expect(buildAnalysisCacheKey({ ...base, textVersionHash: sha256('different synthetic input') })).not.toBe(key);
   });
@@ -108,6 +111,39 @@ describe('AnalysisService', () => {
       calibratedScore: 0.42,
     });
     expect(completed.documentScore).toBe(prisma.analysisModelResult.create.mock.calls[0][0].data.calibratedScore);
+  });
+
+  it('passes explicit F006.1.1 language and persists the selected calibration source', async () => {
+    ai.analyzeParagraphs.mockResolvedValueOnce({
+      ...aiResult(),
+      analyzer: 'F006_1_1_ONLY',
+      model: 'EXPERIMENTAL_F006_1_1_MODEL',
+      modelVersion: 'F006_1_1_C8_TOK06_ES_PLATT_EXPERIMENTAL',
+      thresholdProfile: 'BALANCED',
+      threshold: 0.767241379310345,
+      calibration: 'ES_PLATT',
+      calibrationSource: 'ES_PLATT',
+      languageCode: 'es',
+    });
+
+    await service.analyzeDocument(DOC, {
+      analyzer: 'F006_1_1_ONLY',
+      languageCode: 'es',
+      thresholdProfile: 'BALANCED',
+      granularity: 'PARAGRAPH',
+      paragraphMode: 'CONTEXTUAL_PARAGRAPH',
+    });
+
+    expect(ai.analyzeParagraphs).toHaveBeenCalledWith(expect.objectContaining({ languageCode: 'es' }));
+    expect(prisma.analysisModelResult.create.mock.calls[0][0].data).toMatchObject({
+      modelName: 'EXPERIMENTAL_F006_1_1_MODEL',
+      calibration: 'ES_PLATT',
+    });
+    expect(prisma.analysisRun.update.mock.calls.at(-1)?.[0].data.metadata).toMatchObject({
+      modelId: 'EXPERIMENTAL_F006_1_1_MODEL',
+      languageCode: 'es',
+      calibrationSource: 'ES_PLATT',
+    });
   });
 
   it('converts AI-service paragraph codepoint ranges to UTF-16 before persisting', async () => {
@@ -618,7 +654,12 @@ describe('AnalyzerModelsService', () => {
     prisma.modelVersion.findMany.mockResolvedValue([{ id: 'mv2', name: 'CANDIDATE_MODEL_V2', status: 'CANDIDATE',
       architecture: 'microsoft/mdeberta-v3-base', variant: 'X', artifactProvider: 'GOOGLE_DRIVE',
       artifactPath: 'MyDrive/turniting/secret/path', limitations: ['lim'] }]);
-    const ai = { listAnalyzerModels: vi.fn().mockResolvedValue({ models: [
+    const ai = { listAnalyzerModels: vi.fn().mockResolvedValue({ policy: {
+      localPreferredAnalyzer: 'EXPERIMENTAL_F006_1_MODEL', localPreferredAvailable: true,
+      resolvedLocalPreferredAnalyzer: 'EXPERIMENTAL_F006_1_MODEL',
+      localPreferredFallback: 'CANDIDATE_MODEL_V3', localPreferredFallbackAvailable: true,
+      localPreferredWarning: null,
+    }, models: [
       { model: 'CANDIDATE_MODEL_V3', state: 'UNAVAILABLE', status: 'CANDIDATE', servable: true, warnings: ['fpr'],
         thresholdProfiles: [], preprocessing: ['V3_CANONICALIZED_V1'] }] }) };
     const svc = new AnalyzerModelsService(prisma as unknown as PrismaService, ai as unknown as AiService,
@@ -627,6 +668,19 @@ describe('AnalyzerModelsService', () => {
     expect(out.items.find((m) => m.name === 'CANDIDATE_MODEL_V3')?.availability).toBe('UNAVAILABLE');
     expect(out.items.find((m) => m.name === 'CANDIDATE_MODEL_V2')?.registeredInDatabase).toBe(true);
     expect(out.activeModel).toBe('NONE');
+    expect(out).toMatchObject({
+      localPreferredAnalyzer: 'EXPERIMENTAL_F006_1_MODEL',
+      localPreferredAvailable: true,
+      resolvedLocalPreferredAnalyzer: 'EXPERIMENTAL_F006_1_MODEL',
+      localPreferredFallback: 'CANDIDATE_MODEL_V3',
+      localPreferredFallbackAvailable: true,
+      localPreferredWarning: null,
+      unifiedReady: false,
+      spanServingReady: false,
+      paragraphHighlighting: true,
+      spanHighlighting: false,
+      granularity: 'PARAGRAPH',
+    });
     expect(out.recommendedExperimentalAnalyzer).toBe('ENSEMBLE_V2_V3');
     const f006 = out.items.find((m) => m.name === 'EXPERIMENTAL_F006_MODEL');
     expect(f006).toMatchObject({
@@ -673,6 +727,49 @@ describe('AnalyzerModelsService', () => {
       },
     });
     expect(JSON.stringify(f0061)).not.toContain('MyDrive');
+    const f00611 = out.items.find((m) => m.name === 'EXPERIMENTAL_F006_1_1_MODEL');
+    expect(f00611).toMatchObject({
+      status: 'EXPERIMENTAL',
+      availability: 'UNAVAILABLE',
+      artifactPresent: false,
+      artifactValid: false,
+      available: false,
+      active: false,
+      candidate: false,
+      servable: false,
+      metrics: {
+        macroF1: 0.8704,
+        overallHumanFpr: 0.0541,
+        spanishHumanFpr: 0.019,
+        academicHumanFpr: 0.0307,
+        unseenGeneratorHumanFpr: 0.0967,
+        mixedRecall: 0.5832,
+        aiEditedF1: 0.9023,
+        oodF1: 0.9383,
+        spanTokenF1: 0.7694,
+      },
+      researchMetadata: {
+        parentModel: 'EXPERIMENTAL_F006_MODEL',
+        gatesPassed: 8,
+        gatesTotal: 11,
+        failedGates: [
+          'A_overall_human_fpr_le_0.05',
+          'H_mixed_recall_ge_0.65',
+          'I_span_token_f1_ge_0.86',
+        ],
+        calibration: {
+          global: 'GLOBAL_ISO',
+          spanish: 'ES_PLATT',
+          globalThreshold: 0.767241379310345,
+          spanishThreshold: 0.767241379310345,
+        },
+        holdoutCounts: { documents: 30363, humanDocuments: 13650, spanishDocuments: 5530, leakageCount: 0 },
+      },
+    });
+    expect(out.items.some((m) => m.name === 'EXPERIMENTAL_SPAN_MODEL_V1')).toBe(false);
+    expect(out.nonServingResearchModels).toContainEqual(expect.objectContaining({
+      name: 'EXPERIMENTAL_SPAN_MODEL_V1', registeredForServing: false, servable: false, spanServingReady: false,
+    }));
     ai.listAnalyzerModels.mockResolvedValueOnce({ models: [{
       model: 'EXPERIMENTAL_F006_1_MODEL', status: 'EXPERIMENTAL', state: 'AVAILABLE',
       available: true, active: false, candidate: false, artifactPresent: true, artifactValid: true, servable: true,

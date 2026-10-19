@@ -1,25 +1,25 @@
 export type ModelHoldoutMetrics = {
-  evaluationSet: 'F006_FINAL_HOLDOUT' | 'F006_1_FINAL_HOLDOUT';
-  operatingPoint: 'BALANCED' | 'F006_1_LOCKED_ES_ISO_THRESHOLD';
+  evaluationSet: 'F006_FINAL_HOLDOUT' | 'F006_1_FINAL_HOLDOUT' | 'F006_1_1_FINAL_HOLDOUT';
+  operatingPoint: 'BALANCED' | 'F006_1_LOCKED_ES_ISO_THRESHOLD' | 'F006_1_1_LOCKED_DUAL_THRESHOLD';
   macroF1: number;
   overallHumanFpr: number;
   overallHumanFprCi95?: [number, number];
-  spanishF1?: number;
+  spanishF1?: number | null;
   spanishHumanFpr: number;
   spanishHumanFprCi95?: [number, number];
-  spanishRecall?: number;
-  spanishEce?: number;
+  spanishRecall?: number | null;
+  spanishEce?: number | null;
   academicHumanFpr: number;
-  academicF1?: number;
+  academicF1?: number | null;
   unseenGeneratorHumanFpr: number;
-  oodHumanFpr: number;
-  unseenDomainHumanFpr: number;
-  unseenDomainF1?: number;
+  oodHumanFpr?: number | null;
+  unseenDomainHumanFpr?: number | null;
+  unseenDomainF1?: number | null;
   mixedRecall: number;
   aiEditedF1: number;
   oodF1: number;
-  unseenGeneratorF1: number;
-  adversarialRecall: number;
+  unseenGeneratorF1?: number | null;
+  adversarialRecall?: number | null;
   zeroWidthF1: number;
   homoglyphF1: number;
   spanTokenF1?: number | null;
@@ -34,19 +34,19 @@ export type PromotionEvidence = {
 };
 
 export type ResearchModelMetadata = {
-  sourceBranch: string;
+  sourceBranch?: string;
   sourceCommit: string;
   trainingCommit: string;
   trainingPhase: string;
   parentModel: string;
-  sourceTrainingParent: string;
+  sourceTrainingParent?: string;
   datasetName: string;
   datasetManifestHashes: Record<string, string>;
   datasetVersionId: string | null;
   artifactAvailableLocally: boolean;
-  modelSha256: string;
+  modelSha256?: string;
   artifactChecksumValidated: boolean;
-  validationMetrics: {
+  validationMetrics?: {
     evaluationSet: string;
     calibrationOption: string;
     selectedCheckpointStep: number;
@@ -54,7 +54,7 @@ export type ResearchModelMetadata = {
     overallHumanFpr: number;
     spanishMacroF1: number;
     spanishHumanFpr: number;
-    spanishEce: number;
+    spanishEce: number | null;
     selectionCheckpoint: {
       threshold: number;
       overallHumanFpr: number;
@@ -66,10 +66,18 @@ export type ResearchModelMetadata = {
   calibration: {
     global: string;
     spanish: string;
-    method: string;
+    method?: string;
+    globalMethod?: string;
+    spanishMethod?: string;
     globalThreshold: number;
     spanishThreshold: number;
-    spanishEce: number;
+    spanishEce: number | null;
+  };
+  holdoutCounts?: {
+    documents: number;
+    humanDocuments: number;
+    spanishDocuments: number;
+    leakageCount: number;
   };
   gatesPassed: number;
   gatesTotal: number;
@@ -77,7 +85,9 @@ export type ResearchModelMetadata = {
   paragraphStability: 'NOT_EVALUATED';
   strictSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE';
   contextualSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE';
-  languageSelection: 'UNVERIFIED_NO_LOCAL_LANGUAGE_DETECTOR';
+  languageSelection:
+    | 'UNVERIFIED_NO_LOCAL_LANGUAGE_DETECTOR'
+    | 'EXPLICIT_LANGUAGE_CODE_REQUIRED';
   active: boolean;
   candidate: boolean;
   limitations: string[];
@@ -330,7 +340,6 @@ export const MODEL_CATALOG: Record<string, ModelCatalogEntry> = {
     },
     strengths: ['Mejor F1 global y español del holdout F006.1; este resultado no recomienda activación.'],
     warnings: [
-      'No disponible localmente: los pesos F006.1 no están instalados.',
       'Gates fallidos: A overall FPR, D unseen-generator FPR, E mixed recall, H span F1.',
       'La estabilidad por párrafo no fue evaluada.',
       'El holdout final ya fue observado y no se reutiliza para tuning.',
@@ -423,7 +432,113 @@ export const MODEL_CATALOG: Record<string, ModelCatalogEntry> = {
       ],
     },
   },
+  EXPERIMENTAL_F006_1_1_MODEL: {
+    status: 'EXPERIMENTAL',
+    architecture: 'microsoft/mdeberta-v3-base + V3 multi-task heads',
+    variant: 'F006_1_1_DUAL_CALIBRATION_EXPERIMENTAL',
+    dataset: 'F006_1_1',
+    artifactProvider: 'GOOGLE_DRIVE',
+    thresholdProfiles: ['BALANCED'],
+    thresholdSource: 'F006_1_1_VALIDATION_LOCK',
+    preprocessing: ['V3_CANONICALIZED_V1'],
+    metrics: {
+      evaluationSet: 'F006_1_1_FINAL_HOLDOUT',
+      operatingPoint: 'F006_1_1_LOCKED_DUAL_THRESHOLD',
+      macroF1: 0.8704,
+      overallHumanFpr: 0.0541,
+      spanishHumanFpr: 0.019,
+      academicHumanFpr: 0.0307,
+      unseenGeneratorHumanFpr: 0.0967,
+      mixedRecall: 0.5832,
+      aiEditedF1: 0.9023,
+      oodF1: 0.9383,
+      zeroWidthF1: 0.8609,
+      homoglyphF1: 0.8609,
+      spanTokenF1: 0.7694,
+    },
+    strengths: [],
+    warnings: [
+      'Experimental research model; it is not ACTIVE or a candidate.',
+      'The F006.1.1 checkpoint is not present locally, so this model is not servable.',
+      'The available report does not lock a SHA-256 digest for the F006.1.1 weight files.',
+      'The unified document-plus-span ensemble is not implemented or available.',
+    ],
+    officialGates: {
+      A_overall_human_fpr_le_0_05: false,
+      H_mixed_recall_ge_0_65: false,
+      I_span_token_f1_ge_0_86: false,
+    },
+    promotionEvidence: {
+      mixedAiEdited: false,
+      robustness: true,
+      paragraphStability: null,
+      noLeakage: true,
+      holdoutNeverTuned: true,
+    },
+    researchMetadata: {
+      sourceCommit: '0ad01f5fb75b48cdd1cce3a9b0084511253a69f1',
+      trainingCommit: '632dc6f7a852ee9c1dfc511a35a76cd1ce63428e',
+      trainingPhase: 'F006.1.1',
+      parentModel: 'EXPERIMENTAL_F006_MODEL',
+      sourceTrainingParent: 'C3_f006',
+      datasetName: 'F006_1_1_FINAL_HOLDOUT',
+      datasetManifestHashes: {},
+      datasetVersionId: null,
+      artifactAvailableLocally: false,
+      artifactChecksumValidated: false,
+      calibration: {
+        global: 'GLOBAL_ISO',
+        spanish: 'ES_PLATT',
+        globalMethod: 'isotonic',
+        spanishMethod: 'platt',
+        globalThreshold: 0.767241379310345,
+        spanishThreshold: 0.767241379310345,
+        spanishEce: null,
+      },
+      holdoutCounts: {
+        documents: 30363,
+        humanDocuments: 13650,
+        spanishDocuments: 5530,
+        leakageCount: 0,
+      },
+      gatesPassed: 8,
+      gatesTotal: 11,
+      failedGates: [
+        'A_overall_human_fpr_le_0.05',
+        'H_mixed_recall_ge_0.65',
+        'I_span_token_f1_ge_0.86',
+      ],
+      paragraphStability: 'NOT_EVALUATED',
+      strictSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE',
+      contextualSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE',
+      languageSelection: 'EXPLICIT_LANGUAGE_CODE_REQUIRED',
+      active: false,
+      candidate: false,
+      limitations: [
+        'FPR humano global: 0.0541, por encima del gate 0.05.',
+        'Recall mixto: 0.5832, por debajo del gate H de 0.65.',
+        'Span token F1: 0.7694, por debajo del gate I de 0.86.',
+        'Estabilidad por párrafo no evaluada.',
+        'El artefacto de 1.11 GB no está instalado localmente; el modelo permanece no disponible.',
+        'El reporte disponible no fija un SHA-256 para validar los pesos del checkpoint.',
+        'El modelo no está ACTIVE ni es candidato; el holdout no se reutiliza para tuning.',
+      ],
+    },
+  },
 };
+
+export const NON_SERVING_RESEARCH_MODELS = [
+  {
+    name: 'EXPERIMENTAL_SPAN_MODEL_V1',
+    status: 'EXPERIMENTAL',
+    active: false,
+    candidate: false,
+    registeredForServing: false,
+    servable: false,
+    spanServingReady: false,
+    note: 'Metadata de investigación solamente; no se carga en serving ni produce resaltados.',
+  },
+] as const;
 
 export const ACTIVE_ACCEPTANCE_LIMITS = {
   overallHumanFpr: 0.05,

@@ -35,6 +35,8 @@ export const ANALYZER_LABEL: Record<string, string> = {
   V3_ONLY: 'Modelo V3',
   V2_ONLY: 'Modelo V2 (referencia)',
   ENSEMBLE: 'Combinación V2 + V3',
+  F006_1_ONLY: 'F006.1 · Experimental',
+  F006_1_1_ONLY: 'F006.1.1 · Experimental',
 }
 
 export const PROFILE_LABEL: Record<string, string> = {

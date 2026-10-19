@@ -131,6 +131,16 @@ class Settings(BaseSettings):
     ai_model_f006_1_path: Path | None = Field(
         default=None, validation_alias="AI_MODEL_F006_1_PATH"
     )
+    ai_model_f006_1_1_path: Path | None = Field(
+        default=None, validation_alias="AI_MODEL_F006_1_1_PATH"
+    )
+    local_preferred_analyzer: str | None = Field(
+        default=None, validation_alias="LOCAL_PREFERRED_ANALYZER"
+    )
+    local_preferred_analyzer_fallback: str = Field(
+        default="CANDIDATE_MODEL_V3",
+        validation_alias="LOCAL_PREFERRED_ANALYZER_FALLBACK",
+    )
     ai_baseline_model_path: Path | None = Field(
         default=None,
         validation_alias="AI_BASELINE_MODEL_PATH",

@@ -26,6 +26,14 @@ export function ModelsPage() {
       </div>
       {models.isError && <ApiErrorNotice error={models.error} title="No se pudo cargar el registro de modelos" />}
       {models.data && !models.data.aiServiceReachable && <p className="analysis-notice">El servicio de IA no responde; se muestra solo el registro.</p>}
+      {models.data?.localPreferredAnalyzer && <p className="analysis-notice">
+        Preferencia local: <strong>{models.data.localPreferredAnalyzer}</strong> · resuelto a:{' '}
+        <strong>{models.data.resolvedLocalPreferredAnalyzer ?? 'ningún modelo disponible'}</strong>.
+      </p>}
+      {models.data?.localPreferredWarning && <p className="analysis-notice analysis-preferred-warning">{models.data.localPreferredWarning}</p>}
+      {models.data?.nonServingResearchModels?.map((model) => <p className="analysis-notice" key={model.name}>
+        {model.name}: {model.note} ACTIVE = NO · candidate = NO · serving = NO.
+      </p>)}
       {models.data && <p className="analysis-notice">
         ACTIVE = <strong>{models.data.activeModel ?? 'NONE'}</strong>. Recomendación de desarrollo (no ACTIVE):{' '}
         {models.data.recommendedExperimentalAnalyzer ?? '—'} · {models.data.recommendedExperimentalThresholdProfile ?? '—'}.{' '}
@@ -47,19 +55,24 @@ export function ModelsPage() {
             <p className="dataset-model-arch">{m.architecture ?? '—'}{m.variant ? ` · ${m.variant}` : ''}</p>
             <p className="dataset-model-meta">Estado: <strong>{m.status ?? '—'}</strong> · Dataset de referencia: {m.dataset ?? '—'} · Registro del modelo: {m.registeredInDatabase ? 'en la base de datos' : 'solo en el catálogo'}</p>
             <p className="dataset-model-meta">Preprocesamiento: {m.preprocessing.join(' + ') || '—'} · Perfiles: {m.thresholdProfiles.join(', ') || '—'}</p>
-            <p className="dataset-model-meta">Pesos locales: {m.artifactPresent ? (m.artifactValid ? 'disponibles y válidos' : 'presentes, con validación pendiente') : 'no disponibles'}</p>
+            <p className="dataset-model-meta">Pesos locales: {m.artifactPresent ? (m.artifactValid
+              ? m.artifactChecksumExpected === false ? 'disponibles; metadatos validados, sin SHA-256 esperado' : 'disponibles y válidos'
+              : 'presentes, con validación pendiente') : 'no disponibles'}</p>
             {m.metrics && <>
               <p className="dataset-model-meta"><strong>Holdout {m.metrics.operatingPoint}</strong> · macro-F1 {m.metrics.macroF1.toFixed(4)} · FPR humanos: general {percent(m.metrics.overallHumanFpr)}, español {percent(m.metrics.spanishHumanFpr)}, académico {percent(m.metrics.academicHumanFpr)}, generador no visto {percent(m.metrics.unseenGeneratorHumanFpr)}.</p>
               {m.metrics.spanishF1 != null && <p className="dataset-model-meta">F1 español {percent(m.metrics.spanishF1)} · FPR global {percent(m.metrics.overallHumanFpr)} · FPR generador no visto {percent(m.metrics.unseenGeneratorHumanFpr)} · recall mixto {percent(m.metrics.mixedRecall)} · span F1 {m.metrics.spanTokenF1 == null ? '—' : percent(m.metrics.spanTokenF1)}.</p>}
               <p className="dataset-model-meta">Mixto: recall {percent(m.metrics.mixedRecall)} · AI-edited: F1 {m.metrics.aiEditedF1.toFixed(4)} · OOD: F1 {m.metrics.oodF1.toFixed(4)} · robustez: zero-width {m.metrics.zeroWidthF1.toFixed(4)}, homoglyph {m.metrics.homoglyphF1.toFixed(4)}{m.metrics.spanTokenF1 == null ? '' : `, span token F1 ${m.metrics.spanTokenF1.toFixed(3)}`}.</p>
             </>}
             {m.researchMetadata && <>
-              <p className="dataset-model-meta">Fuente {m.researchMetadata.trainingPhase} · commit {m.researchMetadata.sourceCommit.slice(0, 7)} · gates {m.researchMetadata.gatesPassed}/{m.researchMetadata.gatesTotal}.</p>
-              <p className="dataset-model-meta">Validación OOF {m.researchMetadata.validationMetrics.calibrationOption}: macro-F1 {m.researchMetadata.validationMetrics.macroF1.toFixed(4)} · FPR global {percent(m.researchMetadata.validationMetrics.overallHumanFpr)} · F1 español {percent(m.researchMetadata.validationMetrics.spanishMacroF1)} · FPR español {percent(m.researchMetadata.validationMetrics.spanishHumanFpr)} · ECE español {m.researchMetadata.validationMetrics.spanishEce.toFixed(4)}.</p>
-              <p className="dataset-model-meta">Checkpoint de selección paso {m.researchMetadata.validationMetrics.selectedCheckpointStep} (umbral {m.researchMetadata.validationMetrics.selectionCheckpoint.threshold.toFixed(4)}): FPR global {percent(m.researchMetadata.validationMetrics.selectionCheckpoint.overallHumanFpr)} · español {percent(m.researchMetadata.validationMetrics.selectionCheckpoint.spanishHumanFpr)} · académico {percent(m.researchMetadata.validationMetrics.selectionCheckpoint.academicHumanFpr)} · generador no visto {percent(m.researchMetadata.validationMetrics.selectionCheckpoint.unseenGeneratorHumanFpr)}.</p>
-              <p className="dataset-model-meta">Calibración global {m.researchMetadata.calibration.global} ({m.researchMetadata.calibration.method}, umbral {m.researchMetadata.calibration.globalThreshold.toFixed(4)}) · español {m.researchMetadata.calibration.spanish} ({m.researchMetadata.calibration.method}, umbral {m.researchMetadata.calibration.spanishThreshold.toFixed(4)}). ECE español final {m.researchMetadata.calibration.spanishEce.toFixed(4)}.</p>
-              <p className="dataset-model-meta">Estabilidad contextual no evaluada para F006.1. STRICT y CONTEXTUAL no están verificados sin el artefacto local; selección de idioma no validada.</p>
-              {m.researchMetadata.failedGates.length > 0 && <ul className="dataset-model-limitations" aria-label="Gates fallidos F006.1">{m.researchMetadata.failedGates.map((gate) => <li key={gate}>FAIL · {gate}</li>)}</ul>}
+              <p className="dataset-model-meta">Fuente {m.researchMetadata.trainingPhase} · commit {m.researchMetadata.sourceCommit.slice(0, 7)} · parent {m.researchMetadata.parentModel} · gates {m.researchMetadata.gatesPassed}/{m.researchMetadata.gatesTotal}.</p>
+              {m.researchMetadata.holdoutCounts && <p className="dataset-model-meta">Holdout: {m.researchMetadata.holdoutCounts.documents.toLocaleString()} documentos · {m.researchMetadata.holdoutCounts.humanDocuments.toLocaleString()} humanos · {m.researchMetadata.holdoutCounts.spanishDocuments.toLocaleString()} en español · leakage {m.researchMetadata.holdoutCounts.leakageCount}.</p>}
+              {m.researchMetadata.validationMetrics && <>
+                <p className="dataset-model-meta">Validación OOF {m.researchMetadata.validationMetrics.calibrationOption}: macro-F1 {m.researchMetadata.validationMetrics.macroF1.toFixed(4)} · FPR global {percent(m.researchMetadata.validationMetrics.overallHumanFpr)} · F1 español {percent(m.researchMetadata.validationMetrics.spanishMacroF1)} · FPR español {percent(m.researchMetadata.validationMetrics.spanishHumanFpr)} · ECE español {m.researchMetadata.validationMetrics.spanishEce.toFixed(4)}.</p>
+                <p className="dataset-model-meta">Checkpoint de selección paso {m.researchMetadata.validationMetrics.selectedCheckpointStep} (umbral {m.researchMetadata.validationMetrics.selectionCheckpoint.threshold.toFixed(4)}): FPR global {percent(m.researchMetadata.validationMetrics.selectionCheckpoint.overallHumanFpr)} · español {percent(m.researchMetadata.validationMetrics.selectionCheckpoint.spanishHumanFpr)} · académico {percent(m.researchMetadata.validationMetrics.selectionCheckpoint.academicHumanFpr)} · generador no visto {percent(m.researchMetadata.validationMetrics.selectionCheckpoint.unseenGeneratorHumanFpr)}.</p>
+              </>}
+              <p className="dataset-model-meta">Calibración global {m.researchMetadata.calibration.global} ({m.researchMetadata.calibration.globalMethod ?? m.researchMetadata.calibration.method ?? '—'}, umbral {m.researchMetadata.calibration.globalThreshold.toFixed(4)}) · español {m.researchMetadata.calibration.spanish} ({m.researchMetadata.calibration.spanishMethod ?? m.researchMetadata.calibration.method ?? '—'}, umbral {m.researchMetadata.calibration.spanishThreshold.toFixed(4)}). ECE español final {m.researchMetadata.calibration.spanishEce == null ? '—' : m.researchMetadata.calibration.spanishEce.toFixed(4)}.</p>
+              <p className="dataset-model-meta">Estabilidad por párrafo no evaluada. STRICT y CONTEXTUAL no están validados; la ruta de idioma es explícita.</p>
+              {m.researchMetadata.failedGates.length > 0 && <ul className="dataset-model-limitations" aria-label={`Gates fallidos ${m.researchMetadata.trainingPhase}`}>{m.researchMetadata.failedGates.map((gate) => <li key={gate}>FAIL · {gate}</li>)}</ul>}
               {m.researchMetadata.limitations.length > 0 && <ul className="dataset-model-limitations">{m.researchMetadata.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>}
             </>}
             {m.activeGateResults?.spanishHumanFpr && <p className="dataset-model-meta">Gate de FPR humano en español: <strong>{m.activeGateResults.spanishHumanFpr.passed ? 'PASS' : 'FAIL'}</strong> · {percent(m.activeGateResults.spanishHumanFpr.observed)} / límite {percent(m.activeGateResults.spanishHumanFpr.limit)}.</p>}

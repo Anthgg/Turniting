@@ -21,7 +21,7 @@ from app.services.analyzer.comparison import align_paragraphs
 from app.services.analyzer.manager import ModelManager, ModelUnavailableError
 from app.services.analyzer.paragraphs import split_paragraphs
 from app.services.analyzer.preprocessing import V2_PREPROCESSING_V1, V3_CANONICALIZED_V1
-from app.services.analyzer.registry import F006, F006_1, MODELS, V2, V3
+from app.services.analyzer.registry import F006, F006_1, F006_1_1, MODELS, V2, V3
 from app.services.analyzer.scoring import (
     CONTEXTUAL,
     STRICT,
@@ -118,6 +118,46 @@ def make_artifact(root: Path, spec, thresholds=None, calibration=None):
     return root
 
 
+def make_f006_1_1_artifact(root: Path):
+    spec = MODELS[F006_1_1]
+    thresholds = {
+        "BALANCED": {"threshold": 0.767241379310345},
+        "GLOBAL_THRESHOLD": 0.767241379310345,
+        "SPANISH_THRESHOLD": 0.767241379310345,
+    }
+    calibration = {
+        "method": "isotonic",
+        "params": {"x": [0.0, 1.0], "y": [0.0, 1.0]},
+    }
+    artifact = make_artifact(root, spec, thresholds=thresholds, calibration=calibration)
+    (artifact / "model_manifest.json").write_text(
+        json.dumps(
+            {
+                "modelVersion": F006_1_1,
+                "parentModel": spec.expected_parent_model,
+                "gitCommit": spec.expected_training_commit,
+                "status": "EXPERIMENTAL",
+                "active": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (artifact / "calibration.json").write_text(
+        json.dumps(
+            {
+                "selected": calibration,
+                "spanish": {
+                    "method": "platt",
+                    "params": {"a": 0.7289366604209936, "b": -0.2727685894795957},
+                },
+                "option": "ES_PLATT",
+            }
+        ),
+        encoding="utf-8",
+    )
+    return artifact
+
+
 @pytest.fixture
 def manager(tmp_path):
     v2 = make_artifact(tmp_path / "v2", MODELS[V2])
@@ -163,6 +203,28 @@ def test_missing_artifacts_are_unavailable_not_errors(tmp_path):
         m.predict(F006, "texto sintético de prueba")
     with pytest.raises(ModelUnavailableError):
         m.predict(F006_1, "texto sintético en español")
+
+
+def test_discovery_rechecks_missing_artifacts_without_rehashing_available_ones(manager, monkeypatch):
+    from app.services.analyzer import manager as manager_module
+
+    manager.discover()
+    assert manager.states[V2].state == "AVAILABLE"
+    assert manager.states[V3].state == "AVAILABLE"
+
+    validated: list[str] = []
+    validate = manager_module.validate_artifact
+
+    def record_validation(spec, path):
+        validated.append(spec.name)
+        return validate(spec, path)
+
+    monkeypatch.setattr(manager_module, "validate_artifact", record_validation)
+    manager.discover()
+
+    assert V2 not in validated
+    assert V3 not in validated
+    assert F006_1 in validated
 
 
 def test_manifest_validation_reports_missing_and_invalid(tmp_path):
@@ -216,6 +278,59 @@ def test_calibrators_and_threshold_profiles(manager, tmp_path):
     with pytest.raises(ValueError):
         manager.resolve_threshold(V3, "CUSTOM", None)
     assert manager.resolve_threshold(V3, "CUSTOM", 0.7)[0] == 0.7
+
+
+def test_f006_1_1_artifact_calibration_and_language_thresholds(tmp_path):
+    artifact = make_f006_1_1_artifact(tmp_path / "f006_1_1")
+    profiles = tmp_path / "profiles"
+    profiles.mkdir()
+    manager = ModelManager(
+        Settings(
+            AI_MODEL_F006_1_1_PATH=str(artifact),
+            AI_ANALYZER_PROFILES_DIR=str(profiles),
+        ),
+        backend_factory=lambda *args: FakeBackend(),
+    )
+    manager.discover()
+
+    status = manager.status(F006_1_1)
+    assert status["artifactValid"] is True
+    assert status["artifactChecksumExpected"] is False
+    assert status["artifactChecksumValidated"] is False
+    assert status["servable"] is True
+    assert status["active"] is False and status["candidate"] is False
+    assert manager.calibrator(F006_1_1, "es")[1] == "ES_PLATT"
+    assert manager.calibrator(F006_1_1, "en")[1] == "GLOBAL_ISO"
+    assert manager.resolve_threshold(F006_1_1, "BALANCED", None, "es") == (
+        0.767241379310345,
+        "model-thresholds.json:SPANISH_THRESHOLD",
+    )
+    assert manager.resolve_threshold(F006_1_1, "BALANCED", None, "other") == (
+        0.767241379310345,
+        "model-thresholds.json:GLOBAL_THRESHOLD",
+    )
+
+
+def test_local_preferred_falls_back_visibly_when_unavailable(tmp_path):
+    v3 = make_artifact(tmp_path / "v3", MODELS[V3])
+    manager = ModelManager(
+        Settings(
+            AI_MODEL_V3_PATH=str(v3),
+            AI_ANALYZER_PROFILES_DIR=str(tmp_path / "profiles"),
+            LOCAL_PREFERRED_ANALYZER=F006_1_1,
+            LOCAL_PREFERRED_ANALYZER_FALLBACK=V3,
+        ),
+        backend_factory=lambda *args: FakeBackend(),
+    )
+    manager.discover()
+
+    policy = manager.local_preferred_policy()
+    assert policy["localPreferredAnalyzer"] == F006_1_1
+    assert policy["localPreferredAvailable"] is False
+    assert policy["resolvedLocalPreferredAnalyzer"] == V3
+    assert policy["localPreferredFallbackAvailable"] is True
+    assert "using configured fallback" in policy["localPreferredWarning"]
+    assert "EXPERIMENTAL_SPAN_MODEL_V1" not in MODELS
 
 
 def test_predict_output_contract(manager):
@@ -605,3 +720,16 @@ def test_api_models_and_unavailable_predict(tmp_path, monkeypatch):
     assert f006_1["active"] is False
     assert f006_1["candidate"] is False
     assert f006_1["servable"] is False
+    f006_1_1 = next(m for m in models.json()["models"] if m["model"] == F006_1_1)
+    assert f006_1_1["status"] == "EXPERIMENTAL"
+    assert f006_1_1["state"] == "UNAVAILABLE"
+    assert f006_1_1["available"] is False
+    assert f006_1_1["active"] is False
+    assert f006_1_1["candidate"] is False
+    assert f006_1_1["servable"] is False
+    assert all(m["model"] != "EXPERIMENTAL_SPAN_MODEL_V1" for m in models.json()["models"])
+    assert models.json()["policy"]["unifiedReady"] is False
+    assert models.json()["policy"]["spanServingReady"] is False
+    assert models.json()["policy"]["paragraphHighlighting"] is True
+    assert models.json()["policy"]["spanHighlighting"] is False
+    assert models.json()["policy"]["granularity"] == "PARAGRAPH"

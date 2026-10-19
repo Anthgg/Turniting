@@ -1954,6 +1954,12 @@
   line-height: 1.5;
 }
 
+.analysis-preferred-warning {
+  border-color: #edd8a8;
+  color: #785213;
+  background: var(--amber-pale);
+}
+
 .analysis-error {
   border-color: #edd8a8;
   color: #785213;

@@ -12,11 +12,16 @@ from app.services.analyzer import ensemble as ens
 from app.services.analyzer.comparison import align_paragraphs, document_similarity
 from app.services.analyzer.manager import ModelManager, ModelUnavailableError
 from app.services.analyzer.paragraphs import split_paragraphs
-from app.services.analyzer.registry import V2, V3
+from app.services.analyzer.registry import F006_1, F006_1_1, V2, V3
 from app.services.analyzer.scoring import CONTEXTUAL, aggregate_document
 
 ENSEMBLE_PROFILE = "ENSEMBLE_V2_V3"
-MODE_MODEL = {"V2_ONLY": V2, "V3_ONLY": V3}
+MODE_MODEL = {
+    "V2_ONLY": V2,
+    "V3_ONLY": V3,
+    "F006_1_ONLY": F006_1,
+    "F006_1_1_ONLY": F006_1_1,
+}
 
 
 def ensemble_profile(manager: ModelManager) -> dict:
@@ -34,10 +39,11 @@ def analyze(
     profile: str,
     custom: float | None,
     mode: str,
+    language_code: str = "other",
 ) -> dict:
     if analyzer in MODE_MODEL:
         result = manager.analyze_paragraphs(
-            MODE_MODEL[analyzer], text, profile, custom, mode
+            MODE_MODEL[analyzer], text, profile, custom, mode, language_code
         )
         return {"analyzer": analyzer, **result}
     prof = ensemble_profile(manager)
@@ -160,9 +166,10 @@ def compare_versions(
     profile: str,
     custom: float | None,
     mode: str,
+    language_code: str = "other",
 ) -> dict:
-    base = analyze(manager, base_text, analyzer, profile, custom, mode)
-    target = analyze(manager, target_text, analyzer, profile, custom, mode)
+    base = analyze(manager, base_text, analyzer, profile, custom, mode, language_code)
+    target = analyze(manager, target_text, analyzer, profile, custom, mode, language_code)
     pa, pb = split_paragraphs(base_text), split_paragraphs(target_text)
     alignment = align_paragraphs(pa, pb)
     rows, unchanged_drift = [], []

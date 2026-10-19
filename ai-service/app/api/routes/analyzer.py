@@ -65,6 +65,12 @@ def list_models() -> dict:
             "maxJobs": manager.settings.ai_model_max_jobs,
             "device": manager.settings.ai_model_device,
             "inference": "sequential",
+            **manager.local_preferred_policy(),
+            "unifiedReady": False,
+            "spanServingReady": False,
+            "paragraphHighlighting": True,
+            "spanHighlighting": False,
+            "granularity": "PARAGRAPH",
         },
     }
 
@@ -87,6 +93,7 @@ async def predict(model: ModelName, payload: PredictRequest) -> dict:
         payload.text,
         payload.thresholdProfile,
         payload.customThreshold,
+        payload.languageCode,
     )
 
 
@@ -105,6 +112,7 @@ async def compare_models(payload: CompareModelsRequest) -> dict:
                 payload.text,
                 payload.thresholdProfile,
                 payload.customThreshold,
+                payload.languageCode,
             )
         )
     return {"results": results}
@@ -121,6 +129,7 @@ async def analysis_paragraphs(payload: ParagraphAnalysisRequest) -> dict:
         payload.thresholdProfile,
         payload.customThreshold,
         payload.paragraphMode,
+        payload.languageCode,
     )
 
 
@@ -136,6 +145,7 @@ async def analysis_compare_versions(payload: CompareVersionsRequest) -> dict:
         payload.thresholdProfile,
         payload.customThreshold,
         payload.paragraphMode,
+        payload.languageCode,
     )
 
 

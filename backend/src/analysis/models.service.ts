@@ -3,13 +3,14 @@ import type { Prisma } from '@prisma/client';
 import { AiService, type AiAnalyzerModelStatus } from '../ai/ai.service.js';
 import { ModelVersionService } from '../datasets/model-version.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { ACTIVE_ACCEPTANCE_LIMITS, MODEL_CATALOG, numericGateResults } from './model-catalog.js';
+import { ACTIVE_ACCEPTANCE_LIMITS, MODEL_CATALOG, NON_SERVING_RESEARCH_MODELS, numericGateResults } from './model-catalog.js';
 
 const ANALYZER_MODELS = [
   'ENSEMBLE_V2_V3',
   'CANDIDATE_MODEL_V3',
   'CANDIDATE_MODEL_V2',
   'EXPERIMENTAL_F006_1_MODEL',
+  'EXPERIMENTAL_F006_1_1_MODEL',
   'EXPERIMENTAL_F006_MODEL',
   'BEST_BASELINE',
 ];
@@ -30,9 +31,12 @@ export class AnalyzerModelsService {
   async list() {
     const registered = await this.prisma.modelVersion.findMany({ where: { name: { in: ANALYZER_MODELS } } });
     let live: AiAnalyzerModelStatus[] = [];
+    let modelPolicy: Record<string, unknown> = {};
     let aiReachable = true;
     try {
-      live = (await this.ai.listAnalyzerModels()).models;
+      const response = await this.ai.listAnalyzerModels();
+      live = response.models;
+      modelPolicy = response.policy ?? {};
     } catch {
       aiReachable = false;
     }
@@ -65,6 +69,18 @@ export class AnalyzerModelsService {
         : isEnsemble
           ? ensembleAvailability
           : st?.state ?? 'UNAVAILABLE';
+      const researchMetadata = defaults.researchMetadata
+        ? {
+          ...defaults.researchMetadata,
+          artifactAvailableLocally: Boolean(artifactPresent && artifactValid),
+          artifactChecksumValidated: Boolean(st?.artifactChecksumValidated),
+        }
+        : undefined;
+      const artifactWarning = defaults.researchMetadata && !artifactValid
+        ? [aiReachable
+          ? 'El artefacto del modelo no está instalado o no pasó su validación local.'
+          : 'No se pudo comprobar la disponibilidad del artefacto porque el servicio de IA no responde.']
+        : [];
       return {
         name,
         id: db?.id ?? null,
@@ -85,15 +101,21 @@ export class AnalyzerModelsService {
         servable: isEnsemble ? ensembleReady : st?.servable ?? false,
         thresholdProfiles: st?.thresholdProfiles?.length ? st.thresholdProfiles : defaults.thresholdProfiles,
         thresholdSource: st?.thresholdSource ?? defaults.thresholdSource,
+        thresholds: st?.thresholds,
+        modelId: st?.modelId,
+        parentModel: st?.parentModel,
+        sourceCommit: st?.sourceCommit,
+        calibrationSources: st?.calibrationSources,
+        languageRouting: st?.languageRouting,
         preprocessing: st?.preprocessing?.length ? st.preprocessing : defaults.preprocessing,
         metrics: defaults.metrics,
         registryMetrics: db?.metrics ?? null,
         strengths: defaults.strengths,
-        warnings: [...new Set([...(defaults.warnings ?? []), ...(st?.warnings ?? []), ...(db?.limitations ?? [])])],
+        warnings: [...new Set([...(defaults.warnings ?? []), ...artifactWarning, ...(st?.warnings ?? []), ...(db?.limitations ?? [])])],
         activeGateResults: numericGateResults(defaults.metrics),
         officialGateResults: defaults.officialGates,
         promotionEvidence: defaults.promotionEvidence,
-        researchMetadata: defaults.researchMetadata,
+        researchMetadata,
         promotionEligible: false,
         promotionReviewRequired: true,
       };
@@ -101,6 +123,18 @@ export class AnalyzerModelsService {
     return {
       aiServiceReachable: aiReachable,
       activeModel: 'NONE',
+      localPreferredAnalyzer: modelPolicy.localPreferredAnalyzer ?? null,
+      localPreferredAvailable: modelPolicy.localPreferredAvailable ?? false,
+      resolvedLocalPreferredAnalyzer: modelPolicy.resolvedLocalPreferredAnalyzer ?? null,
+      localPreferredFallback: modelPolicy.localPreferredFallback ?? null,
+      localPreferredFallbackAvailable: modelPolicy.localPreferredFallbackAvailable ?? false,
+      localPreferredWarning: modelPolicy.localPreferredWarning ?? null,
+      unifiedReady: false,
+      spanServingReady: false,
+      paragraphHighlighting: true,
+      spanHighlighting: false,
+      granularity: 'PARAGRAPH',
+      nonServingResearchModels: NON_SERVING_RESEARCH_MODELS,
       recommendedExperimentalAnalyzer: 'ENSEMBLE_V2_V3',
       recommendedExperimentalThresholdProfile: 'BALANCED',
       lowFprAlternative: 'CANDIDATE_MODEL_V2',
@@ -118,6 +152,19 @@ export class AnalyzerModelsService {
     if (!model) throw new NotFoundException('Model not registered');
     const metadata = (model.metadata ?? {}) as Prisma.JsonObject;
     const researchMetadata = MODEL_CATALOG[model.name]?.researchMetadata;
+    let liveResearchMetadata = researchMetadata;
+    if (researchMetadata) {
+      try {
+        const liveModel = (await this.ai.listAnalyzerModels()).models.find((entry) => entry.model === model.name);
+        liveResearchMetadata = {
+          ...researchMetadata,
+          artifactAvailableLocally: Boolean(liveModel?.artifactPresent && liveModel.artifactValid),
+          artifactChecksumValidated: Boolean(liveModel?.artifactChecksumValidated),
+        };
+      } catch {
+        // Preserve the catalog snapshot when the AI service cannot be queried.
+      }
+    }
     return {
       id: model.id,
       name: model.name,
@@ -135,7 +182,7 @@ export class AnalyzerModelsService {
       failedGates: metadata.failedGates ?? researchMetadata?.failedGates ?? [],
       active: metadata.active ?? researchMetadata?.active ?? false,
       candidate: metadata.candidate ?? researchMetadata?.candidate ?? false,
-      researchMetadata: researchMetadata ?? null,
+      researchMetadata: liveResearchMetadata ?? null,
     };
   }
 

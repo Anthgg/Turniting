@@ -1,0 +1,2 @@
+ALTER TYPE "AnalyzerMode" ADD VALUE 'F006_1_ONLY';
+ALTER TYPE "AnalyzerMode" ADD VALUE 'F006_1_1_ONLY';

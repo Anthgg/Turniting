@@ -55,7 +55,10 @@ services:
       AI_MODEL_V2_PATH: /data/models/local/candidate-v2
       AI_MODEL_V3_PATH: /data/models/local/candidate-v3
       AI_MODEL_F006_PATH: /data/models/local/experimental-f006
-      AI_MODEL_F006_1_PATH: /data/models/local/experimental-f006-1
+      AI_MODEL_F006_1_PATH: /data/models/local/f006_1/experimental_f006_1
+      AI_MODEL_F006_1_1_PATH: /data/models/local/f006_1_1/experimental_f006_1_1
+      LOCAL_PREFERRED_ANALYZER: ${LOCAL_PREFERRED_ANALYZER:-EXPERIMENTAL_F006_1_MODEL}
+      LOCAL_PREFERRED_ANALYZER_FALLBACK: ${LOCAL_PREFERRED_ANALYZER_FALLBACK:-CANDIDATE_MODEL_V3}
       AI_BASELINE_MODEL_PATH: /data/models/local/baseline
       AI_MODEL_DEVICE: ${AI_MODEL_DEVICE:-auto}
       MODEL_MAX_RESIDENT: ${MODEL_MAX_RESIDENT:-1}
