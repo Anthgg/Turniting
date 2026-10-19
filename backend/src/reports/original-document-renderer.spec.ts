@@ -524,12 +524,22 @@ describe('OriginalDocumentRenderer PDF integration', () => {
         [2],
       ]);
 
-      const output = await harness.renderer.renderOriginalReview(
-        reportInput(
-          segments.map((text, index) =>
-            reportParagraph(index, text, 0.58, index === 1),
-          ),
+      const threshold = 0.644295302013423;
+      const scores = [
+        0.644295302013423,
+        0.91,
+        0.644295302013422,
+        0.644295302013423,
+        0.644295302013424,
+      ];
+      const report = reportInput(
+        segments.map((text, index) =>
+          reportParagraph(index, text, scores[index]!, index === 1),
         ),
+      );
+      report.run.threshold = threshold;
+      const output = await harness.renderer.renderOriginalReview(
+        report,
         ensured.buffer,
         ensured.layoutMap,
       );
@@ -591,15 +601,15 @@ describe('OriginalDocumentRenderer PDF integration', () => {
         ).toBeGreaterThan(0);
         expect(
           yellowPixelCount(rasterPages[1]!, ensured.layoutMap.segments[2]!.rectangles),
-          'highlight should align with the first column on source page 3',
-        ).toBeGreaterThan(0);
+          'a score below the exact threshold should not highlight the first column on source page 3',
+        ).toBe(0);
         expect(
           yellowPixelCount(rasterPages[1]!, ensured.layoutMap.segments[3]!.rectangles),
-          'highlight should align with the second column on source page 3',
+          'a score equal to the exact threshold should highlight the second column on source page 3',
         ).toBeGreaterThan(0);
         expect(
           yellowPixelCount(rasterPages[2]!, ensured.layoutMap.segments[4]!.rectangles),
-          'highlight should align with vector text on the 270-degree source page',
+          'a score above the exact threshold should highlight vector text on the 270-degree source page',
         ).toBeGreaterThan(0);
         expect(
           yellowPixelCount(rasterPages[0]!, ensured.layoutMap.segments[1]!.rectangles),

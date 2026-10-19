@@ -338,40 +338,58 @@ describe('ReportRenderer', () => {
   });
 
   it('renders technical scores at the exact persisted threshold and keeps insufficient text unevaluated', async () => {
-    const input = syntheticAIInput({ paragraphCount: 3 });
-    input.run.threshold = 0.58;
+    const input = syntheticAIInput({ paragraphCount: 6 });
+    input.run.threshold = 0.644295302013423;
     input.paragraphs[0] = {
       ...input.paragraphs[0]!,
-      score: 0.58,
-      textPreview: 'Exact threshold boundary is flagged.',
+      score: 0.644295302013422,
+      textPreview: 'One step below the threshold is not flagged.',
     };
     input.paragraphs[1] = {
       ...input.paragraphs[1]!,
-      score: 0.579,
-      textPreview: 'Just below the threshold is not flagged.',
+      score: 0.644295302013423,
+      textPreview: 'Exact threshold boundary is flagged.',
     };
     input.paragraphs[2] = {
       ...input.paragraphs[2]!,
+      score: 0.644295302013424,
+      textPreview: 'One step above the threshold is flagged.',
+    };
+    input.paragraphs[3] = {
+      ...input.paragraphs[3]!,
+      score: 0.78362,
+      textPreview: 'Synthetic local score uses one decimal percent.',
+    };
+    input.paragraphs[4] = {
+      ...input.paragraphs[4]!,
       score: null,
       textPreview: 'Insufficient paragraph has no score.',
+    };
+    input.paragraphs[5] = {
+      ...input.paragraphs[5]!,
+      score: 0.91,
+      textPreview: 'Reference score remains visible and excluded from review.',
       presentationExcluded: true,
       excludedReason: 'REFERENCES_SECTION',
       reviewPresentation: {
         highlight: false,
-        level: null,
+        level: 'HIGH',
         excludedReason: 'REFERENCES_SECTION',
       },
     };
     const completeText = `Exact threshold boundary is flagged. ${'Synthetic full paragraph text remains available. '.repeat(60)}END_OF_SYNTHETIC_FULL_TEXT`;
-    input.paragraphs[0]!.textPreview = completeText;
+    input.paragraphs[1]!.textPreview = completeText;
 
     const pdf = await renderer.renderAIParagraphTechnical(input);
     const content = compactPdfText(pdf);
 
     expect(pageCount(pdf)).toBeGreaterThan(1);
+    expect(content).toContain('onestepbelowthethresholdisnotflagged');
     expect(content).toContain('exactthresholdboundaryisflagged');
-    expect(content).toContain('justbelowthethresholdisnotflagged');
+    expect(content).toContain('onestepabovethethresholdisflagged');
+    expect(content).toContain('78.4%');
     expect(content).toContain('end_of_synthetic_full_text');
+    expect(content).toContain('referencescoreremainsvisibleandexcludedfromreview');
     expect(content).toContain('senalado');
     expect(content).toContain('noseñalado'.normalize('NFD').replace(/\p{Diacritic}/gu, ''));
     expect(content).toContain('noevaluado');
