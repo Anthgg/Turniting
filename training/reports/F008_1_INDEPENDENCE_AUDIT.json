@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "phase": "F008_1_PARAPHRASE_TRANSLATED_HARDENING",
+  "generated_at_utc": "2026-10-19T21:21:06Z",
+  "status": "STOP",
+  "independent_data_certified": false,
+  "decision": "STOP_BEFORE_SPLIT_LOCK_AND_TRAINING",
+  "historical_scan": {
+    "sample_exact_audit_status": "PARTIAL_LONG_TEXT_EXACT_SCREEN_ONLY",
+    "historical_text_rows_scanned": 8815028,
+    "historical_text_values_hashed": 9421519,
+    "text_bearing_files_scanned": 120,
+    "read_failures": 0
+  },
+  "candidates": [
+    {
+      "candidate": "B1",
+      "dataset_id": "GIL-UNAM/SpanishParaphraseCorpora (Sushi Corpus)",
+      "revision": "03c26e2c0988b39a7de605a70d86d4d9169e9954",
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "sample_status": "SKIPPED",
+      "sampled_historical_long_exact_hits": null,
+      "exact_overlap_status": "NOT_EVALUATED_NO_SAMPLE",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "UNKNOWN",
+        "evidence": "No sample; exact, near, and same-topic overlap not evaluated."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    },
+    {
+      "candidate": "B2",
+      "dataset_id": "Zenodo record 3715980; DOI 10.5281/zenodo.3715980",
+      "revision": null,
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "sample_status": "SKIPPED",
+      "sampled_historical_long_exact_hits": null,
+      "exact_overlap_status": "NOT_EVALUATED_NO_SAMPLE",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "POSSIBLE_OVERLAP",
+        "evidence": "Related PAN editions; source-document reuse not audited; PAN13 license undeclared."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    },
+    {
+      "candidate": "B3",
+      "dataset_id": "SINAI/ALIA-parallel-translation",
+      "revision": "ed89b7a24dbb402e88ad4239ae1576120332bd3f",
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "sample_status": "FAILED",
+      "sampled_historical_long_exact_hits": null,
+      "exact_overlap_status": "NOT_EVALUATED_NO_SAMPLE",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "POSSIBLE_OVERLAP",
+        "evidence": "Parallel corpus includes ALIA legal-administrative domains; record-level source IDs not checked."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    },
+    {
+      "candidate": "B4",
+      "dataset_id": "Lidor-Mashiach/snli-paraphrase-bank",
+      "revision": "0551d6986589b4055e66d69b0e8a31ee9baf4e55",
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "sample_status": "FAILED",
+      "sampled_historical_long_exact_hits": null,
+      "exact_overlap_status": "NOT_EVALUATED_NO_SAMPLE",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "POSSIBLE_OVERLAP",
+        "evidence": "SNLI-derived hypotheses may appear in historical aggregates; no sample obtained."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    },
+    {
+      "candidate": "B5",
+      "dataset_id": "Emulated-Inc/parallel-translation-training-pool",
+      "revision": "ab0994507755ddc1ec738f1645ec153d8e3c34b0",
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "sample_status": "FAILED",
+      "sampled_historical_long_exact_hits": null,
+      "exact_overlap_status": "NOT_EVALUATED_NO_SAMPLE",
+      "near_overlap": "NOT_EVALUATED",
+      "source_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "group_overlap": "NOT_EVALUATED",
+      "lineage_overlap": "NOT_EVALUATED_RECORD_LEVEL",
+      "known_or_possible_family_relation": {
+        "status": "UNKNOWN",
+        "evidence": "Source families/licenses identified, but document-level overlap is not tested."
+      },
+      "unknown_provenance": true,
+      "eligibility_reason": "Near-duplicate and source/group/lineage gates are incomplete; no split eligibility granted."
+    }
+  ],
+  "gates": {
+    "historic_manifests_and_text_parquets": "PASS_SCAN_ONLY",
+    "pinned_metadata_recorded": "PASS_FOR_HF_CANDIDATES",
+    "sample_1000_every_candidate": "FAIL",
+    "full_candidate_exact_audit": "NOT_EVALUATED",
+    "near_duplicate_minHash_and_ngrams": "NOT_EVALUATED",
+    "source_url_document_lineage": "NOT_EVALUATED",
+    "group_prompt_parent_child_lineage": "NOT_EVALUATED",
+    "new_clean_train_validation_holdout": "FAIL",
+    "training": "NOT_RUN_BY_GATE"
+  },
+  "private_document_used": false,
+  "user_thesis_used": false,
+  "turnitin_data_used": false,
+  "training_performed": false
+}
