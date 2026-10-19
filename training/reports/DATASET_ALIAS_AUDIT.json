@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "created_at_utc": "2026-10-19T21:21:06Z",
+  "items": [
+    {
+      "candidateDataset": "ALIA_ES_LEGAL_HUMAN",
+      "possiblePriorDataset": "ALIA_ES_LEGAL_SYNTHETIC",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "Synthetic card says generations are grounded in ALIA human legal documents; per-item source/context IDs are absent.",
+      "status": "KNOWN_OVERLAP",
+      "run_decision": "excluded this iteration"
+    },
+    {
+      "candidateDataset": "ALIA_ES_BIOMEDICAL_HUMAN",
+      "possiblePriorDataset": "ALIA_ES_BIOMEDICAL_SYNTHETIC",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "Same ALIA source family; synthetic per-item lineage IDs absent.",
+      "status": "POSSIBLE_OVERLAP",
+      "run_decision": "excluded this iteration"
+    },
+    {
+      "candidateDataset": "ALIA_ES_CULTURAL_HUMAN",
+      "possiblePriorDataset": "ALIA_ES_CULTURAL_SYNTHETIC",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "Synthetic heritage examples may derive from human source documents; parent IDs absent.",
+      "status": "POSSIBLE_OVERLAP",
+      "run_decision": "excluded this iteration"
+    },
+    {
+      "candidateDataset": "ALIA_ES_LEGAL_HUMAN",
+      "possiblePriorDataset": "BOLETIN_OFICIAL_ARGENTINA",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "Both include public government/legal texts; URL/document intersection not tested.",
+      "status": "POSSIBLE_OVERLAP",
+      "run_decision": "excluded this iteration"
+    },
+    {
+      "candidateDataset": "ALIA_ES_LEGAL_HUMAN",
+      "possiblePriorDataset": "ALIA_PARALLEL_TRANSLATION",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "Parallel corpus includes ALIA legal-administrative domains; record-level source IDs not checked.",
+      "status": "POSSIBLE_OVERLAP",
+      "run_decision": "excluded this iteration"
+    },
+    {
+      "candidateDataset": "F006_ACADEMIC_ABSTRACTS_SCIELO",
+      "possiblePriorDataset": "ALIA_ES_BIOMEDICAL_HUMAN",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "Historical F006 has academic abstracts ES and SciELO ES; ALIA source IDs not mapped.",
+      "status": "POSSIBLE_OVERLAP",
+      "run_decision": "excluded this iteration"
+    },
+    {
+      "candidateDataset": "F006_ACADEMIC_SCIELO",
+      "possiblePriorDataset": "ALIA_ES_CULTURAL_HUMAN",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "Cultural ALIA includes CSIC/institutional sources; exact document overlap unresolved.",
+      "status": "POSSIBLE_OVERLAP",
+      "run_decision": "excluded this iteration"
+    },
+    {
+      "candidateDataset": "F006_V2_V3_AGGREGATES_MAGE",
+      "possiblePriorDataset": "TURINGBENCH",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "Prompt flags possible direct/indirect aggregate inclusion; archive uninspected.",
+      "status": "POSSIBLE_OVERLAP",
+      "run_decision": "excluded this iteration"
+    },
+    {
+      "candidateDataset": "TWEETEVAL",
+      "possiblePriorDataset": "UNMASKING_THE_IMPOSTERS",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "Card identifies TweetEval emotion tweets as human source; human rows repeat across nine configs.",
+      "status": "KNOWN_OVERLAP",
+      "run_decision": "excluded this iteration"
+    },
+    {
+      "candidateDataset": "F008_PAN2011",
+      "possiblePriorDataset": "PAN13_TEXT_ALIGNMENT",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "Related PAN editions; source-document reuse not audited; PAN13 license undeclared.",
+      "status": "POSSIBLE_OVERLAP",
+      "run_decision": "excluded this iteration"
+    },
+    {
+      "candidateDataset": "F008_HISTORICAL",
+      "possiblePriorDataset": "SPANISH_PARAPHRASE_CORPORA",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "No sample; exact, near, and same-topic overlap not evaluated.",
+      "status": "UNKNOWN",
+      "run_decision": "excluded this iteration"
+    },
+    {
+      "candidateDataset": "F008_HISTORICAL",
+      "possiblePriorDataset": "ALIA_PARALLEL_TRANSLATION",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "Large parallel source families may overlap F008 and ALIA source corpora; no sample obtained.",
+      "status": "POSSIBLE_OVERLAP",
+      "run_decision": "excluded this iteration"
+    },
+    {
+      "candidateDataset": "V2_V3_ENGLISH_AGGREGATES",
+      "possiblePriorDataset": "SNLI_PARAPHRASE_BANK",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "SNLI-derived hypotheses may appear in historical aggregates; no sample obtained.",
+      "status": "POSSIBLE_OVERLAP",
+      "run_decision": "excluded this iteration"
+    },
+    {
+      "candidateDataset": "F008_HISTORICAL",
+      "possiblePriorDataset": "PARALLEL_TRANSLATION_TRAINING_POOL",
+      "relationship": "source-family relation; not a claim of exact duplicate",
+      "evidence": "Source families/licenses identified, but document-level overlap is not tested.",
+      "status": "UNKNOWN",
+      "run_decision": "excluded this iteration"
+    }
+  ]
+}
