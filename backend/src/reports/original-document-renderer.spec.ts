@@ -132,10 +132,10 @@ function reportParagraph(
     reviewPresentation: {
       highlight: score !== null && !presentationExcluded,
       level: score === null ? null : 'HIGH',
-      ...(presentationExcluded ? { excludedReason: 'REFERENCES_SECTION' } : {}),
+      ...(presentationExcluded ? { excludedReason: 'REFERENCE_SECTION' } : {}),
     },
     presentationExcluded,
-    ...(presentationExcluded ? { excludedReason: 'REFERENCES_SECTION' } : {}),
+    ...(presentationExcluded ? { excludedReason: 'REFERENCE_SECTION' } : {}),
     textPreview: text,
     pageNumber: paragraphIndex + 1,
     words: text.split(/\s+/u).length,

@@ -370,11 +370,11 @@ describe('ReportRenderer', () => {
       score: 0.91,
       textPreview: 'Reference score remains visible and excluded from review.',
       presentationExcluded: true,
-      excludedReason: 'REFERENCES_SECTION',
+      excludedReason: 'REFERENCE_SECTION',
       reviewPresentation: {
         highlight: false,
         level: 'HIGH',
-        excludedReason: 'REFERENCES_SECTION',
+        excludedReason: 'REFERENCE_SECTION',
       },
     };
     const completeText = `Exact threshold boundary is flagged. ${'Synthetic full paragraph text remains available. '.repeat(60)}END_OF_SYNTHETIC_FULL_TEXT`;
@@ -393,7 +393,7 @@ describe('ReportRenderer', () => {
     expect(content).toContain('senalado');
     expect(content).toContain('noseñalado'.normalize('NFD').replace(/\p{Diacritic}/gu, ''));
     expect(content).toContain('noevaluado');
-    expect(content).toContain('references_section');
+    expect(content).toContain('reference_section');
     expect(content).toContain('norepresentaelporcentajedecontribucionaritmeticadelparrafo');
     expect(content).not.toContain('0.0%');
   });
