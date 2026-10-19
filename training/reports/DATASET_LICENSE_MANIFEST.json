@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "created_at_utc": "2026-10-19T21:21:06Z",
+  "datasets": [
+    {
+      "dataset_id": "SINAI/ALIA-es-legal-administrative",
+      "revision": "e26369da12bfeaa305a7fefe39ee168ec7c48c43",
+      "license": "CC-BY-SA-4.0",
+      "source": "Hugging Face card",
+      "citation": "https://huggingface.co/datasets/SINAI/ALIA-es-legal-administrative",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "notes": "Public legal and administrative sources; source_id is present. Legal permission and this run eligibility are separate; excluded in this run."
+    },
+    {
+      "dataset_id": "SINAI/ALIA-es-legal-administrative-synthetic-instructions",
+      "revision": "8cec767c0f82240538e04f086c4dd59b6c732af3",
+      "license": "CC-BY-SA-4.0",
+      "source": "Hugging Face card",
+      "citation": "https://huggingface.co/datasets/SINAI/ALIA-es-legal-administrative-synthetic-instructions",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "notes": "Card states generations are grounded in ALIA human legal-administrative public documents; no per-item source/context or parent ID in schema. Legal permission and this run eligibility are separate; excluded in this run."
+    },
+    {
+      "dataset_id": "SINAI/ALIA-es-biomedical",
+      "revision": "6a782417d7183bcf6476cc91f2629ad1c5426a10",
+      "license": "CC-BY-SA-4.0",
+      "source": "Hugging Face card",
+      "citation": "https://huggingface.co/datasets/SINAI/ALIA-es-biomedical",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "notes": "21 source IDs; possible source overlap with historical academic abstracts and SciELO not resolved. Legal permission and this run eligibility are separate; excluded in this run."
+    },
+    {
+      "dataset_id": "SINAI/ALIA-es-biomedical-synthetic-instructions",
+      "revision": "9c85b78c0944841551e1b9d5b5f968f0350c156b",
+      "license": "CC-BY-SA-4.0",
+      "source": "Hugging Face card",
+      "citation": "https://huggingface.co/datasets/SINAI/ALIA-es-biomedical-synthetic-instructions",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "notes": "Synthetic instructions; source-document/context and parent IDs not observed; preserve generator/task metadata. Legal permission and this run eligibility are separate; excluded in this run."
+    },
+    {
+      "dataset_id": "SINAI/ALIA-es-cultural-heritage",
+      "revision": "7abee97fe5d79db21293ccc0aca60c4e982a9078",
+      "license": "CC-BY-SA-4.0",
+      "source": "Hugging Face card",
+      "citation": "https://huggingface.co/datasets/SINAI/ALIA-es-cultural-heritage",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "notes": "Sources include Wikipedia_Cultura_España, Revistas CSIC, and institutional heritage sources; historical source relations unresolved. Legal permission and this run eligibility are separate; excluded in this run."
+    },
+    {
+      "dataset_id": "SINAI/ALIA-es-cultural-heritage-synthetic-instructions",
+      "revision": "f43cae5feea29bb52c1f73ec3439f72618f5e6cc",
+      "license": "CC-BY-SA-4.0",
+      "source": "Hugging Face card",
+      "citation": "https://huggingface.co/datasets/SINAI/ALIA-es-cultural-heritage-synthetic-instructions",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "notes": "Generations based on heritage documents; source/context and parent IDs absent. Preserve question_model, response_model, task_type. Legal permission and this run eligibility are separate; excluded in this run."
+    },
+    {
+      "dataset_id": "marianbasti/boletin-oficial-argentina",
+      "revision": "f5dffdf364bdd21ee1e1c0728ed0ea38392c0f6c",
+      "license": "Apache-2.0",
+      "source": "Hugging Face card",
+      "citation": "https://huggingface.co/datasets/marianbasti/boletin-oficial-argentina",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "notes": "Daily-updated public Argentina government bulletin; overlap with ALIA legal and historic sources unverified. Legal permission and this run eligibility are separate; excluded in this run."
+    },
+    {
+      "dataset_id": "redasers/Unmasking-the-Imposters",
+      "revision": "48d1eee50c389d12f49bb0af285a37dba4d23a6a",
+      "license": "CC-BY-4.0",
+      "source": "Hugging Face card",
+      "citation": "https://huggingface.co/datasets/redasers/Unmasking-the-Imposters",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "notes": "Human source is TweetEval emotion tweets; same human rows repeat across configs. Prompt/per-item lineage IDs not observed. Legal permission and this run eligibility are separate; excluded in this run."
+    },
+    {
+      "dataset_id": "turingbench/TuringBench",
+      "revision": "940fa0c860325e199aeaa8d6dbfceec69f13a7e8",
+      "license": "Apache-2.0",
+      "source": "Hugging Face card",
+      "citation": "https://huggingface.co/datasets/turingbench/TuringBench",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "notes": "High-overlap-risk audit-only source; possible inclusion in MAGE and historical aggregates not ruled out. Legal permission and this run eligibility are separate; excluded in this run."
+    },
+    {
+      "dataset_id": "GIL-UNAM/SpanishParaphraseCorpora (Sushi Corpus)",
+      "revision": "03c26e2c0988b39a7de605a70d86d4d9169e9954",
+      "license": "CC0-1.0",
+      "source": "Hugging Face card",
+      "citation": "https://huggingface.co/datasets/GIL-UNAM/SpanishParaphraseCorpora",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "notes": "Small manually created Spanish paraphrases and same-topic negatives; proposed for evaluation/holdout only after certification. Legal permission and this run eligibility are separate; excluded in this run."
+    },
+    {
+      "dataset_id": "Zenodo record 3715980; DOI 10.5281/zenodo.3715980",
+      "revision": null,
+      "license": null,
+      "source": "Zenodo record metadata",
+      "citation": "https://zenodo.org/records/3715980",
+      "trainingAllowed": false,
+      "redistributionAllowed": false,
+      "notes": "Zenodo license metadata is null. Do not train or redistribute until rights are clarified; preserve offsets and official split. Legal permission and this run eligibility are separate; excluded in this run."
+    },
+    {
+      "dataset_id": "SINAI/ALIA-parallel-translation",
+      "revision": "ed89b7a24dbb402e88ad4239ae1576120332bd3f",
+      "license": "CC-BY-SA-4.0",
+      "source": "Hugging Face card",
+      "citation": "https://huggingface.co/datasets/SINAI/ALIA-parallel-translation",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "notes": "Very large; stream only. Preserve source/domain provenance. Overlap with ALIA and F008 sources unresolved. Legal permission and this run eligibility are separate; excluded in this run."
+    },
+    {
+      "dataset_id": "Lidor-Mashiach/snli-paraphrase-bank",
+      "revision": "0551d6986589b4055e66d69b0e8a31ee9baf4e55",
+      "license": "CC-BY-SA-4.0",
+      "source": "Hugging Face card",
+      "citation": "https://huggingface.co/datasets/Lidor-Mashiach/snli-paraphrase-bank",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "notes": "Automated paraphrases of SNLI training hypotheses; group by pair_id; not individually human reviewed. Legal permission and this run eligibility are separate; excluded in this run."
+    },
+    {
+      "dataset_id": "Emulated-Inc/parallel-translation-training-pool",
+      "revision": "ab0994507755ddc1ec738f1645ec153d8e3c34b0",
+      "license": "CC-BY-4.0 (source-level terms vary)",
+      "source": "Hugging Face card",
+      "citation": "https://huggingface.co/datasets/Emulated-Inc/parallel-translation-training-pool",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "notes": "Five source families including Tatoeba, infopankki, NLLB sample, ParaCrawl, and SMOL; preserve row/file/language and source license. Legal permission and this run eligibility are separate; excluded in this run."
+    }
+  ]
+}
