@@ -83,8 +83,8 @@ export type ResearchModelMetadata = {
   gatesTotal: number;
   failedGates: string[];
   paragraphStability: 'NOT_EVALUATED';
-  strictSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE';
-  contextualSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE';
+  strictSupported: 'SUPPORTED' | 'UNVERIFIED_ARTIFACT_UNAVAILABLE';
+  contextualSupported: 'SUPPORTED' | 'UNVERIFIED_ARTIFACT_UNAVAILABLE';
   languageSelection:
     | 'UNVERIFIED_NO_LOCAL_LANGUAGE_DETECTOR'
     | 'EXPLICIT_LANGUAGE_CODE_REQUIRED';
@@ -417,7 +417,7 @@ export const MODEL_CATALOG: Record<string, ModelCatalogEntry> = {
       paragraphStability: 'NOT_EVALUATED',
       strictSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE',
       contextualSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE',
-      languageSelection: 'UNVERIFIED_NO_LOCAL_LANGUAGE_DETECTOR',
+      languageSelection: 'EXPLICIT_LANGUAGE_CODE_REQUIRED',
       active: false,
       candidate: false,
       limitations: [
@@ -427,7 +427,6 @@ export const MODEL_CATALOG: Record<string, ModelCatalogEntry> = {
         'No pasa el gate de span F1 (0.826 < 0.86).',
         'Estabilidad por párrafo no evaluada.',
         'No hay promoción de candidato ni modelo activo.',
-        'La selección de idioma entre GLOBAL_ISO y ES_ISO no está conectada ni validada en serving local.',
         'El holdout final no se reutiliza para tuning.',
       ],
     },
@@ -459,7 +458,6 @@ export const MODEL_CATALOG: Record<string, ModelCatalogEntry> = {
     strengths: [],
     warnings: [
       'Experimental research model; it is not ACTIVE or a candidate.',
-      'The F006.1.1 checkpoint is not present locally, so this model is not servable.',
       'The available report does not lock a SHA-256 digest for the F006.1.1 weight files.',
       'The unified document-plus-span ensemble is not implemented or available.',
     ],
@@ -519,7 +517,6 @@ export const MODEL_CATALOG: Record<string, ModelCatalogEntry> = {
         'Recall mixto: 0.5832, por debajo del gate H de 0.65.',
         'Span token F1: 0.7694, por debajo del gate I de 0.86.',
         'Estabilidad por párrafo no evaluada.',
-        'El artefacto de 1.11 GB no está instalado localmente; el modelo permanece no disponible.',
         'El reporte disponible no fija un SHA-256 para validar los pesos del checkpoint.',
         'El modelo no está ACTIVE ni es candidato; el holdout no se reutiliza para tuning.',
       ],

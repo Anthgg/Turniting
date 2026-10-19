@@ -649,6 +649,45 @@ describe('AnalysisService', () => {
 });
 
 describe('AnalyzerModelsService', () => {
+  it('reflects installed experimental artifacts without changing scientific status or implying a locked checksum', async () => {
+    const prisma = makePrisma();
+    prisma.modelVersion.findMany.mockResolvedValue([]);
+    prisma.modelVersion.findUnique.mockResolvedValue({ name: 'EXPERIMENTAL_F006_1_1_MODEL', metadata: {} });
+    const liveModel = {
+      model: 'EXPERIMENTAL_F006_1_1_MODEL', state: 'READY', status: 'EXPERIMENTAL',
+      available: true, servable: true, active: false, candidate: false,
+      artifactPresent: true, artifactValid: true, artifactChecksumExpected: false, artifactChecksumValidated: false,
+      thresholdProfiles: ['BALANCED'], preprocessing: ['V3_CANONICALIZED_V1'], warnings: [],
+    };
+    const ai = { listAnalyzerModels: vi.fn().mockResolvedValue({ models: [liveModel] }) };
+    const svc = new AnalyzerModelsService(prisma as unknown as PrismaService, ai as unknown as AiService,
+      {} as ModelVersionService);
+    const installed = (await svc.list()).items.find((model) => model.name === liveModel.model);
+    expect(installed).toMatchObject({
+      available: true, servable: true, active: false, candidate: false,
+      artifactChecksumExpected: false, artifactChecksumValidated: false,
+      researchMetadata: {
+        artifactAvailableLocally: true, artifactChecksumValidated: false,
+        strictSupported: 'SUPPORTED', contextualSupported: 'SUPPORTED', paragraphStability: 'NOT_EVALUATED',
+      },
+    });
+    expect(installed?.warnings.join(' ')).not.toMatch(/not present locally|not servable/);
+    expect(installed?.researchMetadata?.limitations.join(' ')).not.toContain('no está instalado');
+    expect((await svc.metrics(liveModel.model)).researchMetadata).toMatchObject({
+      artifactAvailableLocally: true, strictSupported: 'SUPPORTED', contextualSupported: 'SUPPORTED',
+      paragraphStability: 'NOT_EVALUATED', artifactChecksumValidated: false,
+    });
+    ai.listAnalyzerModels.mockResolvedValueOnce({ models: [{ ...liveModel,
+      state: 'UNAVAILABLE', available: false, servable: false, artifactPresent: false, artifactValid: false,
+    }] });
+    const missing = (await svc.list()).items.find((model) => model.name === liveModel.model);
+    expect(missing?.researchMetadata).toMatchObject({
+      artifactAvailableLocally: false, strictSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE',
+      contextualSupported: 'UNVERIFIED_ARTIFACT_UNAVAILABLE', paragraphStability: 'NOT_EVALUATED',
+    });
+    expect(missing?.warnings).toContain('El artefacto del modelo no está instalado o no pasó su validación local.');
+  });
+
   it('merges registry metadata with live availability without exposing storage paths', async () => {
     const prisma = makePrisma();
     prisma.modelVersion.findMany.mockResolvedValue([{ id: 'mv2', name: 'CANDIDATE_MODEL_V2', status: 'CANDIDATE',

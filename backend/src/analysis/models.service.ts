@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { AiService, type AiAnalyzerModelStatus } from '../ai/ai.service.js';
 import { ModelVersionService } from '../datasets/model-version.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { ACTIVE_ACCEPTANCE_LIMITS, MODEL_CATALOG, NON_SERVING_RESEARCH_MODELS, numericGateResults } from './model-catalog.js';
+import { ACTIVE_ACCEPTANCE_LIMITS, MODEL_CATALOG, NON_SERVING_RESEARCH_MODELS, numericGateResults, type ResearchModelMetadata } from './model-catalog.js';
 
 const ANALYZER_MODELS = [
   'ENSEMBLE_V2_V3',
@@ -15,6 +15,17 @@ const ANALYZER_MODELS = [
   'BEST_BASELINE',
 ];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function withLiveArtifactState(metadata: ResearchModelMetadata, model?: AiAnalyzerModelStatus): ResearchModelMetadata {
+  const supported = Boolean(model?.available && model.servable && model.artifactValid);
+  return {
+    ...metadata,
+    artifactAvailableLocally: Boolean(model?.artifactPresent && model.artifactValid),
+    artifactChecksumValidated: Boolean(model?.artifactChecksumValidated),
+    strictSupported: supported ? 'SUPPORTED' : 'UNVERIFIED_ARTIFACT_UNAVAILABLE',
+    contextualSupported: supported ? 'SUPPORTED' : 'UNVERIFIED_ARTIFACT_UNAVAILABLE',
+  };
+}
 
 /**
  * Registry view for the analyzer: database metadata (F004 ModelVersion) + live artifact state
@@ -70,11 +81,7 @@ export class AnalyzerModelsService {
           ? ensembleAvailability
           : st?.state ?? 'UNAVAILABLE';
       const researchMetadata = defaults.researchMetadata
-        ? {
-          ...defaults.researchMetadata,
-          artifactAvailableLocally: Boolean(artifactPresent && artifactValid),
-          artifactChecksumValidated: Boolean(st?.artifactChecksumValidated),
-        }
+        ? withLiveArtifactState(defaults.researchMetadata, st)
         : undefined;
       const artifactWarning = defaults.researchMetadata && !artifactValid
         ? [aiReachable
@@ -97,6 +104,8 @@ export class AnalyzerModelsService {
         candidate: st?.candidate ?? (defaults.status === 'CANDIDATE'),
         artifactPresent,
         artifactValid,
+        artifactChecksumExpected: st?.artifactChecksumExpected,
+        artifactChecksumValidated: st?.artifactChecksumValidated ?? false,
         missing,
         servable: isEnsemble ? ensembleReady : st?.servable ?? false,
         thresholdProfiles: st?.thresholdProfiles?.length ? st.thresholdProfiles : defaults.thresholdProfiles,
@@ -156,11 +165,7 @@ export class AnalyzerModelsService {
     if (researchMetadata) {
       try {
         const liveModel = (await this.ai.listAnalyzerModels()).models.find((entry) => entry.model === model.name);
-        liveResearchMetadata = {
-          ...researchMetadata,
-          artifactAvailableLocally: Boolean(liveModel?.artifactPresent && liveModel.artifactValid),
-          artifactChecksumValidated: Boolean(liveModel?.artifactChecksumValidated),
-        };
+        liveResearchMetadata = withLiveArtifactState(researchMetadata, liveModel);
       } catch {
         // Preserve the catalog snapshot when the AI service cannot be queried.
       }
