@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "phase": "F008_1_PARAPHRASE_TRANSLATED_HARDENING",
+  "generated_at_utc": "2026-10-19T21:21:06Z",
+  "status": "NOT_LOCKED_GATE_FAILED",
+  "independent_data_certified": false,
+  "selected_dataset_ids": [],
+  "split_sizes": {
+    "train": 0,
+    "validation": 0,
+    "calibration": 0,
+    "final_holdout": 0
+  },
+  "candidates": [
+    {
+      "candidate": "B1",
+      "dataset_id": "GIL-UNAM/SpanishParaphraseCorpora (Sushi Corpus)",
+      "revision": "03c26e2c0988b39a7de605a70d86d4d9169e9954",
+      "selected": false,
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "reason": "independence gates incomplete"
+    },
+    {
+      "candidate": "B2",
+      "dataset_id": "Zenodo record 3715980; DOI 10.5281/zenodo.3715980",
+      "revision": null,
+      "selected": false,
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "reason": "independence gates incomplete"
+    },
+    {
+      "candidate": "B3",
+      "dataset_id": "SINAI/ALIA-parallel-translation",
+      "revision": "ed89b7a24dbb402e88ad4239ae1576120332bd3f",
+      "selected": false,
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "reason": "independence gates incomplete"
+    },
+    {
+      "candidate": "B4",
+      "dataset_id": "Lidor-Mashiach/snli-paraphrase-bank",
+      "revision": "0551d6986589b4055e66d69b0e8a31ee9baf4e55",
+      "selected": false,
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "reason": "independence gates incomplete"
+    },
+    {
+      "candidate": "B5",
+      "dataset_id": "Emulated-Inc/parallel-translation-training-pool",
+      "revision": "ab0994507755ddc1ec738f1645ec153d8e3c34b0",
+      "selected": false,
+      "classification": "REJECTED",
+      "sample_rows": 0,
+      "reason": "independence gates incomplete"
+    }
+  ],
+  "this_is_not_a_split_lock": true,
+  "split_lock_created": false,
+  "final_holdout_locked": false,
+  "model_lock_created": false,
+  "training_performed": false
+}
