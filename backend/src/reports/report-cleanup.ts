@@ -36,6 +36,8 @@ export class ReportCleanup implements OnModuleInit, OnModuleDestroy {
         deletedFiles: 0,
         missingFiles: 0,
         failedDeletes: 0,
+        renderArtifactsExpired: 0,
+        layoutMapsExpired: 0,
       };
     this.running = true;
     try {
@@ -51,6 +53,8 @@ export class ReportCleanup implements OnModuleInit, OnModuleDestroy {
         deletedFiles: 0,
         missingFiles: 0,
         failedDeletes: 0,
+        renderArtifactsExpired: 0,
+        layoutMapsExpired: 0,
       };
     } finally {
       this.running = false;

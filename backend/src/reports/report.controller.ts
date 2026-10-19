@@ -32,7 +32,12 @@ export class ReportController {
     @Param('documentId', ParseUUIDPipe) documentId: string,
     @Body() body: GenerateAIReportDto,
   ) {
-    return this.reports.generateAI(documentId, body.analysisRunId);
+    return this.reports.generateAI(
+      documentId,
+      body.analysisRunId,
+      undefined,
+      body.variant,
+    );
   }
 
   @Post('documents/:documentId/reports/similarity')
@@ -79,6 +84,20 @@ export class ReportController {
     return new StreamableFile(buffer, {
       type: 'application/pdf',
       disposition: `attachment; filename="${metadata.filename}"`,
+      length: buffer.length,
+    });
+  }
+
+  @Get('reports/:reportId/preview')
+  @ApiOperation({ summary: 'Preview an available report PDF inline' })
+  async preview(
+    @Param('reportId', ParseUUIDPipe) reportId: string,
+  ): Promise<StreamableFile> {
+    const { metadata, buffer } = await this.reports.preview(reportId);
+    const filename = metadata.filename.replace(/[\r\n"]/gu, '');
+    return new StreamableFile(buffer, {
+      type: 'application/pdf',
+      disposition: `inline; filename="${filename}"`,
       length: buffer.length,
     });
   }

@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsUUID,
@@ -12,6 +13,10 @@ import { ReportArtifactStatus, ReportType } from '@prisma/client';
 export class GenerateAIReportDto {
   @IsUUID()
   analysisRunId!: string;
+
+  @IsOptional()
+  @IsIn(['AI_REPORT', 'AI_ORIGINAL_REVIEW', 'AI_PARAGRAPH_TECHNICAL'])
+  variant?: ReportType;
 }
 
 export class GenerateSimilarityReportDto {

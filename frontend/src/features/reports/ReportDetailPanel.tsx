@@ -1,5 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { getReportDetail, reportQueryKeys } from "../../api/reports";
+import {
+  getReportDetail,
+  reportPreviewUrl,
+  reportQueryKeys,
+} from "../../api/reports";
 
 function dateLabel(value: string) {
   const date = new Date(value);
@@ -26,13 +30,25 @@ export function ReportDetailPanel({
     queryFn: () => getReportDetail(reportId),
     retry: 1,
   });
+  const isOriginalReview = detail.data?.type === "AI_ORIGINAL_REVIEW";
+  const isTechnicalReport = detail.data?.type === "AI_PARAGRAPH_TECHNICAL";
+  const reportTitle = isOriginalReview
+    ? "Revisión original"
+    : isTechnicalReport
+      ? "Detalle por párrafos"
+      : "Detalle del reporte";
+  const reportEyebrow = isOriginalReview
+    ? "REVISIÓN SOBRE EL DOCUMENTO ORIGINAL"
+    : isTechnicalReport
+      ? "DETALLE TÉCNICO POR PÁRRAFOS"
+      : "METADATOS DEL PDF";
 
   return (
     <section className="report-detail-panel" aria-labelledby="report-detail-title">
       <div className="report-detail-heading">
         <div>
-          <p className="eyebrow">METADATOS DEL PDF</p>
-          <h2 id="report-detail-title">Detalle del reporte</h2>
+          <p className="eyebrow">{reportEyebrow}</p>
+          <h2 id="report-detail-title">{reportTitle}</h2>
         </div>
         <button className="button button-quiet" type="button" onClick={onClose}>
           Cerrar
@@ -58,6 +74,19 @@ export function ReportDetailPanel({
           <div><dt>Renderer version</dt><dd>{detail.data.generationVersion ?? "No disponible"}</dd></div>
           {detail.data.failureReason && <div><dt>Detalle del error</dt><dd>{detail.data.failureReason}</dd></div>}
         </dl>
+      )}
+      {detail.data?.status === "AVAILABLE" && detail.data.previewAvailable !== false && (
+        <div className="report-preview-section">
+          <div>
+            <p className="eyebrow">VISTA PREVIA</p>
+            <h3>PDF del reporte</h3>
+          </div>
+          <iframe
+            className="report-preview-frame"
+            src={reportPreviewUrl(reportId)}
+            title={`Vista previa: ${detail.data.filename}`}
+          />
+        </div>
       )}
     </section>
   );

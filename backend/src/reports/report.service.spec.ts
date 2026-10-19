@@ -10,16 +10,18 @@ import type { PrismaService } from '../prisma/prisma.service.js';
 import { ReportRenderer } from './report-renderer.js';
 import type { AIReportInput } from './report.contracts.js';
 import { ReportService } from './report.service.js';
+import type { OriginalDocumentRenderer } from './original-document-renderer.js';
 import type { ReportStorageAdapter } from './report-storage.js';
 
 const DOCUMENT_ID = '66b2f3c5-14df-4156-a1df-152a7129f88e';
 const VERSION_ID = '8edee971-57eb-478b-b811-5f83b8115ea3';
 const RUN_ID = '31ec6f6f-4be4-49da-9bf5-ccf9fe77aab4';
 const PDF = Buffer.from('%PDF-1.7 synthetic report bytes');
+const SOURCE = Buffer.from('synthetic source document bytes');
 const TEXT =
   'Primer párrafo sintético con evidencia local.\n\nSegundo párrafo de prueba.';
 
-function sha256(value: string): string {
+function sha256(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
 }
 
@@ -47,9 +49,12 @@ function syntheticRun(documentId = DOCUMENT_ID) {
       id: VERSION_ID,
       documentId,
       extractedText: TEXT,
+      fileHash: sha256(SOURCE),
+      storageKey: 'synthetic/source.docx',
       document: {
         id: documentId,
         originalName: 'muestra_sintetica.docx',
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         createdAt: new Date('2026-10-17T10:00:00.000Z'),
         updatedAt: new Date('2026-10-18T11:00:00.000Z'),
       },
@@ -176,6 +181,10 @@ function makeHarness() {
       create: vi.fn(async ({ data }: any) => {
         const row = {
           ...data,
+          contentHash: null,
+          sizeBytes: null,
+          failureReason: null,
+          deletedAt: null,
           createdAt: data.generatedAt,
           updatedAt: data.generatedAt,
         };
@@ -209,6 +218,13 @@ function makeHarness() {
         return data;
       }),
     },
+    originalRenderArtifact: {
+      findMany: vi.fn(async () => []),
+      updateMany: vi.fn(async () => ({ count: 0 })),
+    },
+    documentLayoutMap: {
+      updateMany: vi.fn(async () => ({ count: 0 })),
+    },
     $transaction: vi.fn(async (callback: (tx: any) => Promise<unknown>) =>
       callback(prisma),
     ),
@@ -219,15 +235,27 @@ function makeHarness() {
     exists: vi.fn(async () => true),
     delete: vi.fn(async () => true),
   };
-  const renderer = { renderAI: vi.fn(async () => PDF) };
+  const renderer = {
+    renderAI: vi.fn(async () => PDF),
+    renderAIParagraphTechnical: vi.fn(async (_input: AIReportInput) => PDF),
+  };
+  const originalRenderer = {
+    ensure: vi.fn(async (_input: unknown) => ({
+      artifact: {},
+      buffer: SOURCE,
+      layoutMap: { version: 'fixture', pages: [], segments: [] },
+    })),
+    renderOriginalReview: vi.fn(async () => PDF),
+  };
   const config = { get: vi.fn(() => '24') };
   const service = new ReportService(
     prisma as unknown as PrismaService,
     renderer as unknown as ReportRenderer,
     storage as unknown as ReportStorageAdapter,
     config as unknown as ConfigService,
+    originalRenderer as unknown as OriginalDocumentRenderer,
   );
-  return { service, prisma, storage, renderer, config, rows, audits };
+  return { service, prisma, storage, renderer, originalRenderer, config, rows, audits };
 }
 
 async function waitForGeneration(row: Record<string, any>): Promise<void> {
@@ -287,6 +315,65 @@ describe('ReportService', () => {
     });
     expect('storageKey' in metadata).toBe(false);
     expect(metadata.sizeBytes).toBeNull();
+  });
+
+  it('creates independent original-review and paragraph-technical artifacts from the same persisted run', async () => {
+    const original = await h.service.generateAI(
+      DOCUMENT_ID,
+      RUN_ID,
+      undefined,
+      ReportType.AI_ORIGINAL_REVIEW,
+    );
+    await waitForGeneration(h.rows[0]);
+    const technical = await h.service.generateAI(
+      DOCUMENT_ID,
+      RUN_ID,
+      undefined,
+      ReportType.AI_PARAGRAPH_TECHNICAL,
+    );
+    await waitForGeneration(h.rows[1]);
+
+    expect(h.rows).toHaveLength(2);
+    expect(h.rows.map((row) => row.type)).toEqual([
+      ReportType.AI_ORIGINAL_REVIEW,
+      ReportType.AI_PARAGRAPH_TECHNICAL,
+    ]);
+    expect(original.id).not.toBe(technical.id);
+    expect(original.rendererVersion).not.toBe(technical.rendererVersion);
+    expect(h.originalRenderer.ensure).toHaveBeenCalledOnce();
+    expect(h.originalRenderer.renderOriginalReview).toHaveBeenCalledOnce();
+    expect(h.renderer.renderAIParagraphTechnical).toHaveBeenCalledOnce();
+    expect(h.renderer.renderAI).not.toHaveBeenCalled();
+    expect(h.originalRenderer.ensure.mock.calls[0]![0]).toMatchObject({
+      sourceChecksum: sha256(SOURCE),
+      storageKey: 'synthetic/source.docx',
+      segments: [
+        { paragraphIndex: 0, flagged: false },
+        { paragraphIndex: 1, flagged: false, presentationExcluded: true },
+      ],
+    });
+    const technicalInput = h.renderer.renderAIParagraphTechnical.mock.calls[0]![0] as AIReportInput;
+    expect(technicalInput.run).toMatchObject({
+      documentScore: 0.42,
+      threshold: 0.58,
+    });
+    expect(h.rows.map((row) => row.analysisRunId)).toEqual([RUN_ID, RUN_ID]);
+    expect(h.rows.map((row) => row.contentHash)).toEqual([
+      sha256(PDF.toString()),
+      sha256(PDF.toString()),
+    ]);
+
+    const originalArtifact = h.rows.find((row) => row.id === original.id)!;
+    const technicalArtifact = h.rows.find((row) => row.id === technical.id)!;
+    expect(originalArtifact).toBeDefined();
+    expect(technicalArtifact).toBeDefined();
+    await h.service.delete(originalArtifact.id);
+    expect(originalArtifact.status).toBe(ReportArtifactStatus.DELETED);
+    expect(technicalArtifact.status).toBe(ReportArtifactStatus.AVAILABLE);
+    expect(h.storage.delete).toHaveBeenCalledWith(originalArtifact.storageKey);
+    await expect(h.service.download(technical.id)).resolves.toMatchObject({
+      buffer: PDF,
+    });
   });
 
   it('rejects a completed run that belongs to another document', async () => {
@@ -368,6 +455,23 @@ describe('ReportService', () => {
       `/api/reports/${artifact.id}/download`,
     );
     expect(h.audits).toContainEqual({
+      reportArtifactId: artifact.id,
+      type: ReportAuditEventType.REPORT_DOWNLOADED,
+    });
+  });
+
+  it('previews an available report inline without recording a download event', async () => {
+    const artifact = makeArtifact({ type: ReportType.AI_ORIGINAL_REVIEW });
+    h.rows.push(artifact);
+
+    const preview = await h.service.preview(artifact.id);
+
+    expect(preview.buffer).toEqual(PDF);
+    expect(preview.metadata.previewEndpoint).toBe(
+      `/api/reports/${artifact.id}/preview`,
+    );
+    expect(preview.metadata.previewAvailable).toBe(true);
+    expect(h.audits).not.toContainEqual({
       reportArtifactId: artifact.id,
       type: ReportAuditEventType.REPORT_DOWNLOADED,
     });
@@ -495,17 +599,58 @@ describe('ReportService', () => {
       deletedFiles: 0,
       missingFiles: 1,
       failedDeletes: 0,
+      renderArtifactsExpired: 0,
+      layoutMapsExpired: 0,
     });
     expect(await h.service.cleanupExpired(now)).toEqual({
       expiredCount: 0,
       deletedFiles: 0,
       missingFiles: 0,
       failedDeletes: 0,
+      renderArtifactsExpired: 0,
+      layoutMapsExpired: 0,
     });
     expect(artifact.status).toBe(ReportArtifactStatus.EXPIRED);
     expect(artifact.analysisRunId).toBe(RUN_ID);
     expect(h.storage.delete).toHaveBeenCalledOnce();
     expect(h.prisma.analysisRun).not.toHaveProperty('delete');
+  });
+
+  it('expires original-render files and layout maps in the same hourly cleanup', async () => {
+    const now = new Date('2026-10-18T12:00:00.000Z');
+    h.prisma.originalRenderArtifact.findMany.mockResolvedValueOnce([
+      { id: 'expired-render', storageKey: 'expired-render.pdf' },
+    ] as never);
+    h.prisma.originalRenderArtifact.updateMany.mockResolvedValueOnce({
+      count: 1,
+    } as never);
+    h.prisma.documentLayoutMap.updateMany.mockResolvedValueOnce({
+      count: 2,
+    } as never);
+
+    const metrics = await h.service.cleanupExpired(now);
+
+    expect(metrics).toEqual({
+      expiredCount: 0,
+      deletedFiles: 1,
+      missingFiles: 0,
+      failedDeletes: 0,
+      renderArtifactsExpired: 1,
+      layoutMapsExpired: 2,
+    });
+    expect(h.storage.delete).toHaveBeenCalledWith('expired-render.pdf');
+    expect(h.prisma.originalRenderArtifact.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: 'expired-render' }),
+        data: expect.objectContaining({ deletedAt: now, layoutPages: [] }),
+      }),
+    );
+    expect(h.prisma.documentLayoutMap.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ expiresAt: { lte: now } }),
+        data: expect.objectContaining({ deletedAt: now }),
+      }),
+    );
   });
 
   it('marks an abandoned generation as failed with a safe reason and audit event', async () => {
@@ -552,6 +697,25 @@ describe('ReportService', () => {
     expect(h.rows[1].sizeBytes).toBe(PDF.length);
   });
 
+  it('regenerates a deleted original-review artifact as the same variant', async () => {
+    const old = makeArtifact({
+      type: ReportType.AI_ORIGINAL_REVIEW,
+      status: ReportArtifactStatus.DELETED,
+      deletedAt: new Date(),
+      activeFingerprint: null,
+    });
+    h.rows.push(old);
+
+    const regenerated = await h.service.regenerate(old.id);
+    await waitForGeneration(h.rows[1]);
+
+    expect(h.rows).toHaveLength(2);
+    expect(regenerated.id).not.toBe(old.id);
+    expect(h.rows[1].type).toBe(ReportType.AI_ORIGINAL_REVIEW);
+    expect(h.originalRenderer.ensure).toHaveBeenCalledOnce();
+    expect(h.renderer.renderAIParagraphTechnical).not.toHaveBeenCalled();
+  });
+
   it('records a sanitized failure when PDF generation throws', async () => {
     h.renderer.renderAI.mockRejectedValueOnce(new Error('private source text must not be logged'));
     const report = await h.service.generateAI(DOCUMENT_ID, RUN_ID);
@@ -580,6 +744,8 @@ describe('ReportService', () => {
       deletedFiles: 0,
       missingFiles: 0,
       failedDeletes: 1,
+      renderArtifactsExpired: 0,
+      layoutMapsExpired: 0,
     });
     expect(artifact.status).toBe(ReportArtifactStatus.AVAILABLE);
   });

@@ -337,6 +337,49 @@ describe('ReportRenderer', () => {
     expect(pdf.toString('latin1')).toContain('/Count ');
   });
 
+  it('renders technical scores at the exact persisted threshold and keeps insufficient text unevaluated', async () => {
+    const input = syntheticAIInput({ paragraphCount: 3 });
+    input.run.threshold = 0.58;
+    input.paragraphs[0] = {
+      ...input.paragraphs[0]!,
+      score: 0.58,
+      textPreview: 'Exact threshold boundary is flagged.',
+    };
+    input.paragraphs[1] = {
+      ...input.paragraphs[1]!,
+      score: 0.579,
+      textPreview: 'Just below the threshold is not flagged.',
+    };
+    input.paragraphs[2] = {
+      ...input.paragraphs[2]!,
+      score: null,
+      textPreview: 'Insufficient paragraph has no score.',
+      presentationExcluded: true,
+      excludedReason: 'REFERENCES_SECTION',
+      reviewPresentation: {
+        highlight: false,
+        level: null,
+        excludedReason: 'REFERENCES_SECTION',
+      },
+    };
+    const completeText = `Exact threshold boundary is flagged. ${'Synthetic full paragraph text remains available. '.repeat(60)}END_OF_SYNTHETIC_FULL_TEXT`;
+    input.paragraphs[0]!.textPreview = completeText;
+
+    const pdf = await renderer.renderAIParagraphTechnical(input);
+    const content = compactPdfText(pdf);
+
+    expect(pageCount(pdf)).toBeGreaterThan(1);
+    expect(content).toContain('exactthresholdboundaryisflagged');
+    expect(content).toContain('justbelowthethresholdisnotflagged');
+    expect(content).toContain('end_of_synthetic_full_text');
+    expect(content).toContain('senalado');
+    expect(content).toContain('noseñalado'.normalize('NFD').replace(/\p{Diacritic}/gu, ''));
+    expect(content).toContain('noevaluado');
+    expect(content).toContain('references_section');
+    expect(content).toContain('norepresentaelporcentajedecontribucionaritmeticadelparrafo');
+    expect(content).not.toContain('0.0%');
+  });
+
   it('renders compact reports for one-page source documents with five paragraphs and longer documents with thirty', async () => {
     const fiveParagraphPdf = await renderer.renderAI(
       syntheticAIInput({ paragraphCount: 5, paragraphMode: 'STRICT_PARAGRAPH' }),

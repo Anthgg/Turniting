@@ -53,7 +53,16 @@ function statusLabel(status: ReportStatus) {
 }
 
 function typeLabel(type: ReportType) {
-  return type === "AI_REPORT" ? "IA Turniting" : "Similitud";
+  switch (type) {
+    case "AI_ORIGINAL_REVIEW": return "Revisión original";
+    case "AI_PARAGRAPH_TECHNICAL": return "Detalle por párrafos";
+    case "AI_REPORT": return "Reporte IA anterior";
+    case "SIMILARITY_REPORT": return "Similitud";
+  }
+}
+
+function isAIReport(type: ReportType) {
+  return type === "AI_REPORT" || type === "AI_ORIGINAL_REVIEW" || type === "AI_PARAGRAPH_TECHNICAL";
 }
 
 function expiryHint(report: ReportArtifact) {
@@ -96,7 +105,7 @@ export function ReportsPage() {
           ? "Ya se está generando un reporte para esta corrida."
           : report.reused
             ? "Ya existe un reporte vigente para esta corrida."
-            : "Se inició la regeneración del reporte IA.",
+            : "Se inició la regeneración del reporte.",
       );
       setPage(1);
       await refreshLists();
@@ -146,7 +155,9 @@ export function ReportsPage() {
         <div className="report-filter-toolbar" aria-label="Filtros de reportes">
           <div className="report-filter-group" aria-label="Tipo de reporte">
             <button type="button" className={!type ? "is-selected" : ""} aria-pressed={!type} onClick={() => updateType(undefined)}>Todos</button>
-            <button type="button" className={type === "AI_REPORT" ? "is-selected" : ""} aria-pressed={type === "AI_REPORT"} onClick={() => updateType("AI_REPORT")}>IA</button>
+            <button type="button" className={type === "AI_ORIGINAL_REVIEW" ? "is-selected" : ""} aria-pressed={type === "AI_ORIGINAL_REVIEW"} onClick={() => updateType("AI_ORIGINAL_REVIEW")}>Revisión original</button>
+            <button type="button" className={type === "AI_PARAGRAPH_TECHNICAL" ? "is-selected" : ""} aria-pressed={type === "AI_PARAGRAPH_TECHNICAL"} onClick={() => updateType("AI_PARAGRAPH_TECHNICAL")}>Detalle por párrafos</button>
+            <button type="button" className={type === "AI_REPORT" ? "is-selected" : ""} aria-pressed={type === "AI_REPORT"} onClick={() => updateType("AI_REPORT")}>IA anterior</button>
             <button type="button" className={type === "SIMILARITY_REPORT" ? "is-selected" : ""} aria-pressed={type === "SIMILARITY_REPORT"} onClick={() => updateType("SIMILARITY_REPORT")}>Similitud</button>
           </div>
           <div className="report-filter-group" aria-label="Estado del reporte">
@@ -201,9 +212,10 @@ export function ReportsPage() {
                       </td>
                       <td data-label="Tamaño">{formatSize(report.sizeBytes)}</td>
                       <td data-label="Acciones" className="report-row-actions">
-                        <button type="button" className="button button-quiet" onClick={() => setSelectedReportId(report.id)}>Detalles</button>
+                        {report.status === "AVAILABLE" && report.previewAvailable !== false && <button type="button" className="button button-quiet" onClick={() => setSelectedReportId(report.id)} aria-label={`Ver ${typeLabel(report.type)}`}>Ver PDF</button>}
+                        {report.status !== "AVAILABLE" && <button type="button" className="button button-quiet" onClick={() => setSelectedReportId(report.id)}>Detalles</button>}
                         {report.status === "AVAILABLE" && <button type="button" className="button button-quiet" disabled={download.isPending} onClick={() => download.mutate(report)}>Descargar</button>}
-                        {canRegenerate && report.type === "AI_REPORT" && <button type="button" className="button button-quiet" disabled={regenerate.isPending} onClick={() => regenerate.mutate(report.id)}>Regenerar</button>}
+                        {canRegenerate && isAIReport(report.type) && <button type="button" className="button button-quiet" disabled={regenerate.isPending} onClick={() => regenerate.mutate(report.id)}>Regenerar</button>}
                         {report.status !== "DELETED" && <button type="button" className="button button-quiet button-danger-quiet" disabled={remove.isPending || report.status === "GENERATING"} onClick={() => confirmDelete(report.id)}>Eliminar</button>}
                       </td>
                     </tr>

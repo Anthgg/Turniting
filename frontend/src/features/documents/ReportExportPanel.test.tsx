@@ -40,6 +40,7 @@ function analysisResult(status: "COMPLETED" | "RUNNING" = "COMPLETED") {
 
 function artifact(
   status: "GENERATING" | "AVAILABLE" | "FAILED" | "EXPIRED" | "DELETED" = "AVAILABLE",
+  type: "AI_REPORT" | "AI_ORIGINAL_REVIEW" | "AI_PARAGRAPH_TECHNICAL" = "AI_REPORT",
 ) {
   return {
     id: REPORT_ID,
@@ -47,9 +48,13 @@ function artifact(
     documentVersionId: VERSION_ID,
     analysisRunId: RUN_ID,
     similarityRunId: null,
-    type: "AI_REPORT" as const,
+    type,
     status,
-    filename: "turniting_ai_66b2f3c5_2026-10-18.pdf",
+    filename: type === "AI_ORIGINAL_REVIEW"
+      ? "turniting_original-review_66b2f3c5_2026-10-18.pdf"
+      : type === "AI_PARAGRAPH_TECHNICAL"
+        ? "turniting_paragraph-technical_66b2f3c5_2026-10-18.pdf"
+        : "turniting_ai_66b2f3c5_2026-10-18.pdf",
     contentHash: "b".repeat(64),
     sizeBytes: 1024 * 486,
     failureReason: status === "FAILED" ? "No se pudo generar el PDF. Intenta de nuevo." : null,
@@ -63,18 +68,24 @@ function artifact(
 function renderPanel({
   runStatus = "COMPLETED",
   reportStatus,
+  reportTypes,
   generatePending = false,
   downloadPending = false,
 }: {
   runStatus?: "COMPLETED" | "RUNNING";
   reportStatus?: "GENERATING" | "AVAILABLE" | "FAILED" | "EXPIRED" | "DELETED";
+  reportTypes?: Array<"AI_REPORT" | "AI_ORIGINAL_REVIEW" | "AI_PARAGRAPH_TECHNICAL">;
   generatePending?: boolean;
   downloadPending?: boolean;
 } = {}) {
   queryMocks.useQuery
     .mockReturnValueOnce(analysisResult(runStatus))
     .mockReturnValueOnce({
-      data: { items: reportStatus ? [artifact(reportStatus)] : [] },
+      data: {
+        items: reportStatus
+          ? (reportTypes ?? ["AI_REPORT"]).map((type) => artifact(reportStatus, type))
+          : [],
+      },
       isPending: false,
       isError: false,
       error: null,
@@ -111,10 +122,11 @@ describe("ReportExportPanel", () => {
     queryMocks.useQueryClient.mockClear();
   });
 
-  it("enables AI export when a completed analysis exists and keeps similarity disabled", () => {
+  it("offers both AI report variants when a completed analysis exists and keeps similarity disabled", () => {
     const html = renderPanel();
 
-    expect(html).toContain("Generar reporte IA");
+    expect(html).toContain("Generar revisión original");
+    expect(html).toContain("Generar detalle por párrafos");
     expect(html).toContain(
       "Aún no existe un análisis de similitud para esta versión.",
     );
@@ -126,8 +138,9 @@ describe("ReportExportPanel", () => {
 
     expect(html).toContain("Disponible por 24 h");
     expect(html).toContain("Expira:");
-    expect(html).toContain("Descargar PDF");
-    expect(html).toContain("Detalles");
+    expect(html).toContain("Descargar reporte ia anterior");
+    expect(html).toContain("Ver reporte ia anterior");
+    expect(html).toContain("Reporte IA anterior");
     expect(html).toContain("Eliminar");
     expect(html).toContain("486 KB");
   });
@@ -143,9 +156,12 @@ describe("ReportExportPanel", () => {
   });
 
   it("offers regeneration for an expired report and shows the download state", () => {
-    const html = renderPanel({ reportStatus: "EXPIRED" });
+    const html = renderPanel({
+      reportStatus: "EXPIRED",
+      reportTypes: ["AI_ORIGINAL_REVIEW"],
+    });
 
-    expect(html).toContain("Regenerar reporte IA");
+    expect(html).toContain("Regenerar revisión original");
     expect(html).toContain("Expirado");
     expect(html).toContain("Regenerar");
 
@@ -159,11 +175,14 @@ describe("ReportExportPanel", () => {
   });
 
   it("shows a sanitized retry state for failed report generation", () => {
-    const html = renderPanel({ reportStatus: "FAILED" });
+    const html = renderPanel({
+      reportStatus: "FAILED",
+      reportTypes: ["AI_ORIGINAL_REVIEW"],
+    });
 
     expect(html).toContain("Error al generar");
     expect(html).toContain("No se pudo generar el PDF. Intenta de nuevo.");
-    expect(html).toContain("Reintentar reporte IA");
+    expect(html).toContain("Regenerar revisión original");
   });
 
   it("does not enable export while there is no completed run", () => {
@@ -173,5 +192,19 @@ describe("ReportExportPanel", () => {
       "Completa un análisis de IA para habilitar su reporte.",
     );
     expect(html).toContain('disabled=""');
+  });
+
+  it("keeps the original-review and technical report controls distinct", () => {
+    const html = renderPanel({
+      reportStatus: "AVAILABLE",
+      reportTypes: ["AI_ORIGINAL_REVIEW", "AI_PARAGRAPH_TECHNICAL"],
+    });
+
+    expect(html).toContain("Ver revisión original");
+    expect(html).toContain("Descargar revisión original");
+    expect(html).toContain("Ver detalle por párrafos");
+    expect(html).toContain("Descargar detalle por párrafos");
+    expect(html).toContain("Revisión original");
+    expect(html).toContain("Detalle por párrafos");
   });
 });

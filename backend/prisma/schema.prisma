@@ -29,6 +29,8 @@ model Document {
   currentVersion  DocumentVersion?
   analyses        Analysis[]
   reportArtifacts ReportArtifact[]
+  originalRenderArtifacts OriginalRenderArtifact[]
+  layoutMaps      DocumentLayoutMap[]
 
   @@index([userId])
   @@index([status])
@@ -66,6 +68,8 @@ model DocumentVersion {
   trainingSamples      TrainingSample[]
   analysisRuns         AnalysisRun[]
   reportArtifacts      ReportArtifact[]
+  originalRenderArtifacts OriginalRenderArtifact[]
+  layoutMaps           DocumentLayoutMap[]
 }
 
 enum OcrStatus {
@@ -614,7 +618,20 @@ enum AnalysisRunStatus {
 
 enum ReportType {
   AI_REPORT
+  AI_ORIGINAL_REVIEW
+  AI_PARAGRAPH_TECHNICAL
   SIMILARITY_REPORT
+}
+
+enum OriginalRenderSourceType {
+  PDF
+  DOCX
+}
+
+enum OriginalRenderFidelityStatus {
+  EXACT_SOURCE_PDF
+  HIGH_FIDELITY_CONVERSION
+  BEST_EFFORT
 }
 
 enum ReportArtifactStatus {
@@ -684,6 +701,7 @@ model AnalysisRun {
   comparisonsAsBase      AnalysisComparison[]    @relation("ComparisonBase")
   comparisonsAsTarget    AnalysisComparison[]    @relation("ComparisonTarget")
   reportArtifacts        ReportArtifact[]
+  layoutMaps             DocumentLayoutMap[]
 
   @@index([documentVersionId, createdAt])
   @@index([status, createdAt])
@@ -721,6 +739,58 @@ model ReportArtifact {
   @@index([analysisRunId])
   @@index([similarityRunId])
   @@index([fingerprint])
+}
+
+model OriginalRenderArtifact {
+  id                      String                        @id @default(uuid()) @db.Uuid
+  documentId              String                        @db.Uuid
+  documentVersionId       String                        @db.Uuid
+  sourceType              OriginalRenderSourceType
+  sourceChecksum          String                        @db.Char(64)
+  renderer                String
+  rendererVersion         String
+  layoutExtractionEngine  String
+  layoutExtractionVersion String
+  pageCount               Int
+  storageKey              String                        @unique
+  renderChecksum          String                        @db.Char(64)
+  fidelityStatus          OriginalRenderFidelityStatus
+  layoutPages             Json
+  cacheKey                String                        @unique @db.Char(64)
+  createdAt               DateTime                      @default(now()) @db.Timestamptz(6)
+  expiresAt               DateTime                      @db.Timestamptz(6)
+  deletedAt               DateTime?                     @db.Timestamptz(6)
+  document                Document                      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentVersion         DocumentVersion               @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+  layoutMaps              DocumentLayoutMap[]
+
+  @@index([documentVersionId, expiresAt, deletedAt])
+  @@index([expiresAt, deletedAt])
+}
+
+model DocumentLayoutMap {
+  id                     String                @id @default(uuid()) @db.Uuid
+  documentId             String                @db.Uuid
+  documentVersionId      String                @db.Uuid
+  analysisRunId          String                @db.Uuid
+  originalRenderArtifactId String               @db.Uuid
+  sourceChecksum         String                @db.Char(64)
+  rendererVersion        String
+  layoutExtractionVersion String
+  mappingEngine          String
+  mappingVersion         String
+  layoutMap              Json
+  cacheKey               String                @unique @db.Char(64)
+  createdAt              DateTime              @default(now()) @db.Timestamptz(6)
+  expiresAt              DateTime              @db.Timestamptz(6)
+  deletedAt              DateTime?
+  document               Document              @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentVersion        DocumentVersion       @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+  analysisRun            AnalysisRun           @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+  originalRenderArtifact OriginalRenderArtifact @relation(fields: [originalRenderArtifactId], references: [id], onDelete: Cascade)
+
+  @@index([documentVersionId, expiresAt, deletedAt])
+  @@index([expiresAt, deletedAt])
 }
 
 model ReportAuditEvent {

@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -30,8 +31,15 @@ import type {
   AIReportParagraph,
 } from './report.contracts.js';
 import { REPORT_STORAGE, type ReportStorageAdapter } from './report-storage.js';
+import { OriginalDocumentRenderer } from './original-document-renderer.js';
+import {
+  AI_ORIGINAL_REVIEW_RENDERER_VERSION,
+  AI_PARAGRAPH_TECHNICAL_RENDERER_VERSION,
+  REPORT_RETENTION_HOURS,
+} from './report.constants.js';
 
-export const REPORT_RETENTION_HOURS = 24;
+export { REPORT_RETENTION_HOURS } from './report.constants.js';
+
 const GENERATION_STALE_MS = 10 * 60 * 1000;
 const REPORT_RUN_INCLUDE = {
   documentVersion: { include: { document: true } },
@@ -44,11 +52,13 @@ type AnalysisRunForReport = Prisma.AnalysisRunGetPayload<{
 
 export interface ReportArtifactMetadata {
   id: string;
+  reportId: string;
   documentId: string;
   documentVersionId: string;
   analysisRunId: string | null;
   similarityRunId: string | null;
   type: ReportType;
+  variant: ReportType;
   status: ReportArtifactStatus;
   filename: string;
   documentName?: string;
@@ -57,11 +67,16 @@ export interface ReportArtifactMetadata {
   sizeBytes: number | null;
   failureReason: string | null;
   generationVersion: string;
+  rendererVersion: string;
   generatedAt: Date;
+  createdAt: Date;
   expiresAt: Date;
   deletedAt: Date | null;
   reused?: boolean;
   downloadEndpoint?: string;
+  previewEndpoint?: string;
+  downloadAvailable: boolean;
+  previewAvailable: boolean;
 }
 
 export interface ReportListQuery {
@@ -77,6 +92,8 @@ export interface ReportCleanupMetrics {
   deletedFiles: number;
   missingFiles: number;
   failedDeletes: number;
+  renderArtifactsExpired: number;
+  layoutMapsExpired: number;
 }
 
 export interface ReportArtifactDetail extends ReportArtifactMetadata {
@@ -106,6 +123,7 @@ export class ReportService {
     private readonly renderer: ReportRenderer,
     @Inject(REPORT_STORAGE) private readonly storage: ReportStorageAdapter,
     config: ConfigService,
+    @Optional() private readonly originalRenderer?: OriginalDocumentRenderer,
   ) {
     const configuredRetention = config
       .get<string>('REPORT_RETENTION_HOURS')
@@ -125,7 +143,18 @@ export class ReportService {
     documentId: string,
     analysisRunId: string,
     regeneratedFromId?: string,
+    variant: ReportType = ReportType.AI_REPORT,
   ): Promise<ReportArtifactMetadata> {
+    if (
+      variant !== ReportType.AI_REPORT &&
+      variant !== ReportType.AI_ORIGINAL_REVIEW &&
+      variant !== ReportType.AI_PARAGRAPH_TECHNICAL
+    ) {
+      throw new ConflictException({
+        code: 'AI_REPORT_VARIANT_UNSUPPORTED',
+        message: 'La variante solicitada no corresponde a un reporte de IA.',
+      });
+    }
     const run = await this.prisma.analysisRun.findUnique({
       where: { id: analysisRunId },
       include: REPORT_RUN_INCLUDE,
@@ -191,8 +220,8 @@ export class ReportService {
       JSON.stringify([
         run.documentVersionId,
         run.id,
-        ReportType.AI_REPORT,
-        REPORT_RENDERER_VERSION,
+        variant,
+        rendererVersionFor(variant),
         relevantRunHash,
       ]),
     );
@@ -215,11 +244,11 @@ export class ReportService {
       documentId,
       documentVersionId: run.documentVersionId,
       analysisRunId: run.id,
-      type: ReportType.AI_REPORT,
+      type: variant,
       fingerprint,
       storageKey,
       generatedAt,
-      filename: this.filename('ai', documentId, generatedAt),
+      filename: this.filename(filenameKindFor(variant), documentId, generatedAt),
     });
     if (!artifact) {
       const winner = await this.prisma.reportArtifact.findFirst({
@@ -248,7 +277,7 @@ export class ReportService {
         },
       });
     }
-    this.scheduleGeneration(reportId, storageKey, input);
+    this.scheduleGeneration(reportId, storageKey, input, variant);
     return this.toMetadata(artifact);
   }
 
@@ -398,7 +427,7 @@ export class ReportService {
   async regenerate(reportId: string): Promise<ReportArtifactMetadata> {
     const artifact = await this.findArtifact(reportId);
     const current = await this.refreshState(artifact, new Date());
-    if (current.type !== ReportType.AI_REPORT || !current.analysisRunId) {
+    if (!isAIReportType(current.type) || !current.analysisRunId) {
       throw new ConflictException({
         code: 'REPORT_REGENERATION_UNAVAILABLE',
         message: 'Solo se pueden regenerar reportes de IA con su corrida original.',
@@ -419,6 +448,7 @@ export class ReportService {
       current.documentId,
       current.analysisRunId,
       current.id,
+      current.type,
     );
   }
 
@@ -463,6 +493,40 @@ export class ReportService {
     return { metadata: this.toMetadata(current), buffer };
   }
 
+  async preview(
+    reportId: string,
+  ): Promise<{ metadata: ReportArtifactMetadata; buffer: Buffer }> {
+    const artifact = await this.findArtifact(reportId);
+    const current = await this.refreshState(artifact, new Date());
+    if (
+      current.status === ReportArtifactStatus.EXPIRED ||
+      current.status === ReportArtifactStatus.DELETED
+    ) {
+      throw new GoneException({
+        code: 'REPORT_EXPIRED',
+        message: 'El PDF expiró o fue eliminado. Puedes regenerarlo desde el análisis.',
+      });
+    }
+    if (current.status !== ReportArtifactStatus.AVAILABLE) {
+      throw new ConflictException({
+        code: 'REPORT_NOT_AVAILABLE',
+        message: 'El reporte todavía no está disponible para vista previa.',
+      });
+    }
+    try {
+      return {
+        metadata: this.toMetadata(current),
+        buffer: await this.storage.read(current.storageKey),
+      };
+    } catch {
+      await this.markMissing(current.id);
+      throw new GoneException({
+        code: 'REPORT_FILE_UNAVAILABLE',
+        message: 'El archivo ya no está disponible. Puedes generar un nuevo reporte.',
+      });
+    }
+  }
+
   async delete(reportId: string): Promise<void> {
     const artifact = await this.findArtifact(reportId);
     if (artifact.deletedAt) return;
@@ -504,6 +568,8 @@ export class ReportService {
       deletedFiles: 0,
       missingFiles: 0,
       failedDeletes: 0,
+      renderArtifactsExpired: 0,
+      layoutMapsExpired: 0,
     };
     for (const artifact of artifacts) {
       let fileDeleted: boolean;
@@ -560,6 +626,47 @@ export class ReportService {
     for (const artifact of staleArtifacts) {
       await this.markStaleGeneration(artifact.id, artifact.storageKey);
     }
+
+    const expiredRenders = await this.prisma.originalRenderArtifact.findMany({
+      where: {
+        expiresAt: { lte: now },
+        deletedAt: null,
+        ...(documentId ? { documentId } : {}),
+      },
+      orderBy: { expiresAt: 'asc' },
+    });
+    for (const artifact of expiredRenders) {
+      try {
+        const deleted = await this.storage.delete(artifact.storageKey);
+        if (deleted) metrics.deletedFiles += 1;
+        else metrics.missingFiles += 1;
+      } catch {
+        metrics.failedDeletes += 1;
+        continue;
+      }
+      const changed = await this.prisma.originalRenderArtifact.updateMany({
+        where: {
+          id: artifact.id,
+          expiresAt: { lte: now },
+          deletedAt: null,
+        },
+        data: { deletedAt: now, layoutPages: [] },
+      });
+      metrics.renderArtifactsExpired += changed.count;
+    }
+
+    const expiredMaps = await this.prisma.documentLayoutMap.updateMany({
+      where: {
+        expiresAt: { lte: now },
+        deletedAt: null,
+        ...(documentId ? { documentId } : {}),
+      },
+      data: {
+        deletedAt: now,
+        layoutMap: { version: 'expired', pages: [], segments: [] },
+      },
+    });
+    metrics.layoutMapsExpired = expiredMaps.count;
     return metrics;
   }
 
@@ -602,6 +709,11 @@ export class ReportService {
         calibratedScore: segment.calibratedScore,
         evidence: sourceSegment.evidence,
       } as ReviewSegment, fullRun.threshold, reviewContext);
+      const reviewPresentation = getReviewPresentation(
+        { ...segment, calibratedScore: segment.calibratedScore } as ReviewSegment,
+        reviewContext,
+        fullRun.threshold,
+      );
       return {
         paragraphIndex: segment.paragraphIndex,
         textHash: segment.textHash,
@@ -617,11 +729,9 @@ export class ReportService {
           ...(evidence.spans.length ? { spans: evidence.spans } : {}),
         },
         reviewEvidence: evidence,
-        reviewPresentation: getReviewPresentation(
-          { ...segment, calibratedScore: segment.calibratedScore } as ReviewSegment,
-          reviewContext,
-          fullRun.threshold,
-        ),
+        reviewPresentation,
+        presentationExcluded: Boolean(reviewPresentation.excludedReason),
+        excludedReason: reviewPresentation.excludedReason ?? null,
         score: segment.calibratedScore,
         signalLevel: segment.signalLevel,
         classification: segment.classification,
@@ -680,7 +790,11 @@ export class ReportService {
       turnitingVersion: process.env.npm_package_version ?? 'local',
       document: {
         id: fullRun.documentVersion.document.id,
+        documentVersionId: fullRun.documentVersion.id,
         filename: fullRun.documentVersion.document.originalName,
+        mimeType: fullRun.documentVersion.document.mimeType,
+        sourceChecksum: fullRun.documentVersion.fileHash,
+        storageKey: fullRun.documentVersion.storageKey,
         createdAt: fullRun.documentVersion.document.createdAt,
         updatedAt: fullRun.documentVersion.document.updatedAt,
       },
@@ -753,9 +867,7 @@ export class ReportService {
           ...data,
           status: ReportArtifactStatus.GENERATING,
           activeFingerprint: data.fingerprint,
-          generationVersion: data.type === ReportType.AI_REPORT
-            ? REPORT_RENDERER_VERSION
-            : SIMILARITY_RENDERER_VERSION,
+          generationVersion: rendererVersionFor(data.type),
           expiresAt: new Date(data.generatedAt.getTime() + this.retentionMs),
         },
       });
@@ -785,11 +897,12 @@ export class ReportService {
     reportId: string,
     storageKey: string,
     input: Omit<AIReportInput, 'reportId'>,
+    type: ReportType,
   ): void {
     if (this.generationTasks.has(reportId)) return;
     const task = new Promise<void>((resolve) => {
       setImmediate(() => {
-        void this.finishGeneration(reportId, storageKey, input).finally(
+        void this.finishGeneration(reportId, storageKey, input, type).finally(
           resolve,
         );
       });
@@ -802,9 +915,49 @@ export class ReportService {
     reportId: string,
     storageKey: string,
     input: Omit<AIReportInput, 'reportId'>,
+    type: ReportType,
   ): Promise<void> {
     try {
-      const buffer = await this.renderer.renderAI({ ...input, reportId });
+      let buffer: Buffer;
+      const reportInput = { ...input, reportId };
+      if (type === ReportType.AI_ORIGINAL_REVIEW) {
+        if (!this.originalRenderer) {
+          throw new Error('Original document renderer is not configured');
+        }
+        const original = await this.originalRenderer.ensure({
+          documentId: input.document.id,
+          documentVersionId: input.document.documentVersionId,
+          analysisRunId: input.run.id,
+          storageKey: input.document.storageKey,
+          sourceChecksum: input.document.sourceChecksum,
+          originalName: input.document.filename,
+          mimeType: input.document.mimeType,
+          segments: input.paragraphs.map((paragraph) => ({
+            paragraphIndex: paragraph.paragraphIndex,
+            textHash: paragraph.textHash,
+            charStart: paragraph.charStart,
+            charEnd: paragraph.charEnd,
+            text: paragraph.textPreview,
+            flagged:
+              input.run.threshold !== null &&
+              paragraph.score !== null &&
+              paragraph.score >= input.run.threshold,
+            presentationExcluded: Boolean(
+              paragraph.presentationExcluded ||
+                paragraph.reviewPresentation.excludedReason,
+            ),
+          })),
+        });
+        buffer = await this.originalRenderer.renderOriginalReview(
+          reportInput,
+          original.buffer,
+          original.layoutMap,
+        );
+      } else if (type === ReportType.AI_PARAGRAPH_TECHNICAL) {
+        buffer = await this.renderer.renderAIParagraphTechnical(reportInput);
+      } else {
+        buffer = await this.renderer.renderAI(reportInput);
+      }
       await this.storage.save(storageKey, buffer);
       await this.prisma.$transaction(async (tx) => {
         const changed = await tx.reportArtifact.updateMany({
@@ -852,7 +1005,7 @@ export class ReportService {
         JSON.stringify({
           event: 'report_generation_failed',
           reportId,
-          type: ReportType.AI_REPORT,
+          type,
         }),
       );
     }
@@ -933,7 +1086,7 @@ export class ReportService {
   }
 
   private filename(
-    kind: 'ai' | 'similarity',
+    kind: 'ai' | 'similarity' | 'original-review' | 'paragraph-technical',
     documentId: string,
     date: Date,
   ): string {
@@ -955,6 +1108,7 @@ export class ReportService {
     failureReason?: string | null;
     generationVersion?: string;
     generatedAt: Date;
+    createdAt?: Date;
     expiresAt: Date;
     deletedAt: Date | null;
   }, options: { reused?: boolean } = {}): ReportArtifactMetadata {
@@ -964,11 +1118,13 @@ export class ReportService {
         : artifact.status;
     return {
       id: artifact.id,
+      reportId: artifact.id,
       documentId: artifact.documentId,
       documentVersionId: artifact.documentVersionId,
       analysisRunId: artifact.analysisRunId,
       similarityRunId: artifact.similarityRunId,
       type: artifact.type,
+      variant: artifact.type,
       status,
       filename: artifact.filename,
       contentHash: artifact.contentHash,
@@ -978,17 +1134,22 @@ export class ReportService {
         (artifact.status === ReportArtifactStatus.ERROR
           ? GENERIC_FAILURE_REASON
           : null),
-      generationVersion: artifact.generationVersion ?? (
-        artifact.type === ReportType.AI_REPORT
-          ? REPORT_RENDERER_VERSION
-          : SIMILARITY_RENDERER_VERSION
-      ),
+      generationVersion:
+        artifact.generationVersion ?? rendererVersionFor(artifact.type),
+      rendererVersion:
+        artifact.generationVersion ?? rendererVersionFor(artifact.type),
       generatedAt: artifact.generatedAt,
+      createdAt: artifact.createdAt ?? artifact.generatedAt,
       expiresAt: artifact.expiresAt,
       deletedAt: artifact.deletedAt,
       ...(options.reused ? { reused: true } : {}),
+      downloadAvailable: status === ReportArtifactStatus.AVAILABLE,
+      previewAvailable: status === ReportArtifactStatus.AVAILABLE,
       ...(status === ReportArtifactStatus.AVAILABLE
-        ? { downloadEndpoint: `/api/reports/${artifact.id}/download` }
+        ? {
+            downloadEndpoint: `/api/reports/${artifact.id}/download`,
+            previewEndpoint: `/api/reports/${artifact.id}/preview`,
+          }
         : {}),
     };
   }
@@ -996,4 +1157,34 @@ export class ReportService {
 
 function sha256(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function isAIReportType(type: ReportType): boolean {
+  return (
+    type === ReportType.AI_REPORT ||
+    type === ReportType.AI_ORIGINAL_REVIEW ||
+    type === ReportType.AI_PARAGRAPH_TECHNICAL
+  );
+}
+
+function rendererVersionFor(type: ReportType): string {
+  if (type === ReportType.AI_ORIGINAL_REVIEW) {
+    return AI_ORIGINAL_REVIEW_RENDERER_VERSION;
+  }
+  if (type === ReportType.AI_PARAGRAPH_TECHNICAL) {
+    return AI_PARAGRAPH_TECHNICAL_RENDERER_VERSION;
+  }
+  return type === ReportType.AI_REPORT
+    ? REPORT_RENDERER_VERSION
+    : SIMILARITY_RENDERER_VERSION;
+}
+
+function filenameKindFor(
+  type: ReportType,
+): 'ai' | 'original-review' | 'paragraph-technical' {
+  if (type === ReportType.AI_ORIGINAL_REVIEW) return 'original-review';
+  if (type === ReportType.AI_PARAGRAPH_TECHNICAL) {
+    return 'paragraph-technical';
+  }
+  return 'ai';
 }

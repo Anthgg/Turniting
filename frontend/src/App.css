@@ -986,6 +986,29 @@
   background: var(--surface);
 }
 
+.report-preview-section {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.report-preview-section h3 {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 640;
+}
+
+.report-preview-frame {
+  display: block;
+  width: 100%;
+  height: min(78vh, 980px);
+  min-height: 560px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #eef2f1;
+}
+
 .report-detail-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

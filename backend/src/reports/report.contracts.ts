@@ -29,6 +29,8 @@ export interface AIReportParagraph {
   charEnd: number;
   segmentEvidence: AIReportSegmentEvidence;
   reviewPresentation: ReviewPresentation;
+  presentationExcluded?: boolean;
+  excludedReason?: string | null;
   reviewEvidence?: ReviewEvidence;
   score: number | null;
   signalLevel: string | null;
@@ -56,7 +58,11 @@ export interface AIReportInput {
   turnitingVersion: string;
   document: {
     id: string;
+    documentVersionId: string;
     filename: string;
+    mimeType: string;
+    sourceChecksum: string;
+    storageKey: string;
     createdAt: Date;
     updatedAt: Date;
   };

@@ -7,6 +7,8 @@ const metrics: ReportCleanupMetrics = {
   deletedFiles: 1,
   missingFiles: 1,
   failedDeletes: 0,
+  renderArtifactsExpired: 0,
+  layoutMapsExpired: 0,
 };
 
 describe('ReportCleanup', () => {
@@ -43,6 +45,8 @@ describe('ReportCleanup', () => {
       deletedFiles: 0,
       missingFiles: 0,
       failedDeletes: 0,
+      renderArtifactsExpired: 0,
+      layoutMapsExpired: 0,
     });
     expect(cleanupExpired).toHaveBeenCalledOnce();
 

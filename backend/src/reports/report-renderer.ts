@@ -307,6 +307,279 @@ export class ReportRenderer {
     );
   }
 
+  async renderAIParagraphTechnical(input: AIReportInput): Promise<Buffer> {
+    const paragraphs = [...input.paragraphs].sort(
+      (left, right) => left.paragraphIndex - right.paragraphIndex,
+    );
+    const evaluated = paragraphs.filter(
+      (paragraph) => paragraph.score !== null,
+    ).length;
+    const flagged = paragraphs.filter(
+      (paragraph) =>
+        paragraph.score !== null &&
+        input.run.threshold !== null &&
+        paragraph.score >= input.run.threshold,
+    ).length;
+    return this.renderPdf(
+      'Detalle técnico por párrafos',
+      input.reportId,
+      input.generatedAt,
+      (doc) => {
+        this.aiTechnicalCover(doc, input, { evaluated, flagged });
+        doc.addPage();
+        this.section(doc, 'Resumen del análisis');
+        this.keyValue(
+          doc,
+          'Párrafos evaluados',
+          String(input.run.scoredSegments),
+          48,
+          doc.y,
+          240,
+        );
+        this.keyValue(
+          doc,
+          'Párrafos señalados',
+          String(flagged),
+          315,
+          doc.y,
+          230,
+        );
+        doc.moveDown(2.2);
+        this.keyValue(
+          doc,
+          'Párrafos insuficientes',
+          String(input.run.insufficientSegments),
+          48,
+          doc.y,
+          240,
+        );
+        this.keyValue(
+          doc,
+          'Umbral aplicado',
+          input.run.threshold === null
+            ? 'No disponible'
+            : percentage(input.run.threshold),
+          315,
+          doc.y,
+          230,
+        );
+        doc.moveDown(2.4);
+        doc
+          .font('Helvetica-Oblique')
+          .fontSize(8.5)
+          .fillColor(COLOR.muted)
+          .text(
+            'El porcentaje mostrado por párrafo corresponde al score local del detector para ese segmento. No representa el porcentaje de contribución aritmética del párrafo al score global.',
+            48,
+            doc.y,
+            { width: 499, lineGap: 2 },
+          );
+        doc.moveDown(1.4);
+        this.section(doc, 'Detalle técnico por párrafos');
+        for (const paragraph of paragraphs) {
+          this.technicalParagraphCard(doc, paragraph, input.run.threshold);
+        }
+      },
+      false,
+    );
+  }
+
+  private aiTechnicalCover(
+    doc: PDFDoc,
+    input: AIReportInput,
+    counts: { evaluated: number; flagged: number },
+  ): void {
+    this.brand(doc, 'Detalle técnico por párrafos');
+    doc.moveDown(1.1);
+    doc
+      .font('Helvetica')
+      .fontSize(11)
+      .fillColor(COLOR.muted)
+      .text(cleanText(input.document.filename, 180) || 'Documento', 48, doc.y, {
+        width: 499,
+      });
+    doc.moveDown(1.2);
+
+    const cardY = doc.y;
+    doc.save().roundedRect(48, cardY, 499, 190, 8).fill(COLOR.panel).restore();
+    doc
+      .font('Helvetica')
+      .fontSize(8)
+      .fillColor(COLOR.muted)
+      .text('SEÑAL GLOBAL ESTIMADA', 66, cardY + 18);
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(34)
+      .fillColor(COLOR.ink)
+      .text(percentage(input.run.documentScore), 66, cardY + 39, {
+        width: 210,
+      });
+    this.keyValue(
+      doc,
+      'Umbral aplicado',
+      input.run.threshold === null
+        ? 'No disponible'
+        : percentage(input.run.threshold),
+      315,
+      cardY + 25,
+      210,
+    );
+    this.keyValue(
+      doc,
+      'Modelo',
+      cleanText(input.run.modelNames.join(' + ') || input.run.analyzerMode, 96),
+      315,
+      cardY + 67,
+      210,
+    );
+    this.keyValue(
+      doc,
+      'Perfil / calibración',
+      cleanText(input.run.thresholdProfile, 72) || 'No disponible',
+      315,
+      cardY + 112,
+      210,
+    );
+    this.keyValue(
+      doc,
+      'Evaluados',
+      String(input.run.scoredSegments || counts.evaluated),
+      66,
+      cardY + 130,
+      210,
+    );
+    this.keyValue(
+      doc,
+      'Señalados',
+      String(counts.flagged),
+      315,
+      cardY + 153,
+      210,
+    );
+    this.keyValue(
+      doc,
+      'Insuficientes',
+      String(input.run.insufficientSegments),
+      66,
+      cardY + 153,
+      210,
+    );
+    doc.y = cardY + 210;
+    doc
+      .font('Helvetica')
+      .fontSize(8.5)
+      .fillColor(COLOR.muted)
+      .text(
+        'Los resultados son estimaciones probabilísticas y requieren interpretación contextual.',
+        48,
+        doc.y,
+        { width: 499 },
+      );
+    doc.moveDown(1.2);
+  }
+
+  private technicalParagraphCard(
+    doc: PDFDoc,
+    paragraph: AIReportParagraph,
+    threshold: number | null,
+  ): void {
+    this.ensureSpace(doc, 66);
+    const y = doc.y;
+    doc.save().roundedRect(48, y, 499, 31, 5).fill(COLOR.panel).restore();
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(10)
+      .fillColor(COLOR.ink)
+      .text('PÁRRAFO ' + (paragraph.paragraphIndex + 1), 60, y + 9, {
+        width: 220,
+      });
+    const state =
+      paragraph.score === null
+        ? 'NO EVALUADO'
+        : threshold !== null && paragraph.score >= threshold
+          ? 'SEÑALADO'
+          : 'NO SEÑALADO';
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(8.5)
+      .fillColor(COLOR.muted)
+      .text(state, 355, y + 10, { width: 178, align: 'right' });
+    doc.y = y + 39;
+
+    const localSignal =
+      paragraph.score === null
+        ? 'NO EVALUADO'
+        : percentage(paragraph.score);
+    const thresholdLabel =
+      threshold === null ? 'No disponible' : percentage(threshold);
+    const stats = [
+      'Señal local estimada: ' + localSignal,
+      'Umbral: ' + thresholdLabel,
+      paragraph.words === null ? '' : 'Palabras: ' + paragraph.words,
+      paragraph.tokens === null ? '' : 'Tokens: ' + paragraph.tokens,
+    ].filter(Boolean);
+    doc
+      .font('Helvetica')
+      .fontSize(8.5)
+      .fillColor(COLOR.muted)
+      .text(stats.join('  |  '), 60, doc.y, { width: 475, lineGap: 1.5 });
+    doc.moveDown(0.35);
+
+    if (paragraph.score === null) {
+      doc
+        .font('Helvetica-Oblique')
+        .fontSize(8.5)
+        .fillColor(COLOR.muted)
+        .text('Texto insuficiente para evaluación.', 60, doc.y, {
+          width: 475,
+        });
+      doc.moveDown(0.3);
+    }
+    if (
+      paragraph.presentationExcluded ||
+      paragraph.reviewPresentation.excludedReason
+    ) {
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(8)
+        .fillColor(COLOR.muted)
+        .text('Presentación: EXCLUIDO DE REVISIÓN VISUAL', 60, doc.y, {
+          width: 475,
+        });
+      doc.moveDown(0.15);
+      doc
+        .font('Helvetica')
+        .fontSize(8)
+        .fillColor(COLOR.muted)
+        .text(
+          'Motivo: ' +
+            (paragraph.excludedReason ??
+              paragraph.reviewPresentation.excludedReason ??
+              'PRESENTATION_RULE'),
+          60,
+          doc.y,
+          { width: 475 },
+        );
+      doc.moveDown(0.3);
+    }
+
+    const text = paragraph.textPreview
+      .replace(/\r\n?/gu, '\n')
+      // PDF text cannot contain these control characters; preserve tabs/newlines.
+      // oxlint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/gu, '')
+      .trim();
+    doc
+      .font('Helvetica')
+      .fontSize(9)
+      .fillColor(COLOR.ink)
+      .text(text || 'Texto no disponible.', 60, doc.y, {
+        width: 475,
+        lineGap: 2,
+      });
+    doc.moveDown(1);
+  }
+
   renderSimilarity(input: SimilarityReportInput): Promise<Buffer> {
     return this.renderPdf(
       'Reporte independiente de similitud',

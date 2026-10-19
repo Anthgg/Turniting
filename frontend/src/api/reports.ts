@@ -1,7 +1,12 @@
 import { z } from "zod";
-import { deleteResource, downloadFile, getJson, postJson } from "./client";
+import { apiResourceUrl, deleteResource, downloadFile, getJson, postJson } from "./client";
 
-export const reportTypeSchema = z.enum(["AI_REPORT", "SIMILARITY_REPORT"]);
+export const reportTypeSchema = z.enum([
+  "AI_REPORT",
+  "AI_ORIGINAL_REVIEW",
+  "AI_PARAGRAPH_TECHNICAL",
+  "SIMILARITY_REPORT",
+]);
 export const reportStatusSchema = z.enum([
   "GENERATING",
   "AVAILABLE",
@@ -14,26 +19,33 @@ export const reportStatusSchema = z.enum([
 export const reportArtifactSchema = z
   .object({
     id: z.string().uuid(),
+    reportId: z.string().uuid().optional(),
     documentId: z.string().uuid(),
     documentVersionId: z.string().uuid(),
     analysisRunId: z.string().uuid().nullable(),
     similarityRunId: z.string().uuid().nullable(),
     type: reportTypeSchema,
+    variant: reportTypeSchema.optional(),
     status: reportStatusSchema,
     filename: z
       .string()
-      .regex(/^turniting_(ai|similarity)_[0-9a-f]{8}_\d{4}-\d{2}-\d{2}\.pdf$/i),
+      .regex(/^turniting_(ai|original-review|paragraph-technical|similarity)_[0-9a-f]{8}_\d{4}-\d{2}-\d{2}\.pdf$/i),
     documentName: z.string().optional(),
     runLabel: z.string().optional(),
     contentHash: z.string().nullable(),
     sizeBytes: z.number().int().nullable().optional(),
     failureReason: z.string().nullable().optional(),
     generationVersion: z.string().optional(),
+    rendererVersion: z.string().optional(),
     reused: z.boolean().optional(),
     generatedAt: z.string(),
+    createdAt: z.string().optional(),
     expiresAt: z.string(),
     deletedAt: z.string().nullable(),
     downloadEndpoint: z.string().optional(),
+    previewEndpoint: z.string().optional(),
+    downloadAvailable: z.boolean().optional(),
+    previewAvailable: z.boolean().optional(),
   })
   .passthrough();
 
@@ -105,11 +117,15 @@ export function getReportDetail(reportId: string) {
   return getJson(`/reports/${encodeURIComponent(reportId)}`, reportDetailSchema);
 }
 
-export function generateAIReport(documentId: string, analysisRunId: string) {
+export function generateAIReport(
+  documentId: string,
+  analysisRunId: string,
+  variant: ReportType = "AI_REPORT",
+) {
   return postJson(
     `/documents/${encodeURIComponent(documentId)}/reports/ai`,
     reportArtifactSchema,
-    { analysisRunId },
+    { analysisRunId, variant },
   );
 }
 
@@ -129,6 +145,10 @@ export function downloadReport(report: ReportArtifact) {
     `/reports/${encodeURIComponent(report.id)}/download`,
     report.filename,
   );
+}
+
+export function reportPreviewUrl(reportId: string) {
+  return apiResourceUrl(`/reports/${encodeURIComponent(reportId)}/preview`);
 }
 
 export function deleteReport(reportId: string) {
