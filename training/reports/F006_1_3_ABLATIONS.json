@@ -1,0 +1,70 @@
+{
+  "configurations": [
+    {
+      "coefficients": null,
+      "id": "A1_existing_ensemble_only",
+      "status": "NOT_RUN",
+      "validation_metrics": null
+    },
+    {
+      "coefficients": null,
+      "id": "A2_F006_1_only",
+      "status": "NOT_RUN",
+      "validation_metrics": null
+    },
+    {
+      "coefficients": null,
+      "id": "A3_F006_1_1_only",
+      "status": "NOT_RUN",
+      "validation_metrics": null
+    },
+    {
+      "coefficients": null,
+      "id": "A4_simple_3_score_mean",
+      "status": "NOT_RUN",
+      "validation_metrics": null
+    },
+    {
+      "coefficients": null,
+      "id": "A5_constrained_3_score_weighted",
+      "status": "NOT_RUN",
+      "validation_metrics": null
+    },
+    {
+      "coefficients": null,
+      "id": "B1_simple_4_score_mean",
+      "status": "NOT_RUN",
+      "validation_metrics": null
+    },
+    {
+      "coefficients": null,
+      "id": "B2_constrained_4_score_weighted",
+      "status": "NOT_RUN",
+      "validation_metrics": null
+    },
+    {
+      "coefficients": null,
+      "id": "B3_logistic_4",
+      "status": "NOT_RUN",
+      "validation_metrics": null
+    },
+    {
+      "coefficients": null,
+      "id": "B4_logistic_4_plus_language",
+      "status": "NOT_RUN",
+      "validation_metrics": null
+    },
+    {
+      "coefficients": null,
+      "id": "B5_language_specific_fusion",
+      "status": "NOT_RUN",
+      "validation_metrics": null
+    }
+  ],
+  "planned_configuration_count": 10,
+  "reason": "No F006.1.3 pool or sealed META_FINAL_HOLDOUT was supplied. Existing candidates are component training/validation provenance or historical data. Prior cross-boundary leakage reports contain nonzero near-duplicate findings. No group, lineage, participant, prompt, or parent-child audit has been run for new F006.1.3 groups.",
+  "run_count": 0,
+  "schema_version": 1,
+  "selection": null,
+  "status": "NOT_RUN_INDEPENDENT_META_SPLITS_UNAVAILABLE"
+}

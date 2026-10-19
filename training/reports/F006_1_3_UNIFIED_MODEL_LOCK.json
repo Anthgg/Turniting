@@ -1,0 +1,104 @@
+{
+  "active_model": "NONE",
+  "artifact_path": null,
+  "calibrator": null,
+  "candidate": false,
+  "code_commit": null,
+  "coefficients": null,
+  "component_ids_and_manifest_hashes": {
+    "F006.1": {
+      "identity": {
+        "active": false,
+        "architecture": "microsoft/mdeberta-v3-base + V3 multi-task heads",
+        "commercialEligibility": "RESEARCH_ONLY",
+        "datasetVersion": "TURNITING_DATASET_V2 + F006_1 additions",
+        "gitCommit": "52c71d7ee9bedf5e6afc55b48499039db4d74497",
+        "modelVersion": "EXPERIMENTAL_F006_1_MODEL",
+        "notTurnitin": "Independent research detector; never a Turnitin score.",
+        "status": "EXPERIMENTAL"
+      },
+      "manifest_exists": true,
+      "manifest_path": "/content/drive/MyDrive/turniting/f006_1/models/experimental_f006_1/model_manifest.json",
+      "manifest_sha256": "fc8fb7595a9ba54181b8d9c39a7e94e57609f558985ce163bed368a6a8b2022b",
+      "model_id": "EXPERIMENTAL_F006_1_MODEL",
+      "weight_hash_status": "NOT_COMPUTED_NO_FUSION_LOCK",
+      "weight_sha256": null
+    },
+    "F006.1.1": {
+      "identity": {
+        "active": false,
+        "gitCommit": "632dc6f7a852ee9c1dfc511a35a76cd1ce63428e",
+        "modelVersion": "EXPERIMENTAL_F006_1_1_MODEL",
+        "notTurnitin": "Independent research detector; never a Turnitin score.",
+        "status": "EXPERIMENTAL"
+      },
+      "manifest_exists": true,
+      "manifest_path": "/content/drive/MyDrive/turniting/f006_1_1/models/experimental_f006_1_1/model_manifest.json",
+      "manifest_sha256": "114315db02a06d71abe3093537c190025fe2ffd2d6f9ba5554eb419bde7e1894",
+      "model_id": "EXPERIMENTAL_F006_1_1_MODEL",
+      "weight_hash_status": "PROVENANCE_VERIFIED_NOT_RESEARCH_HASH_LOCKED",
+      "weight_sha256": null
+    },
+    "V2": {
+      "identity": {
+        "architecture": "microsoft/mdeberta-v3-base",
+        "calibrated": true,
+        "datasetVersion": "TURNITING_DATASET_V1",
+        "displayName": "Turniting AI Detector V1",
+        "experimentId": "20261017_0117_mdeberta_gpu_es_acad_v1",
+        "gitCommit": "3415eb2bafb869e4513646e9097544bd97459d68",
+        "modelRevision": "a0484667b22365f84929a935b5e50a51f71f159d",
+        "modelVersion": "TURNITING_AI_V1",
+        "notTurnitin": "Independent detector; not a Turnitin model and not equivalent to Turnitin scores.",
+        "variant": "CALIBRATED_SPANISH_ACADEMIC_TRANSFORMER_GPU"
+      },
+      "manifest_exists": true,
+      "manifest_path": "/content/drive/MyDrive/turniting/workdir/models/gpu/calibrated_spanish_academic/model_manifest.json",
+      "manifest_sha256": "63f56bea13363597420d3578f4f60ea86a762266f3447d8de3d9712098a613d4",
+      "model_id": "TURNITING_AI_V1",
+      "weight_hash_status": "NOT_COMPUTED_NO_FUSION_LOCK",
+      "weight_sha256": null
+    },
+    "V3": {
+      "identity": {
+        "architecture": "microsoft/mdeberta-v3-base + V3 multi-task heads",
+        "calibrated": false,
+        "commercialEligibility": "RESEARCH_ONLY",
+        "datasetVersion": "TURNITING_DATASET_V2",
+        "displayName": "Turniting Research V3",
+        "experimentId": "20261017_0604_v3_es_acad",
+        "gitCommit": "9fb284a6b97548c38fab4e7e9a355100cdf614e9",
+        "modelRevision": "a0484667b22365f84929a935b5e50a51f71f159d",
+        "modelVersion": "TURNITING_RESEARCH_V3_SPANISH_ACADEMIC",
+        "notTurnitin": "Independent research detector; not a Turnitin model and not equivalent to Turnitin scores.",
+        "status": "RESEARCH_ONLY",
+        "variant": "TURNITING_RESEARCH_V3_SPANISH_ACADEMIC"
+      },
+      "manifest_exists": true,
+      "manifest_path": "/content/drive/MyDrive/turniting/v3/models/spanish_academic/model_manifest.json",
+      "manifest_sha256": "be0581242a47b02a59fbae130738c5c5df5679fb1007862784f6fd5329845882",
+      "model_id": "TURNITING_RESEARCH_V3_SPANISH_ACADEMIC",
+      "weight_hash_status": "NOT_COMPUTED_NO_FUSION_LOCK",
+      "weight_sha256": null
+    }
+  },
+  "component_weight_hashes": {
+    "F006.1": null,
+    "F006.1.1": null,
+    "V2": null,
+    "V3": null
+  },
+  "component_weights_changed": false,
+  "dataset_manifest_hash": null,
+  "f006_1_1_weight_integrity": "PROVENANCE_VERIFIED_NOT_RESEARCH_HASH_LOCKED",
+  "features": null,
+  "fusion_family": null,
+  "language_routing": null,
+  "lock_status": "NOT_LOCKED",
+  "model_name": "TURNITING_UNIFIED_EXPERIMENTAL_V1",
+  "model_status": "EXPERIMENTAL",
+  "reason_not_locked": "No F006.1.3 pool or sealed META_FINAL_HOLDOUT was supplied. Existing candidates are component training/validation provenance or historical data. Prior cross-boundary leakage reports contain nonzero near-duplicate findings. No group, lineage, participant, prompt, or parent-child audit has been run for new F006.1.3 groups.",
+  "schema_version": 1,
+  "split_hashes": null,
+  "threshold": null
+}

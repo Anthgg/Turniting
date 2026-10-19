@@ -1,0 +1,18 @@
+{
+  "component_same_holdout_comparison": null,
+  "confidence_intervals_95": null,
+  "final_holdout_tuning": false,
+  "independence": "INSUFFICIENT",
+  "leakage": {
+    "exact": null,
+    "group": null,
+    "lineage": null,
+    "near": null
+  },
+  "metrics": null,
+  "read_or_scored": false,
+  "reason": "No F006.1.3 pool or sealed META_FINAL_HOLDOUT was supplied. Existing candidates are component training/validation provenance or historical data. Prior cross-boundary leakage reports contain nonzero near-duplicate findings. No group, lineage, participant, prompt, or parent-child audit has been run for new F006.1.3 groups.",
+  "rows": 0,
+  "schema_version": 1,
+  "status": "NOT_EVALUATED"
+}

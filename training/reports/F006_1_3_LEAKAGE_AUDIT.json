@@ -1,0 +1,116 @@
+{
+  "exact": null,
+  "group": null,
+  "historical_component_audits": {
+    "F006.1": {
+      "manifest_exists": true,
+      "manifest_sha256": "97662f6c3e67df6110a19ed9925e3ee29168630cc20ad3bcc3009c0721a8559a",
+      "result": "FAIL",
+      "sections": {
+        "exact": {
+          "numeric_findings": {
+            "holdout_train": 0,
+            "validation_holdout": 0,
+            "validation_train": 0
+          },
+          "unreported_detail_entries": 0
+        },
+        "group": {
+          "numeric_findings": {
+            "holdout_ever_evaluated": 0,
+            "holdout_f006_holdout": 0,
+            "holdout_train": 0,
+            "validation_holdout": 0,
+            "validation_train": 0
+          },
+          "unreported_detail_entries": 0
+        },
+        "lineage": {
+          "numeric_findings": {},
+          "unreported_detail_entries": 3
+        },
+        "near_duplicate": {
+          "numeric_findings": {
+            "spanish_holdout_train_extra": 1,
+            "spanish_validation_train_extra": 1,
+            "v2_train_eval": 0,
+            "validation_holdout": 0
+          },
+          "unreported_detail_entries": 0
+        },
+        "parent_child": {
+          "numeric_findings": {
+            "holdout_train": 0,
+            "validation_holdout": 0,
+            "validation_train": 0
+          },
+          "unreported_detail_entries": 0
+        },
+        "participant": {
+          "numeric_findings": {},
+          "unreported_detail_entries": 0
+        }
+      }
+    },
+    "F006.1.1": {
+      "manifest_exists": true,
+      "manifest_sha256": "9c6a4282e4b92d2d1823a267a6ead7284e2101eab6e4323cd0d3b161d5a84cda",
+      "result": "FAIL",
+      "sections": {
+        "exact": {
+          "numeric_findings": {
+            "holdout_train": 0,
+            "validation_holdout": 0,
+            "validation_train": 0
+          },
+          "unreported_detail_entries": 0
+        },
+        "group": {
+          "numeric_findings": {
+            "holdout_ever_evaluated": 0,
+            "holdout_prior_holdouts": 0,
+            "holdout_train": 0,
+            "validation_holdout": 0,
+            "validation_train": 0
+          },
+          "unreported_detail_entries": 0
+        },
+        "lineage": {
+          "numeric_findings": {},
+          "unreported_detail_entries": 0
+        },
+        "near_duplicate": {
+          "numeric_findings": {
+            "eval_train_new": 2,
+            "spanish_eval_f006_1_train_extra": 0,
+            "validation_holdout": 0
+          },
+          "unreported_detail_entries": 0
+        },
+        "parent_child": {
+          "numeric_findings": {
+            "holdout_train": 0,
+            "validation_holdout": 0,
+            "validation_train": 0
+          },
+          "unreported_detail_entries": 0
+        },
+        "participant": {
+          "numeric_findings": {
+            "cowsl2h_students_holdout_train": 0,
+            "cowsl2h_students_validation_holdout": 0,
+            "cowsl2h_students_validation_train": 0
+          },
+          "unreported_detail_entries": 0
+        }
+      }
+    }
+  },
+  "interpretation": "Prior validation manifests report PASS, but this does not certify F006.1.3 final-holdout independence.",
+  "lineage": null,
+  "meta_final_holdout_exists": false,
+  "meta_final_holdout_leakage_status": "NOT_EVALUATED_NO_META_FINAL_HOLDOUT",
+  "near": null,
+  "schema_version": 1,
+  "zero_leakage_gate": "NOT_EVALUATED"
+}
