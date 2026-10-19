@@ -5,7 +5,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { inflateSync } from 'node:zlib';
+import { deflateSync, inflateSync } from 'node:zlib';
 import { OriginalRenderFidelityStatus, OriginalRenderSourceType } from '@prisma/client';
 import { PDFDocument, StandardFonts, degrees } from 'pdf-lib';
 import { describe, expect, it, vi } from 'vitest';
@@ -26,6 +26,43 @@ const REPORT_ID = 'e564fa70-4188-4e8e-a4eb-98fda94f8865';
 
 function sha256(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function pngCrc32(value: Buffer): number {
+  let crc = 0xffffffff;
+  for (const byte of value) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type: string, value: Buffer): Buffer {
+  const name = Buffer.from(type, 'ascii');
+  const checksumInput = Buffer.concat([name, value]);
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(value.length);
+  const checksum = Buffer.alloc(4);
+  checksum.writeUInt32BE(pngCrc32(checksumInput));
+  return Buffer.concat([length, name, value, checksum]);
+}
+
+function syntheticPng(): Buffer {
+  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(1, 0);
+  header.writeUInt32BE(1, 4);
+  header[8] = 8;
+  header[9] = 6;
+  const pixel = deflateSync(Buffer.from([0, 56, 126, 180, 255]));
+  return Buffer.concat([
+    signature,
+    pngChunk('IHDR', header),
+    pngChunk('IDAT', pixel),
+    pngChunk('IEND', Buffer.alloc(0)),
+  ]);
 }
 
 function tokenHash(value: string): string {
@@ -214,6 +251,7 @@ function executableAvailable(command: string, args: string[]): boolean {
 
 const POPPLER_AVAILABLE = executableAvailable('pdftotext', ['-v']);
 const PDF_RASTERIZER_AVAILABLE = executableAvailable('pdftoppm', ['-v']);
+const PDFIMAGES_AVAILABLE = executableAvailable('pdfimages', ['-v']);
 const LIBREOFFICE_AVAILABLE = executableAvailable('soffice', ['--version']);
 
 interface RasterImage {
@@ -415,23 +453,48 @@ describe('original document layout mapping', () => {
 });
 
 describe('OriginalDocumentRenderer PDF integration', () => {
-  it.skipIf(!POPPLER_AVAILABLE || !PDF_RASTERIZER_AVAILABLE)(
-    'passes source PDFs through unchanged and places highlights over vector text on normal and rotated pages',
+  it.skipIf(!POPPLER_AVAILABLE || !PDF_RASTERIZER_AVAILABLE || !PDFIMAGES_AVAILABLE)(
+    'passes a three-page source PDF through with images, a table, columns, and aligned highlights at 90, 180, and 270 degrees',
     async () => {
       const sourceDocument = await PDFDocument.create();
       const font = await sourceDocument.embedFont(StandardFonts.Helvetica);
       const normalText = 'Original paragraph stays vector and is visually highlighted.';
       const referenceText = 'Synthetic reference remains visible but is not highlighted.';
+      const firstColumnText = 'Column one stays before column two.';
+      const secondColumnText = 'Column two maps after the left column.';
       const rotatedText = 'Rotated paragraph maps correctly.';
-      const normalPage = sourceDocument.addPage([400, 300]);
-      normalPage.drawText(normalText, { x: 40, y: 190, size: 14, font });
-      normalPage.drawText(referenceText, { x: 40, y: 120, size: 12, font });
-      const rotatedPage = sourceDocument.addPage([400, 300]);
-      rotatedPage.setRotation(degrees(90));
-      rotatedPage.drawText(rotatedText, { x: 55, y: 210, size: 14, font });
+      const firstPage = sourceDocument.addPage([400, 300]);
+      firstPage.setRotation(degrees(90));
+      firstPage.drawText(normalText, { x: 36, y: 218, size: 12, font });
+      firstPage.drawText(referenceText, { x: 40, y: 164, size: 10, font });
+      const logo = await sourceDocument.embedPng(syntheticPng());
+      firstPage.drawImage(logo, { x: 332, y: 238, width: 24, height: 24 });
+      firstPage.drawText('Synthetic PDF table', { x: 42, y: 95, size: 10, font });
+      firstPage.drawLine({ start: { x: 40, y: 84 }, end: { x: 236, y: 84 }, thickness: 1 });
+      firstPage.drawLine({ start: { x: 40, y: 58 }, end: { x: 236, y: 58 }, thickness: 1 });
+      firstPage.drawLine({ start: { x: 40, y: 84 }, end: { x: 40, y: 58 }, thickness: 1 });
+      firstPage.drawLine({ start: { x: 138, y: 84 }, end: { x: 138, y: 58 }, thickness: 1 });
+      firstPage.drawLine({ start: { x: 236, y: 84 }, end: { x: 236, y: 58 }, thickness: 1 });
+      firstPage.drawText('Cell one', { x: 48, y: 68, size: 9, font });
+      firstPage.drawText('Cell two', { x: 147, y: 68, size: 9, font });
+
+      const secondPage = sourceDocument.addPage([520, 380]);
+      secondPage.setRotation(degrees(180));
+      secondPage.drawText(firstColumnText, { x: 38, y: 312, size: 9, font });
+      secondPage.drawText(secondColumnText, { x: 285, y: 312, size: 9, font });
+
+      const thirdPage = sourceDocument.addPage([612, 432]);
+      thirdPage.setRotation(degrees(270));
+      thirdPage.drawText(rotatedText, { x: 64, y: 271, size: 12, font });
       const source = Buffer.from(await sourceDocument.save());
       const harness = rendererHarness(source);
-      const segments = [normalText, referenceText, rotatedText];
+      const segments = [
+        normalText,
+        referenceText,
+        firstColumnText,
+        secondColumnText,
+        rotatedText,
+      ];
       const request = originalInput(
         source,
         'synthetic-source.pdf',
@@ -450,11 +513,15 @@ describe('OriginalDocumentRenderer PDF integration', () => {
         'LOCATED',
         'PRESENTATION_EXCLUDED',
         'LOCATED',
+        'LOCATED',
+        'LOCATED',
       ]);
       expect(ensured.layoutMap.segments.map((segment) => segment.pageIndexes)).toEqual([
         [0],
         [0],
         [1],
+        [1],
+        [2],
       ]);
 
       const output = await harness.renderer.renderOriginalReview(
@@ -467,8 +534,20 @@ describe('OriginalDocumentRenderer PDF integration', () => {
         ensured.layoutMap,
       );
       const renderedDocument = await PDFDocument.load(output);
-      expect(renderedDocument.getPageCount()).toBe(3);
-      expect(renderedDocument.getPage(2).getRotation().angle).toBe(90);
+      expect(renderedDocument.getPageCount()).toBe(4);
+      expect(renderedDocument.getPage(1).getRotation().angle).toBe(90);
+      expect(renderedDocument.getPage(2).getRotation().angle).toBe(180);
+      expect(renderedDocument.getPage(3).getRotation().angle).toBe(270);
+      expect(
+        [1, 2, 3].map((pageIndex) => {
+          const { width, height } = renderedDocument.getPage(pageIndex).getMediaBox();
+          return [width, height];
+        }),
+      ).toEqual([
+        [400, 300],
+        [520, 380],
+        [612, 432],
+      ]);
 
       const directory = await mkdtemp(path.join(tmpdir(), 'turniting-f0094-pdf-test-'));
       try {
@@ -481,10 +560,21 @@ describe('OriginalDocumentRenderer PDF integration', () => {
         expect(textResult.stdout).toContain('TURNITING');
         expect(textResult.stdout).toContain(normalText);
         expect(textResult.stdout).toContain(referenceText);
+        expect(textResult.stdout).toContain('Synthetic PDF table');
+        expect(textResult.stdout).toContain('Cell one');
+        expect(textResult.stdout).toContain('Cell two');
+        expect(textResult.stdout).toContain(firstColumnText);
+        expect(textResult.stdout).toContain(secondColumnText);
         expect(textResult.stdout).toContain(rotatedText);
 
+        const imageResult = await execFileAsync('pdfimages', ['-list', outputPath], {
+          encoding: 'utf8',
+          timeout: 15_000,
+        });
+        expect(imageResult.stdout).toMatch(/\n\s*\d+\s+\d+\s+image\s+/u);
+
         const rasterPages: RasterImage[] = [];
-        for (const sourcePageIndex of [0, 1]) {
+        for (const sourcePageIndex of [0, 1, 2]) {
           const pageNumber = sourcePageIndex + 2;
           const prefix = path.join(directory, `page-${pageNumber}`);
           await execFileAsync(
@@ -501,7 +591,15 @@ describe('OriginalDocumentRenderer PDF integration', () => {
         ).toBeGreaterThan(0);
         expect(
           yellowPixelCount(rasterPages[1]!, ensured.layoutMap.segments[2]!.rectangles),
-          'highlight should align with vector text on the rotated source page 3',
+          'highlight should align with the first column on source page 3',
+        ).toBeGreaterThan(0);
+        expect(
+          yellowPixelCount(rasterPages[1]!, ensured.layoutMap.segments[3]!.rectangles),
+          'highlight should align with the second column on source page 3',
+        ).toBeGreaterThan(0);
+        expect(
+          yellowPixelCount(rasterPages[2]!, ensured.layoutMap.segments[4]!.rectangles),
+          'highlight should align with vector text on the 270-degree source page',
         ).toBeGreaterThan(0);
         expect(
           yellowPixelCount(rasterPages[0]!, ensured.layoutMap.segments[1]!.rectangles),
@@ -513,7 +611,7 @@ describe('OriginalDocumentRenderer PDF integration', () => {
     },
   );
 
-  it.skipIf(!POPPLER_AVAILABLE || !LIBREOFFICE_AVAILABLE)(
+  it.skipIf(!POPPLER_AVAILABLE || !PDFIMAGES_AVAILABLE || !LIBREOFFICE_AVAILABLE)(
     'converts the synthetic DOCX locally and preserves its layout features and mapped text',
     async () => {
       const fixturePath = new URL(
@@ -560,6 +658,11 @@ describe('OriginalDocumentRenderer PDF integration', () => {
           encoding: 'utf8',
           timeout: 15_000,
         });
+        const convertedImages = await execFileAsync('pdfimages', ['-list', convertedPath], {
+          encoding: 'utf8',
+          timeout: 15_000,
+        });
+        expect(convertedImages.stdout).toMatch(/\n\s*\d+\s+\d+\s+image\s+/u);
         for (const expected of [
           'Synthetic thesis title',
           'SYNTHETIC HEADER',
