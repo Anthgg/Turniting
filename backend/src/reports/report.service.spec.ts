@@ -13,6 +13,9 @@ import { ReportService } from './report.service.js';
 import type { OriginalDocumentRenderer } from './original-document-renderer.js';
 import type { ReportStorageAdapter } from './report-storage.js';
 
+// Unit tests isolate storage/lifecycle orchestration; real PDF metadata is verified by renderer integration tests.
+vi.mock('./report-pdf-metadata.js', () => ({ stampTurnitingReport: vi.fn(async (buffer: Buffer) => buffer) }));
+
 const DOCUMENT_ID = '66b2f3c5-14df-4156-a1df-152a7129f88e';
 const VERSION_ID = '8edee971-57eb-478b-b811-5f83b8115ea3';
 const RUN_ID = '31ec6f6f-4be4-49da-9bf5-ccf9fe77aab4';
@@ -29,6 +32,8 @@ function syntheticRun(documentId = DOCUMENT_ID) {
   return {
     id: RUN_ID,
     documentVersionId: VERSION_ID,
+    sourceDocumentId: documentId,
+    sourceDocumentVersionId: VERSION_ID,
     status: 'COMPLETED',
     analyzerMode: 'V3_ONLY',
     analyzerVersion: 'f005-test',
@@ -48,6 +53,8 @@ function syntheticRun(documentId = DOCUMENT_ID) {
     documentVersion: {
       id: VERSION_ID,
       documentId,
+      originalFilename: 'muestra_sintetica.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       extractedText: TEXT,
       fileHash: sha256(SOURCE),
       storageKey: 'synthetic/source.docx',
@@ -105,6 +112,10 @@ function makeArtifact(overrides: Record<string, unknown> = {}) {
     documentId: DOCUMENT_ID,
     documentVersionId: VERSION_ID,
     analysisRunId: RUN_ID,
+    sourceDocumentId: DOCUMENT_ID,
+    sourceDocumentVersionId: VERSION_ID,
+    sourceChecksum: sha256(SOURCE),
+    generatedBy: 'TURNITING',
     similarityRunId: null,
     type: ReportType.AI_REPORT,
     status: ReportArtifactStatus.AVAILABLE,
@@ -273,6 +284,73 @@ describe('ReportService', () => {
 
   beforeEach(() => {
     h = makeHarness();
+  });
+
+  it('requires an exact analysis ID before any lookup or rendering', async () => {
+    await expect(h.service.generateBothAI(DOCUMENT_ID, '')).rejects.toMatchObject({ response: { code: 'ANALYSIS_RUN_REQUIRED' } });
+    expect(h.prisma.analysisRun.findUnique).not.toHaveBeenCalled();
+    expect(h.prisma.reportArtifact.create).not.toHaveBeenCalled();
+  });
+
+  it('resolves one run once for both reports and persists identical source, score, threshold and model snapshots', async () => {
+    const pair = await h.service.generateBothAI(DOCUMENT_ID, RUN_ID);
+    await Promise.all(h.rows.map(waitForGeneration));
+    expect(h.prisma.analysisRun.findUnique).toHaveBeenCalledTimes(1);
+    expect(pair.originalReview.id).not.toBe(pair.paragraphTechnical.id);
+    expect(h.rows).toHaveLength(2);
+    expect(h.rows[0].analysisSnapshot).toEqual(h.rows[1].analysisSnapshot);
+    for (const row of h.rows) {
+      expect(row).toMatchObject({ generatedBy: 'TURNITING', analysisRunId: RUN_ID, sourceDocumentId: DOCUMENT_ID, sourceDocumentVersionId: VERSION_ID, sourceChecksum: sha256(SOURCE), analysisSnapshot: { run: { id: RUN_ID, globalScore: .42, threshold: .58, modelNames: ['CANDIDATE_MODEL_V3'], segmentCount: 2 } } });
+    }
+    const tech = h.renderer.renderAIParagraphTechnical.mock.calls[0]![0];
+    expect(tech.paragraphs).toHaveLength(syntheticRun().segments.length);
+    expect(h.originalRenderer.ensure.mock.calls[0]![0]).toMatchObject({ sourceArtifactType: 'DOCUMENT_VERSION', documentVersionId: VERSION_ID, analysisRunId: RUN_ID });
+    expect(h.prisma.analysisRun).not.toHaveProperty('create');
+  });
+
+  it('rejects a run whose immutable source binding disagrees with its version', async () => {
+    const bad = syntheticRun();
+    bad.sourceDocumentVersionId = 'ffffffff-0000-4000-8000-000000000001';
+    h.prisma.analysisRun.findUnique.mockResolvedValueOnce(bad as never);
+    await expect(h.service.generateBothAI(DOCUMENT_ID, RUN_ID)).rejects.toMatchObject({ response: { code: 'ANALYSIS_SOURCE_INTEGRITY_INVALID' } });
+    expect(h.prisma.reportArtifact.create).not.toHaveBeenCalled();
+  });
+
+  it('uses the version source name rather than mutable document display metadata', async () => {
+    const run = syntheticRun();
+    run.documentVersion.document.originalName = 'turniting_paragraph-technical_other.pdf';
+    h.prisma.analysisRun.findUnique.mockResolvedValueOnce(run as never);
+    const pair = await h.service.generateBothAI(DOCUMENT_ID, RUN_ID);
+    await Promise.all(h.rows.map(waitForGeneration));
+    expect(pair.originalReview.filename).toContain('muestra_sintetica');
+    expect(pair.paragraphTechnical.documentName).toBe('muestra_sintetica.docx');
+    expect(h.renderer.renderAIParagraphTechnical.mock.calls[0]![0].document.filename).toBe('muestra_sintetica.docx');
+  });
+
+  it('regenerates each available variant from the same run without changing the other variant or source', async () => {
+    const pair = await h.service.generateBothAI(DOCUMENT_ID, RUN_ID);
+    await Promise.all(h.rows.map(waitForGeneration));
+    const regeneratedA = await h.service.regenerate(pair.originalReview.id);
+    await waitForGeneration(h.rows[2]);
+    const regeneratedB = await h.service.regenerate(pair.paragraphTechnical.id);
+    await waitForGeneration(h.rows[3]);
+    expect(regeneratedA.id).not.toBe(pair.originalReview.id);
+    expect(regeneratedB.id).not.toBe(pair.paragraphTechnical.id);
+    expect(h.rows.map(row => row.analysisRunId)).toEqual([RUN_ID, RUN_ID, RUN_ID, RUN_ID]);
+    expect(h.rows.map(row => row.analysisSnapshot)).toEqual(Array(4).fill(h.rows[0].analysisSnapshot));
+    expect(h.rows.map(row => row.status)).toEqual(Array(4).fill(ReportArtifactStatus.AVAILABLE));
+    await h.service.delete(regeneratedA.id);
+    expect(h.rows[3].status).toBe(ReportArtifactStatus.AVAILABLE);
+    await h.service.delete(regeneratedB.id);
+    expect(h.rows[0].status).toBe(ReportArtifactStatus.AVAILABLE);
+    expect(h.prisma.analysisRun).not.toHaveProperty('delete');
+  });
+
+  it('rejects regeneration if an artifact claims a different source version', async () => {
+    const artifact = makeArtifact({ sourceDocumentVersionId: 'ffffffff-0000-4000-8000-000000000001' });
+    h.rows.push(artifact);
+    await expect(h.service.regenerate(artifact.id)).rejects.toMatchObject({ response: { code: 'ANALYSIS_SOURCE_INTEGRITY_INVALID' } });
+    expect(h.prisma.reportArtifact.create).not.toHaveBeenCalled();
   });
 
   it('creates an AI artifact with exactly 24 hours of retention and renders from the completed run', async () => {

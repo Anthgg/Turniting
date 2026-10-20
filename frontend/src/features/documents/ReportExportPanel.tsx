@@ -6,9 +6,12 @@ import {
   downloadReport,
   deleteReport,
   generateAIReport,
+  generateBothAIReports,
   listDocumentReports,
   regenerateReport,
   reportQueryKeys,
+  reportModelLabel,
+  reportScoreLabel,
   type ReportArtifact,
   type ReportType,
 } from "../../api/reports";
@@ -69,8 +72,8 @@ export function ReportExportPanel({
   canExport: boolean;
 }) {
   const queryClient = useQueryClient();
-  const [selectedRunId, setSelectedRunId] = useState("");
-  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [previewReportId, setPreviewReportId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const analyses = useQuery({
     queryKey: analysisQueryKeys.documentAnalyses(documentId),
@@ -95,7 +98,13 @@ export function ReportExportPanel({
     [analyses.data?.items],
   );
   const selectedRun =
-    completedRuns.find((run) => run.id === selectedRunId) ?? completedRuns[0];
+    selectedRunId === null
+      ? completedRuns[0]
+      : completedRuns.find((run) => run.id === selectedRunId);
+
+  // React immediately retries this component with the initial run locked.
+  // Later query refreshes cannot move the cards to another analysis.
+  if (selectedRunId === null && selectedRun) setSelectedRunId(selectedRun.id);
 
   const generate = useMutation({
     mutationFn: ({ runId, variant }: { runId: string; variant: ReportType }) =>
@@ -140,7 +149,20 @@ export function ReportExportPanel({
     },
   });
 
-  const currentReports = reports.data?.items ?? [];
+  const generateBoth = useMutation({
+    mutationFn: (runId: string) => generateBothAIReports(documentId, runId),
+    onSuccess: async () => {
+      setMessage("Ambos reportes usan la misma corrida de análisis.");
+      await queryClient.invalidateQueries({ queryKey: reportQueryKeys.all });
+    },
+    onError: async () => {
+      await queryClient.invalidateQueries({ queryKey: reportQueryKeys.all });
+    },
+  });
+
+  const currentReports = (reports.data?.items ?? []).filter(
+    (report) => report.documentId === documentId,
+  );
   const aiReports = currentReports.filter(
     (report) => report.type !== "SIMILARITY_REPORT",
   );
@@ -164,6 +186,23 @@ export function ReportExportPanel({
     error instanceof ApiRequestError
       ? error.message
       : "No se pudo completar la operación.";
+  const generationPending = generate.isPending || regenerate.isPending || generateBoth.isPending;
+  const variantCards = [
+    {
+      variant: "AI_ORIGINAL_REVIEW" as const,
+      title: "Revisión sobre documento original",
+      action: "revisión original",
+      description: "Conserva la maquetación del archivo y señala los párrafos que alcanzan el umbral aplicado.",
+      report: selectedOriginalReport,
+    },
+    {
+      variant: "AI_PARAGRAPH_TECHNICAL" as const,
+      title: "Detalle técnico por párrafos",
+      action: "detalle por párrafos",
+      description: "Muestra el score local, el umbral, el estado, las exclusiones y el texto completo de cada segmento.",
+      report: selectedTechnicalReport,
+    },
+  ];
 
   return (
     <section
@@ -172,7 +211,7 @@ export function ReportExportPanel({
     >
       <div className="document-panel-heading">
         <div>
-          <p className="eyebrow">EXPORTACIÓN</p>
+          <p className="eyebrow">REPORTES DE IA</p>
           <h2 id="report-export-title">Reportes PDF</h2>
         </div>
       </div>
@@ -194,122 +233,48 @@ export function ReportExportPanel({
           </select>
         </label>
       )}
+      {selectedRun && (
+        <p className="report-export-note" data-analysis-run-id={selectedRun.id}>
+          Ambos reportes: corrida {selectedRun.id.slice(0, 8)} · Señal global {reportScoreLabel(selectedRun.documentScore)} · Umbral {reportScoreLabel(selectedRun.threshold)} · {selectedRun.analyzerMode}
+        </p>
+      )}
+      <button
+        className="button button-primary"
+        type="button"
+        onClick={() => selectedRun && generateBoth.mutate(selectedRun.id)}
+        disabled={!canExport || !selectedRun || generationPending || selectedOriginalReport?.status === "GENERATING" || selectedTechnicalReport?.status === "GENERATING"}
+        aria-busy={generateBoth.isPending}
+      >
+        {generateBoth.isPending ? "Generando ambos…" : "Generar ambos reportes"}
+      </button>
       <div className="report-export-actions">
-        <div className="report-export-action">
-          <div>
-            <h3>Revisión sobre documento original</h3>
-            <p>
-              Conserva la maquetación del archivo y señala los párrafos que
-              alcanzan el umbral aplicado.
-            </p>
-          </div>
-          {selectedOriginalReport?.status === "AVAILABLE" ? (
+        {variantCards.map(({ variant, title, action, description, report }) => (
+          <div className="report-export-action" data-report-variant={variant} key={variant}>
+            <div>
+              <h3>{title}</h3>
+              <p>{description}</p>
+              {report?.run && <p data-analysis-run-id={report.analysisRunId ?? undefined}>Corrida {report.analysisRunId?.slice(0, 8)} · Señal {reportScoreLabel(report.run.globalScore)} · Umbral {reportScoreLabel(report.run.threshold)} · {reportModelLabel(report)}</p>}
+            </div>
             <div className="report-row-actions">
+              {report?.status === "AVAILABLE" && <>
+                <button className="button button-primary" type="button" onClick={() => setPreviewReportId(report.id)}>Ver {action}</button>
+                <button className="button button-quiet" type="button" onClick={() => download.mutate(report)} disabled={download.isPending}>Descargar {action}</button>
+              </>}
               <button
-                className="button button-primary"
+                className={report?.status === "AVAILABLE" ? "button button-quiet" : "button button-primary"}
                 type="button"
-                onClick={() => setSelectedReportId(selectedOriginalReport.id)}
+                onClick={() => {
+                  if (report) regenerate.mutate(report.id);
+                  else if (selectedRun) generate.mutate({ runId: selectedRun.id, variant });
+                }}
+                disabled={!canExport || !selectedRun || generationPending || report?.status === "GENERATING"}
+                aria-busy={generationPending || report?.status === "GENERATING"}
               >
-                Ver revisión original
-              </button>
-              <button
-                className="button button-quiet"
-                type="button"
-                onClick={() => download.mutate(selectedOriginalReport)}
-                disabled={download.isPending}
-              >
-                Descargar revisión original
+                {generationPending || report?.status === "GENERATING" ? "Generando…" : `${report ? "Regenerar" : "Generar"} ${action}`}
               </button>
             </div>
-          ) : (
-            <button
-              className="button button-primary"
-              type="button"
-              onClick={() =>
-                selectedRun &&
-                generate.mutate({
-                  runId: selectedRun.id,
-                  variant: "AI_ORIGINAL_REVIEW",
-                })
-              }
-              disabled={
-                !canExport ||
-                !selectedRun ||
-                generate.isPending ||
-                selectedOriginalReport?.status === "GENERATING"
-              }
-              aria-busy={
-                generate.isPending ||
-                selectedOriginalReport?.status === "GENERATING"
-              }
-            >
-              {generate.isPending ||
-              selectedOriginalReport?.status === "GENERATING"
-                ? "Generando…"
-                : selectedOriginalReport
-                  ? "Regenerar revisión original"
-                  : "Generar revisión original"}
-            </button>
-          )}
-        </div>
-
-        <div className="report-export-action">
-          <div>
-            <h3>Detalle técnico por párrafos</h3>
-            <p>
-              Muestra el score local, el umbral, el estado, las exclusiones y
-              el texto completo de cada segmento.
-            </p>
           </div>
-          {selectedTechnicalReport?.status === "AVAILABLE" ? (
-            <div className="report-row-actions">
-              <button
-                className="button button-primary"
-                type="button"
-                onClick={() => setSelectedReportId(selectedTechnicalReport.id)}
-              >
-                Ver detalle por párrafos
-              </button>
-              <button
-                className="button button-quiet"
-                type="button"
-                onClick={() => download.mutate(selectedTechnicalReport)}
-                disabled={download.isPending}
-              >
-                Descargar detalle por párrafos
-              </button>
-            </div>
-          ) : (
-            <button
-              className="button button-primary"
-              type="button"
-              onClick={() =>
-                selectedRun &&
-                generate.mutate({
-                  runId: selectedRun.id,
-                  variant: "AI_PARAGRAPH_TECHNICAL",
-                })
-              }
-              disabled={
-                !canExport ||
-                !selectedRun ||
-                generate.isPending ||
-                selectedTechnicalReport?.status === "GENERATING"
-              }
-              aria-busy={
-                generate.isPending ||
-                selectedTechnicalReport?.status === "GENERATING"
-              }
-            >
-              {generate.isPending ||
-              selectedTechnicalReport?.status === "GENERATING"
-                ? "Generando…"
-                : selectedTechnicalReport
-                  ? "Regenerar detalle por párrafos"
-                  : "Generar detalle por párrafos"}
-            </button>
-          )}
-        </div>
+        ))}
 
         <div className="report-export-action">
           <div>
@@ -381,6 +346,7 @@ export function ReportExportPanel({
           No se pudo iniciar el reporte: {errorMessage(generate.error)}
         </p>
       )}
+      {generateBoth.isError && <p className="report-export-error" role="alert">No se pudieron generar ambos reportes: {errorMessage(generateBoth.error)}</p>}
       {download.isError && (
         <p className="report-export-error" role="alert">
           No se pudo descargar el PDF: {errorMessage(download.error)}
@@ -399,6 +365,7 @@ export function ReportExportPanel({
               <div>
                 <strong>{reportVariantLabel(report.type)}</strong>
                 <small>{report.filename}</small>
+                <small>{report.documentName ?? "Documento original"} · Corrida {report.analysisRunId?.slice(0, 8) ?? "—"} · Señal {reportScoreLabel(report.run?.globalScore)} · {reportModelLabel(report)}</small>
                 <span
                   className={`report-artifact-status is-${report.status.toLowerCase()}`}
                 >
@@ -422,16 +389,16 @@ export function ReportExportPanel({
                 <small>{report.sizeBytes == null ? "Tamaño no disponible" : `PDF · ${(report.sizeBytes / 1024).toFixed(report.sizeBytes < 1024 * 1024 ? 0 : 1)} ${report.sizeBytes < 1024 * 1024 ? "KB" : "MB"}`}</small>
               </div>
               <div className="report-row-actions">
-                {report.status === "AVAILABLE" && <button className="button button-quiet" type="button" onClick={() => setSelectedReportId(report.id)}>Ver {reportVariantLabel(report.type).toLowerCase()}</button>}
+                {report.status === "AVAILABLE" && <button className="button button-quiet" type="button" onClick={() => setPreviewReportId(report.id)}>Ver {reportVariantLabel(report.type).toLowerCase()}</button>}
                 {report.status === "AVAILABLE" && <button className="button button-quiet" type="button" onClick={() => download.mutate(report)} disabled={download.isPending} aria-busy={download.isPending && download.variables?.id === report.id}>{download.isPending && download.variables?.id === report.id ? "Descargando…" : `Descargar ${reportVariantLabel(report.type).toLowerCase()}`}</button>}
-                {["EXPIRED", "DELETED", "FAILED", "ERROR"].includes(report.status) && <button className="button button-quiet" type="button" onClick={() => regenerate.mutate(report.id)} disabled={regenerate.isPending}>Regenerar</button>}
+                {report.status !== "GENERATING" && <button className="button button-quiet" type="button" onClick={() => regenerate.mutate(report.id)} disabled={generationPending}>Regenerar</button>}
                 {report.status !== "DELETED" && <button className="button button-quiet button-danger-quiet" type="button" onClick={() => { if (window.confirm("Se eliminará el archivo PDF. El análisis seguirá disponible.")) remove.mutate(report.id); }} disabled={remove.isPending || report.status === "GENERATING"}>Eliminar</button>}
               </div>
             </li>
           ))}
         </ul>
       )}
-      {selectedReportId && <ReportDetailPanel reportId={selectedReportId} onClose={() => setSelectedReportId(null)} />}
+      {previewReportId && <ReportDetailPanel reportId={previewReportId} onClose={() => setPreviewReportId(null)} />}
     </section>
   );
 }

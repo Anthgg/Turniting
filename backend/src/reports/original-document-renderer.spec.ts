@@ -227,6 +227,7 @@ function originalInput(
   texts: string[],
 ): OriginalRenderInput {
   return {
+    sourceArtifactType: 'DOCUMENT_VERSION',
     documentId: DOCUMENT_ID,
     documentVersionId: VERSION_ID,
     analysisRunId: RUN_ID,
@@ -537,11 +538,11 @@ describe('OriginalDocumentRenderer PDF integration', () => {
           reportParagraph(index, text, scores[index]!, index === 1),
         ),
       );
+      report.document.sourceChecksum = sha256(source);
       report.run.threshold = threshold;
       const output = await harness.renderer.renderOriginalReview(
         report,
-        ensured.buffer,
-        ensured.layoutMap,
+        ensured,
       );
       const renderedDocument = await PDFDocument.load(output);
       expect(renderedDocument.getPageCount()).toBe(4);
@@ -689,11 +690,9 @@ describe('OriginalDocumentRenderer PDF integration', () => {
           expect(convertedText.stdout).toContain(expected);
         }
 
-        const report = await harness.renderer.renderOriginalReview(
-          reportInput(texts.map((text, index) => reportParagraph(index, text, 0.58))),
-          ensured.buffer,
-          ensured.layoutMap,
-        );
+        const reviewInput = reportInput(texts.map((text, index) => reportParagraph(index, text, 0.58)));
+        reviewInput.document.sourceChecksum = sha256(source);
+        const report = await harness.renderer.renderOriginalReview(reviewInput, ensured);
         const reviewedDocument = await PDFDocument.load(report);
         expect(reviewedDocument.getPageCount()).toBe(ensured.artifact.pageCount + 1);
       } finally {

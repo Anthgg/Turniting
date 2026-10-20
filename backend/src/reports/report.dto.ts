@@ -10,9 +10,12 @@ import {
 } from 'class-validator';
 import { ReportArtifactStatus, ReportType } from '@prisma/client';
 
-export class GenerateAIReportDto {
+export class GenerateBothAIReportsDto {
   @IsUUID()
   analysisRunId!: string;
+}
+
+export class GenerateAIReportDto extends GenerateBothAIReportsDto {
 
   @IsOptional()
   @IsIn(['AI_REPORT', 'AI_ORIGINAL_REVIEW', 'AI_PARAGRAPH_TECHNICAL'])

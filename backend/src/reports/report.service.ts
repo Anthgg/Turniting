@@ -32,6 +32,8 @@ import type {
 } from './report.contracts.js';
 import { REPORT_STORAGE, type ReportStorageAdapter } from './report-storage.js';
 import { OriginalDocumentRenderer } from './original-document-renderer.js';
+import { resolveAnalysisSource, type ResolvedAnalysisSource } from './analysis-source.js';
+import { stampTurnitingReport } from './report-pdf-metadata.js';
 import {
   AI_ORIGINAL_REVIEW_RENDERER_VERSION,
   AI_PARAGRAPH_TECHNICAL_RENDERER_VERSION,
@@ -49,6 +51,12 @@ const REPORT_RUN_INCLUDE = {
 type AnalysisRunForReport = Prisma.AnalysisRunGetPayload<{
   include: typeof REPORT_RUN_INCLUDE;
 }>;
+type PreparedAIReport = {
+  run: AnalysisRunForReport;
+  source: ResolvedAnalysisSource;
+  generatedAt: Date;
+  input: Omit<AIReportInput, 'reportId'>;
+};
 
 export interface ReportArtifactMetadata {
   id: string;
@@ -59,6 +67,13 @@ export interface ReportArtifactMetadata {
   similarityRunId: string | null;
   type: ReportType;
   variant: ReportType;
+  generatedBy: string;
+  sourceArtifactType: 'DOCUMENT_VERSION';
+  sourceDocumentId: string;
+  sourceDocumentVersionId: string;
+  sourceChecksum: string | null;
+  analysisSnapshot?: unknown;
+  run?: ReportArtifactDetail['run'];
   status: ReportArtifactStatus;
   filename: string;
   documentName?: string;
@@ -145,6 +160,53 @@ export class ReportService {
     regeneratedFromId?: string,
     variant: ReportType = ReportType.AI_REPORT,
   ): Promise<ReportArtifactMetadata> {
+    const prepared = await this.prepareAIReport(documentId, analysisRunId);
+    return this.generatePreparedAI(prepared, regeneratedFromId, variant);
+  }
+
+  async generateBothAI(documentId: string, analysisRunId: string) {
+    // Resolve once. Both artifacts receive exactly the same source and run snapshot.
+    const prepared = await this.prepareAIReport(documentId, analysisRunId);
+    const originalReview = await this.generatePreparedAI(prepared, undefined, ReportType.AI_ORIGINAL_REVIEW);
+    const paragraphTechnical = await this.generatePreparedAI(prepared, undefined, ReportType.AI_PARAGRAPH_TECHNICAL);
+    return { originalReview, paragraphTechnical };
+  }
+
+  private async prepareAIReport(documentId: string, analysisRunId: string): Promise<PreparedAIReport> {
+    if (!analysisRunId) {
+      throw new ConflictException({ code: 'ANALYSIS_RUN_REQUIRED', message: 'Selecciona el análisis exacto para generar sus reportes.' });
+    }
+    const run = await this.prisma.analysisRun.findUnique({
+      where: { id: analysisRunId },
+      include: REPORT_RUN_INCLUDE,
+    });
+    if (!run || run.documentVersion.documentId !== documentId) {
+      throw new NotFoundException({ code: 'ANALYSIS_RUN_NOT_FOUND', message: 'No existe ese análisis para este documento.' });
+    }
+    if (run.status !== 'COMPLETED') {
+      throw new ConflictException({ code: 'ANALYSIS_RUN_NOT_COMPLETED', message: 'El análisis debe estar completado para generar el PDF.' });
+    }
+    let source: ResolvedAnalysisSource;
+    try {
+      source = resolveAnalysisSource(run);
+    } catch (error) {
+      this.logger.warn(JSON.stringify({ event: 'report_source_integrity_violation', analysisRunId: run.id, documentId, documentVersionId: run.documentVersionId }));
+      throw error;
+    }
+    const extractedText = run.documentVersion.extractedText ?? '';
+    if (run.textHash && sha256(extractedText) !== run.textHash) {
+      throw new ConflictException({ code: 'ANALYSIS_TEXT_CHANGED', message: 'El texto de esta versión cambió después del análisis.' });
+    }
+    const generatedAt = new Date();
+    const input = await this.buildAIInput(run, generatedAt, source);
+    return { run, source, generatedAt, input };
+  }
+
+  private async generatePreparedAI(
+    prepared: PreparedAIReport,
+    regeneratedFromId: string | undefined,
+    variant: ReportType,
+  ): Promise<ReportArtifactMetadata> {
     if (
       variant !== ReportType.AI_REPORT &&
       variant !== ReportType.AI_ORIGINAL_REVIEW &&
@@ -155,38 +217,8 @@ export class ReportService {
         message: 'La variante solicitada no corresponde a un reporte de IA.',
       });
     }
-    const run = await this.prisma.analysisRun.findUnique({
-      where: { id: analysisRunId },
-      include: REPORT_RUN_INCLUDE,
-    });
-    if (!run)
-      throw new NotFoundException({
-        code: 'ANALYSIS_RUN_NOT_FOUND',
-        message: 'No existe ese análisis.',
-      });
-    if (run.documentVersion.documentId !== documentId) {
-      throw new NotFoundException({
-        code: 'ANALYSIS_RUN_NOT_FOUND',
-        message: 'No existe ese análisis para este documento.',
-      });
-    }
-    if (run.status !== 'COMPLETED') {
-      throw new ConflictException({
-        code: 'ANALYSIS_RUN_NOT_COMPLETED',
-        message: 'El análisis debe estar completado para generar el PDF.',
-      });
-    }
-
-    const extractedText = run.documentVersion.extractedText ?? '';
-    if (run.textHash && sha256(extractedText) !== run.textHash) {
-      throw new ConflictException({
-        code: 'ANALYSIS_TEXT_CHANGED',
-        message: 'El texto de esta versión cambió después del análisis.',
-      });
-    }
-
-    const generatedAt = new Date();
-    const input = await this.buildAIInput(run, generatedAt);
+    const { run, source, generatedAt, input } = prepared;
+    const documentId = source.documentId;
     const relevantRunHash = sha256(
       JSON.stringify({
         textHash: run.textHash,
@@ -218,7 +250,8 @@ export class ReportService {
     );
     const fingerprint = sha256(
       JSON.stringify([
-        run.documentVersionId,
+        source.documentVersionId,
+        source.sourceChecksum,
         run.id,
         variant,
         rendererVersionFor(variant),
@@ -226,7 +259,14 @@ export class ReportService {
       ]),
     );
 
-    const reusable = await this.findReusable(fingerprint, generatedAt);
+    if (regeneratedFromId) {
+      // A requested regeneration creates a new artifact while preserving earlier PDFs and metadata.
+      await this.prisma.reportArtifact.updateMany({
+        where: { analysisRunId: run.id, type: variant, activeFingerprint: fingerprint },
+        data: { activeFingerprint: null },
+      });
+    }
+    const reusable = regeneratedFromId ? null : await this.findReusable(fingerprint, generatedAt);
     if (reusable) {
       await this.prisma.reportAuditEvent.create({
         data: {
@@ -244,11 +284,15 @@ export class ReportService {
       documentId,
       documentVersionId: run.documentVersionId,
       analysisRunId: run.id,
+      sourceDocumentId: source.documentId,
+      sourceDocumentVersionId: source.documentVersionId,
+      sourceChecksum: source.sourceChecksum,
+      analysisSnapshot: reportSnapshot(input, run),
       type: variant,
       fingerprint,
       storageKey,
       generatedAt,
-      filename: this.filename(filenameKindFor(variant), documentId, generatedAt),
+      filename: this.filename(filenameKindFor(variant), documentId, generatedAt, source.originalFilename),
     });
     if (!artifact) {
       const winner = await this.prisma.reportArtifact.findFirst({
@@ -277,6 +321,7 @@ export class ReportService {
         },
       });
     }
+    this.logger.log(JSON.stringify({ event: 'report_source_resolved', reportId, reportVariant: variant, analysisRunId: run.id, documentId: source.documentId, documentVersionId: source.documentVersionId, sourceArtifactType: source.sourceArtifactType, sourceChecksumPrefix: source.sourceChecksum.slice(0, 12) }));
     this.scheduleGeneration(reportId, storageKey, input, variant);
     return this.toMetadata(artifact);
   }
@@ -342,12 +387,17 @@ export class ReportService {
         where,
         include: {
           document: { select: { originalName: true } },
+          documentVersion: { select: { originalFilename: true } },
           analysisRun: {
             select: {
               id: true,
               analyzerMode: true,
+              analyzerVersion: true,
+              thresholdProfile: true,
+              threshold: true,
               paragraphMode: true,
               documentScore: true,
+              modelResults: { select: { modelName: true } },
             },
           },
         },
@@ -370,8 +420,11 @@ export class ReportService {
       items: refreshedRows.map((row, index) => ({
         ...this.toMetadata(row),
         documentName:
+          snapshotDocumentName(row.analysisSnapshot) ??
+          rows[index].documentVersion?.originalFilename ??
           rows[index].document?.originalName ??
           `Documento ${row.documentId.slice(0, 8)}`,
+        run: snapshotRun(row.analysisSnapshot) ?? runSummary(rows[index].analysisRun),
         runLabel: rows[index].analysisRun
           ? `${rows[index].analysisRun.id.slice(0, 8)} · ${rows[index].analysisRun.analyzerMode}`
           : row.analysisRunId?.slice(0, 8) ?? '—',
@@ -408,8 +461,8 @@ export class ReportService {
     ]);
     return {
       ...this.toMetadata(current),
-      documentName: document?.originalName ?? 'Documento no disponible',
-      run: run
+      documentName: snapshotDocumentName(current.analysisSnapshot) ?? document?.originalName ?? 'Documento no disponible',
+      run: snapshotRun(current.analysisSnapshot) ?? (run
         ? {
             id: run.id,
             analyzerMode: run.analyzerMode,
@@ -420,7 +473,7 @@ export class ReportService {
             paragraphMode: run.paragraphMode,
             globalScore: run.documentScore,
           }
-        : null,
+        : null),
     };
   }
 
@@ -434,22 +487,22 @@ export class ReportService {
       });
     }
     if (
-      current.status !== ReportArtifactStatus.EXPIRED &&
-      current.status !== ReportArtifactStatus.DELETED &&
-      current.status !== ReportArtifactStatus.FAILED &&
-      current.status !== ReportArtifactStatus.ERROR
+      current.status === ReportArtifactStatus.GENERATING
     ) {
       throw new ConflictException({
         code: 'REPORT_REGENERATION_UNAVAILABLE',
-        message: 'El reporte todavía no requiere regeneración.',
+        message: 'Espera a que termine la generación actual.',
       });
     }
-    return this.generateAI(
-      current.documentId,
-      current.analysisRunId,
-      current.id,
-      current.type,
-    );
+    const prepared = await this.prepareAIReport(current.documentId, current.analysisRunId);
+    if (current.documentVersionId !== prepared.source.documentVersionId ||
+      current.sourceDocumentVersionId !== prepared.source.documentVersionId ||
+      current.sourceDocumentId !== prepared.source.documentId ||
+      current.sourceChecksum !== prepared.source.sourceChecksum) {
+      this.logger.warn(JSON.stringify({ event: 'report_source_integrity_violation', reportId, analysisRunId: current.analysisRunId, documentId: current.documentId, documentVersionId: current.documentVersionId }));
+      throw new ConflictException({ code: 'ANALYSIS_SOURCE_INTEGRITY_INVALID', message: 'El reporte no conserva la fuente de su análisis original.' });
+    }
+    return this.generatePreparedAI(prepared, current.id, current.type);
   }
 
   async download(
@@ -673,6 +726,7 @@ export class ReportService {
   private async buildAIInput(
     fullRun: AnalysisRunForReport,
     generatedAt: Date,
+    source: ResolvedAnalysisSource,
   ): Promise<Omit<AIReportInput, 'reportId'>> {
     const extractedText = fullRun.documentVersion.extractedText ?? '';
     let normalizedSegments = fullRun.segments;
@@ -789,12 +843,12 @@ export class ReportService {
       generatedAt,
       turnitingVersion: process.env.npm_package_version ?? 'local',
       document: {
-        id: fullRun.documentVersion.document.id,
-        documentVersionId: fullRun.documentVersion.id,
-        filename: fullRun.documentVersion.document.originalName,
-        mimeType: fullRun.documentVersion.document.mimeType,
-        sourceChecksum: fullRun.documentVersion.fileHash,
-        storageKey: fullRun.documentVersion.storageKey,
+        id: source.documentId,
+        documentVersionId: source.documentVersionId,
+        filename: source.originalFilename,
+        mimeType: source.mimeType,
+        sourceChecksum: source.sourceChecksum,
+        storageKey: source.sourceStorageObject.storageKey,
         createdAt: fullRun.documentVersion.document.createdAt,
         updatedAt: fullRun.documentVersion.document.updatedAt,
       },
@@ -855,6 +909,10 @@ export class ReportService {
     documentId: string;
     documentVersionId: string;
     analysisRunId: string;
+    sourceDocumentId: string;
+    sourceDocumentVersionId: string;
+    sourceChecksum: string;
+    analysisSnapshot: Prisma.InputJsonValue;
     type: ReportType;
     fingerprint: string;
     storageKey: string;
@@ -865,6 +923,7 @@ export class ReportService {
       return await this.prisma.reportArtifact.create({
         data: {
           ...data,
+          generatedBy: 'TURNITING',
           status: ReportArtifactStatus.GENERATING,
           activeFingerprint: data.fingerprint,
           generationVersion: rendererVersionFor(data.type),
@@ -925,6 +984,7 @@ export class ReportService {
           throw new Error('Original document renderer is not configured');
         }
         const original = await this.originalRenderer.ensure({
+          sourceArtifactType: 'DOCUMENT_VERSION',
           documentId: input.document.id,
           documentVersionId: input.document.documentVersionId,
           analysisRunId: input.run.id,
@@ -950,13 +1010,15 @@ export class ReportService {
         });
         buffer = await this.originalRenderer.renderOriginalReview(
           reportInput,
-          original.buffer,
-          original.layoutMap,
+          original,
         );
       } else if (type === ReportType.AI_PARAGRAPH_TECHNICAL) {
         buffer = await this.renderer.renderAIParagraphTechnical(reportInput);
       } else {
         buffer = await this.renderer.renderAI(reportInput);
+      }
+      if (type === ReportType.AI_ORIGINAL_REVIEW || type === ReportType.AI_PARAGRAPH_TECHNICAL) {
+        buffer = await stampTurnitingReport(buffer, { reportId, reportVariant: type, analysisRunId: input.run.id, sourceDocumentId: input.document.id, sourceDocumentVersionId: input.document.documentVersionId, rendererVersion: rendererVersionFor(type) });
       }
       await this.storage.save(storageKey, buffer);
       await this.prisma.$transaction(async (tx) => {
@@ -1089,9 +1151,11 @@ export class ReportService {
     kind: 'ai' | 'similarity' | 'original-review' | 'paragraph-technical',
     documentId: string,
     date: Date,
+    originalFilename: string,
   ): string {
     const day = date.toISOString().slice(0, 10);
-    return `turniting_${kind}_${documentId.slice(0, 8)}_${day}.pdf`;
+    const name = originalFilename.replace(/\.[^.]+$/u, '').normalize('NFKD').replace(/[\u0300-\u036f]/gu, '').replace(/[^A-Za-z0-9_-]+/gu, '_').replace(/^_+|_+$/gu, '').slice(0, 64) || 'documento';
+    return `turniting_${kind}_${name}_${documentId.slice(0, 8)}_${day}.pdf`;
   }
 
   private toMetadata(artifact: {
@@ -1101,6 +1165,11 @@ export class ReportService {
     analysisRunId: string | null;
     similarityRunId: string | null;
     type: ReportType;
+    generatedBy?: string;
+    sourceDocumentId?: string;
+    sourceDocumentVersionId?: string;
+    sourceChecksum?: string;
+    analysisSnapshot?: unknown;
     status: ReportArtifactStatus;
     filename: string;
     contentHash: string | null;
@@ -1125,6 +1194,13 @@ export class ReportService {
       similarityRunId: artifact.similarityRunId,
       type: artifact.type,
       variant: artifact.type,
+      generatedBy: artifact.generatedBy ?? 'TURNITING',
+      sourceArtifactType: 'DOCUMENT_VERSION',
+      sourceDocumentId: artifact.sourceDocumentId ?? artifact.documentId,
+      sourceDocumentVersionId: artifact.sourceDocumentVersionId ?? artifact.documentVersionId,
+      sourceChecksum: artifact.sourceChecksum ?? null,
+      ...(artifact.analysisSnapshot ? { analysisSnapshot: artifact.analysisSnapshot, run: snapshotRun(artifact.analysisSnapshot) } : {}),
+      ...(snapshotDocumentName(artifact.analysisSnapshot) ? { documentName: snapshotDocumentName(artifact.analysisSnapshot) } : {}),
       status,
       filename: artifact.filename,
       contentHash: artifact.contentHash,
@@ -1157,6 +1233,54 @@ export class ReportService {
 
 function sha256(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function reportSnapshot(input: Omit<AIReportInput, 'reportId'>, run: AnalysisRunForReport): Prisma.InputJsonValue {
+  return {
+    version: 'f00941-analysis-source-v1',
+    source: {
+      sourceArtifactType: 'DOCUMENT_VERSION',
+      documentId: input.document.id,
+      documentVersionId: input.document.documentVersionId,
+      originalFilename: input.document.filename,
+      mimeType: input.document.mimeType,
+      sourceChecksum: input.document.sourceChecksum,
+    },
+    run: {
+      id: input.run.id,
+      analyzerMode: input.run.analyzerMode,
+      analyzerVersion: input.run.analyzerVersion,
+      modelId: input.run.modelNames.join(' + ') || input.run.analyzerVersion,
+      modelNames: input.run.modelNames,
+      modelVersions: input.run.modelVersions,
+      thresholdProfile: input.run.thresholdProfile,
+      threshold: input.run.threshold,
+      paragraphMode: input.run.paragraphMode,
+      globalScore: input.run.documentScore,
+      documentAggregation: input.run.documentAggregation,
+      segmentCount: input.paragraphs.length,
+      flaggedCount: input.paragraphs.filter(p => p.score !== null && input.run.threshold !== null && p.score >= input.run.threshold && !p.presentationExcluded).length,
+      insufficientSegments: input.run.insufficientSegments,
+      calibration: run.modelResults.map(model => ({ modelName: model.modelName, modelVersion: model.modelVersion?.name ?? model.modelVariant ?? null, calibration: model.calibration ?? null })),
+    },
+  };
+}
+
+function snapshotRun(value: unknown): ReportArtifactDetail['run'] | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const run = (value as { run?: unknown }).run;
+  if (!run || typeof run !== 'object' || Array.isArray(run) || typeof (run as { id?: unknown }).id !== 'string') return undefined;
+  return run as NonNullable<ReportArtifactDetail['run']>;
+}
+
+function snapshotDocumentName(value: unknown): string | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const name = (value as { source?: { originalFilename?: unknown } }).source?.originalFilename;
+  return typeof name === 'string' ? name : undefined;
+}
+
+function runSummary(run: { id: string; analyzerMode: string; analyzerVersion: string; thresholdProfile: string; threshold: number | null; paragraphMode: string | null; documentScore: number | null; modelResults: Array<{ modelName: string }> } | null): ReportArtifactDetail['run'] {
+  return run ? { id: run.id, analyzerMode: run.analyzerMode, analyzerVersion: run.analyzerVersion, modelNames: [...new Set(run.modelResults.map(m => m.modelName))], thresholdProfile: run.thresholdProfile, threshold: run.threshold, paragraphMode: run.paragraphMode, globalScore: run.documentScore } : null;
 }
 
 function isAIReportType(type: ReportType): boolean {

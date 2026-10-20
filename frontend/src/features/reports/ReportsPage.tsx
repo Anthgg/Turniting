@@ -7,6 +7,8 @@ import {
   listReports,
   regenerateReport,
   reportQueryKeys,
+  reportModelLabel,
+  reportScoreLabel,
   type ReportArtifact,
   type ReportStatus,
   type ReportType,
@@ -78,7 +80,7 @@ export function ReportsPage() {
   const [type, setType] = useState<ReportType | undefined>();
   const [status, setStatus] = useState<ReportStatus | undefined>();
   const [page, setPage] = useState(1);
-  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [previewReportId, setPreviewReportId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const query = createReportHistoryQuery(type, status, page);
   const reports = useQuery({
@@ -192,19 +194,21 @@ export function ReportsPage() {
           <div className="report-table-wrap">
             <table className="report-history-table">
               <thead>
-                <tr><th>Tipo</th><th>Documento</th><th>Run</th><th>Estado</th><th>Generado</th><th>Expira</th><th>Tamaño</th><th>Acciones</th></tr>
+                <tr><th>Tipo</th><th>Documento</th><th>Run</th><th>Señal global</th><th>Modelo</th><th>Estado</th><th>Generado</th><th>Expira</th><th>Tamaño</th><th>Acciones</th></tr>
               </thead>
               <tbody>
                 {items.map((report) => {
                   const hint = expiryHint(report);
-                  const canRegenerate = ["EXPIRED", "DELETED", "FAILED", "ERROR"].includes(report.status);
+                  const canRegenerate = report.status !== "GENERATING";
                   return (
                     <tr key={report.id}>
                       <td data-label="Tipo">{typeLabel(report.type)}</td>
                       <td data-label="Documento" className="report-document-cell">
-                        <Link to={`/documents/${report.documentId}`} title={report.documentName ?? report.documentId}>{report.documentName ?? `Documento ${report.documentId.slice(0, 8)}`}</Link>
+                        <button type="button" className="button button-quiet" onClick={() => setPreviewReportId(report.id)} title={report.documentName ?? report.documentId}>{report.documentName ?? `Documento ${report.documentId.slice(0, 8)}`}</button>
                       </td>
                       <td data-label="Run">{report.runLabel ?? report.analysisRunId?.slice(0, 8) ?? "—"}</td>
+                      <td data-label="Señal global">{reportScoreLabel(report.run?.globalScore)}</td>
+                      <td data-label="Modelo">{reportModelLabel(report)}</td>
                       <td data-label="Estado"><span className={`report-artifact-status is-${report.status.toLowerCase()}`}>{statusLabel(report.status)}</span></td>
                       <td data-label="Generado">{dateLabel(report.generatedAt)}</td>
                       <td data-label="Expira">
@@ -212,8 +216,8 @@ export function ReportsPage() {
                       </td>
                       <td data-label="Tamaño">{formatSize(report.sizeBytes)}</td>
                       <td data-label="Acciones" className="report-row-actions">
-                        {report.status === "AVAILABLE" && report.previewAvailable !== false && <button type="button" className="button button-quiet" onClick={() => setSelectedReportId(report.id)} aria-label={`Ver ${typeLabel(report.type)}`}>Ver PDF</button>}
-                        {report.status !== "AVAILABLE" && <button type="button" className="button button-quiet" onClick={() => setSelectedReportId(report.id)}>Detalles</button>}
+                        {report.status === "AVAILABLE" && report.previewAvailable !== false && <button type="button" className="button button-quiet" onClick={() => setPreviewReportId(report.id)} aria-label={`Ver ${typeLabel(report.type)}`}>Ver PDF</button>}
+                        {report.status !== "AVAILABLE" && <button type="button" className="button button-quiet" onClick={() => setPreviewReportId(report.id)}>Detalles</button>}
                         {report.status === "AVAILABLE" && <button type="button" className="button button-quiet" disabled={download.isPending} onClick={() => download.mutate(report)}>Descargar</button>}
                         {canRegenerate && isAIReport(report.type) && <button type="button" className="button button-quiet" disabled={regenerate.isPending} onClick={() => regenerate.mutate(report.id)}>Regenerar</button>}
                         {report.status !== "DELETED" && <button type="button" className="button button-quiet button-danger-quiet" disabled={remove.isPending || report.status === "GENERATING"} onClick={() => confirmDelete(report.id)}>Eliminar</button>}
@@ -235,7 +239,7 @@ export function ReportsPage() {
         )}
       </section>
 
-      {selectedReportId && <ReportDetailPanel reportId={selectedReportId} onClose={() => setSelectedReportId(null)} />}
+      {previewReportId && <ReportDetailPanel reportId={previewReportId} onClose={() => setPreviewReportId(null)} />}
     </div>
   );
 }

@@ -16,12 +16,28 @@ export const reportStatusSchema = z.enum([
   "DELETED",
 ]);
 
+export const reportRunSchema = z.object({
+  id: z.string().uuid(),
+  analyzerMode: z.string(),
+  analyzerVersion: z.string(),
+  modelNames: z.array(z.string()),
+  thresholdProfile: z.string(),
+  threshold: z.number().nullable(),
+  paragraphMode: z.string().nullable(),
+  globalScore: z.number().nullable(),
+});
+
 export const reportArtifactSchema = z
   .object({
     id: z.string().uuid(),
     reportId: z.string().uuid().optional(),
     documentId: z.string().uuid(),
     documentVersionId: z.string().uuid(),
+    generatedBy: z.literal("TURNITING").optional(),
+    sourceArtifactType: z.literal("DOCUMENT_VERSION").optional(),
+    sourceDocumentId: z.string().uuid().optional(),
+    sourceDocumentVersionId: z.string().uuid().optional(),
+    sourceChecksum: z.string().optional(),
     analysisRunId: z.string().uuid().nullable(),
     similarityRunId: z.string().uuid().nullable(),
     type: reportTypeSchema,
@@ -29,9 +45,10 @@ export const reportArtifactSchema = z
     status: reportStatusSchema,
     filename: z
       .string()
-      .regex(/^turniting_(ai|original-review|paragraph-technical|similarity)_[0-9a-f]{8}_\d{4}-\d{2}-\d{2}\.pdf$/i),
+      .regex(/^turniting_(ai|original-review|paragraph-technical|similarity)_(?:[a-z0-9_-]+_)?[0-9a-f]{8}_\d{4}-\d{2}-\d{2}\.pdf$/i),
     documentName: z.string().optional(),
     runLabel: z.string().optional(),
+    run: reportRunSchema.nullable().optional(),
     contentHash: z.string().nullable(),
     sizeBytes: z.number().int().nullable().optional(),
     failureReason: z.string().nullable().optional(),
@@ -51,18 +68,27 @@ export const reportArtifactSchema = z
 
 export const reportDetailSchema = reportArtifactSchema.extend({
   documentName: z.string(),
-  run: z
-    .object({
-      id: z.string().uuid(),
-      analyzerMode: z.string(),
-      analyzerVersion: z.string(),
-      modelNames: z.array(z.string()),
-      thresholdProfile: z.string(),
-      threshold: z.number().nullable(),
-      paragraphMode: z.string().nullable(),
-      globalScore: z.number().nullable(),
-    })
-    .nullable(),
+  run: reportRunSchema.nullable(),
+});
+
+export const dualAIReportsSchema = z.object({
+  originalReview: reportArtifactSchema,
+  paragraphTechnical: reportArtifactSchema,
+}).superRefine(({ originalReview, paragraphTechnical }, context) => {
+  const sameSourceAndRun =
+    originalReview.type === "AI_ORIGINAL_REVIEW" &&
+    paragraphTechnical.type === "AI_PARAGRAPH_TECHNICAL" &&
+    originalReview.analysisRunId !== null &&
+    originalReview.analysisRunId === paragraphTechnical.analysisRunId &&
+    originalReview.documentId === paragraphTechnical.documentId &&
+    originalReview.documentVersionId === paragraphTechnical.documentVersionId &&
+    originalReview.sourceDocumentId === paragraphTechnical.sourceDocumentId &&
+    originalReview.sourceDocumentVersionId === paragraphTechnical.sourceDocumentVersionId &&
+    originalReview.sourceChecksum === paragraphTechnical.sourceChecksum &&
+    JSON.stringify(originalReview.run) === JSON.stringify(paragraphTechnical.run);
+  if (!sameSourceAndRun) {
+    context.addIssue({ code: "custom", message: "Los reportes deben usar la misma fuente y corrida de análisis." });
+  }
 });
 
 export const reportListSchema = z.object({
@@ -73,6 +99,7 @@ export const reportListSchema = z.object({
 });
 
 export type ReportArtifact = z.infer<typeof reportArtifactSchema>;
+export type ReportArtifactSummary = ReportArtifact;
 export type ReportArtifactDetail = z.infer<typeof reportDetailSchema>;
 export type ReportStatus = z.infer<typeof reportStatusSchema>;
 export type ReportType = z.infer<typeof reportTypeSchema>;
@@ -127,6 +154,22 @@ export function generateAIReport(
     reportArtifactSchema,
     { analysisRunId, variant },
   );
+}
+
+export function generateBothAIReports(documentId: string, analysisRunId: string) {
+  return postJson(
+    `/documents/${encodeURIComponent(documentId)}/reports/ai/both`,
+    dualAIReportsSchema,
+    { analysisRunId },
+  );
+}
+
+export function reportScoreLabel(score: number | null | undefined) {
+  return typeof score === "number" ? `${(score * 100).toFixed(1)} %` : "No evaluado";
+}
+
+export function reportModelLabel(report: ReportArtifact) {
+  return report.run?.modelNames.join(" + ") || report.run?.analyzerMode || "No disponible";
 }
 
 export function generateSimilarityReport(

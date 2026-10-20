@@ -67,6 +67,9 @@ export class DocumentsService {
           currentVersion: {
             create: {
               storageKey,
+              originalFilename: upload.originalName,
+              mimeType: upload.mimeType,
+              ingestionOrigin: 'USER_UPLOAD',
               fileHash: createHash('sha256')
                 .update(upload.buffer)
                 .digest('hex'),

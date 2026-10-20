@@ -40,6 +40,7 @@ function artifact(
     previewAvailable: status === "AVAILABLE",
     documentName: "muestra_sintetica.docx",
     runLabel: "31ec6f6f · V3_ONLY",
+    run: { id: "31ec6f6f-4be4-49da-9bf5-ccf9fe77aab4", globalScore: 0.434, threshold: 0.59, modelNames: ["SYNTHETIC"], analyzerMode: "V3_ONLY" },
     contentHash: "b".repeat(64),
     sizeBytes: 486 * 1024,
     failureReason: null,
@@ -101,6 +102,9 @@ describe("ReportsPage", () => {
     expect(html).toContain("Descargar");
     expect(html).toContain("Ver PDF");
     expect(html).toContain("Eliminar");
+    expect(html).toContain("Regenerar");
+    expect(html).toContain("43.4 %");
+    expect(html).toContain("SYNTHETIC");
     expect(html).toContain("Revisión original");
     expect(html).toContain("Detalle por párrafos");
     expect(html).toContain("IA anterior");
@@ -139,5 +143,8 @@ describe("ReportsPage", () => {
     expect(html).toContain("Detalle por párrafos");
     expect(html.match(/Ver PDF/g)).toHaveLength(2);
     expect(html.match(/Descargar/g)).toHaveLength(2);
+    expect(html.match(/43\.4 %/g)).toHaveLength(2);
+    expect(html.match(/SYNTHETIC/g)).toHaveLength(2);
+    expect(html).not.toContain(`href="/documents/${DOCUMENT_ID}"`);
   });
 });

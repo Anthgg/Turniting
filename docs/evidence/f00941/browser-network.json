@@ -1,0 +1,320 @@
+[
+  {
+    "timestamp": "2026-10-20T06:23:49.968557525Z",
+    "method": "POST",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/reports/ai/both",
+    "status": 201
+  },
+  {
+    "timestamp": "2026-10-20T06:23:50.830985856Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/reports",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:23:52.254870589Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/reports",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:24:14.979733505Z",
+    "method": "GET",
+    "path": "/api/reports/f9506c6d-a146-4902-bbac-f1c6c1070da1",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:24:15.031861606Z",
+    "method": "GET",
+    "path": "/api/reports/f9506c6d-a146-4902-bbac-f1c6c1070da1/preview",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:26:32.236961054Z",
+    "method": "GET",
+    "path": "/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:26:32.355097647Z",
+    "method": "GET",
+    "path": "/assets/index-3Kuqs450.css",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:26:32.361036638Z",
+    "method": "GET",
+    "path": "/assets/index-D1so8vFJ.js",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:26:32.609185755Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:26:32.667320237Z",
+    "method": "GET",
+    "path": "/api/documents?page=1&limit=5",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:26:32.696272673Z",
+    "method": "GET",
+    "path": "/api/turnitin/reports?page=1&limit=100",
+    "status": 304
+  },
+  {
+    "timestamp": "2026-10-20T06:26:32.774208927Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/analyses",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:26:32.776636146Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/reports",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:26:32.780471982Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/pages",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:26:32.905753572Z",
+    "method": "GET",
+    "path": "/api/analyses/5d214d15-8997-435d-87d5-f15556205a2d/segments?page=1&pageSize=20&sort=PARAGRAPH&filter=ALL",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:26:32.963146611Z",
+    "method": "GET",
+    "path": "/api/models",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:26:38.776508017Z",
+    "method": "GET",
+    "path": "/api/reports/a8b6376e-4758-419d-b366-7cc58c934722",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:26:38.808093151Z",
+    "method": "GET",
+    "path": "/api/reports/a8b6376e-4758-419d-b366-7cc58c934722/preview",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:27:05.268725944Z",
+    "method": "GET",
+    "path": "/api/reports/f9506c6d-a146-4902-bbac-f1c6c1070da1",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:27:05.289191992Z",
+    "method": "GET",
+    "path": "/api/reports/f9506c6d-a146-4902-bbac-f1c6c1070da1/preview",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:27:25.795038154Z",
+    "method": "GET",
+    "path": "/api/reports/a8b6376e-4758-419d-b366-7cc58c934722",
+    "status": 304
+  },
+  {
+    "timestamp": "2026-10-20T06:27:25.797465625Z",
+    "method": "GET",
+    "path": "/api/reports/a8b6376e-4758-419d-b366-7cc58c934722/preview",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:28:15.080326131Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61",
+    "status": 304
+  },
+  {
+    "timestamp": "2026-10-20T06:28:15.093213161Z",
+    "method": "GET",
+    "path": "/api/documents?page=1&limit=5",
+    "status": 304
+  },
+  {
+    "timestamp": "2026-10-20T06:28:15.096992694Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/pages",
+    "status": 304
+  },
+  {
+    "timestamp": "2026-10-20T06:28:15.103618811Z",
+    "method": "GET",
+    "path": "/api/turnitin/reports?page=1&limit=100",
+    "status": 304
+  },
+  {
+    "timestamp": "2026-10-20T06:28:15.110557436Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/analyses",
+    "status": 304
+  },
+  {
+    "timestamp": "2026-10-20T06:28:15.130145594Z",
+    "method": "GET",
+    "path": "/api/analyses/5d214d15-8997-435d-87d5-f15556205a2d/segments?page=1&pageSize=20&sort=PARAGRAPH&filter=ALL",
+    "status": 304
+  },
+  {
+    "timestamp": "2026-10-20T06:28:15.135556091Z",
+    "method": "GET",
+    "path": "/api/models",
+    "status": 304
+  },
+  {
+    "timestamp": "2026-10-20T06:28:15.139532786Z",
+    "method": "GET",
+    "path": "/api/reports/a8b6376e-4758-419d-b366-7cc58c934722",
+    "status": 304
+  },
+  {
+    "timestamp": "2026-10-20T06:28:15.157641588Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/reports",
+    "status": 304
+  },
+  {
+    "timestamp": "2026-10-20T06:34:24.894064529Z",
+    "method": "GET",
+    "path": "/api/reports/f9506c6d-a146-4902-bbac-f1c6c1070da1/download",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:34:26.063268617Z",
+    "method": "GET",
+    "path": "/api/reports/a8b6376e-4758-419d-b366-7cc58c934722",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:34:26.164016678Z",
+    "method": "GET",
+    "path": "/api/reports/a8b6376e-4758-419d-b366-7cc58c934722/preview",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:34:34.716175007Z",
+    "method": "GET",
+    "path": "/api/reports/a8b6376e-4758-419d-b366-7cc58c934722/download",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:34:35.424055706Z",
+    "method": "POST",
+    "path": "/api/reports/f9506c6d-a146-4902-bbac-f1c6c1070da1/regenerate",
+    "status": 201
+  },
+  {
+    "timestamp": "2026-10-20T06:34:35.571272171Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/reports",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:34:37.140352944Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/reports",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:34:50.090276644Z",
+    "method": "POST",
+    "path": "/api/reports/a8b6376e-4758-419d-b366-7cc58c934722/regenerate",
+    "status": 201
+  },
+  {
+    "timestamp": "2026-10-20T06:34:50.156669354Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/reports",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:35:11.942559794Z",
+    "method": "DELETE",
+    "path": "/api/reports/04d64b6d-4311-448f-bd5f-18935adfb693",
+    "status": 204
+  },
+  {
+    "timestamp": "2026-10-20T06:35:11.975581638Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/reports",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:35:24.985772166Z",
+    "method": "GET",
+    "path": "/api/reports/af13743a-d1f4-48a2-8fef-38f78aed5d91/download",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:35:25.454261260Z",
+    "method": "POST",
+    "path": "/api/reports/04d64b6d-4311-448f-bd5f-18935adfb693/regenerate",
+    "status": 201
+  },
+  {
+    "timestamp": "2026-10-20T06:35:25.512817726Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/reports",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:35:27.045941181Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/reports",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:35:43.052366062Z",
+    "method": "DELETE",
+    "path": "/api/reports/af13743a-d1f4-48a2-8fef-38f78aed5d91",
+    "status": 204
+  },
+  {
+    "timestamp": "2026-10-20T06:35:43.088794629Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/reports",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:35:50.485506445Z",
+    "method": "GET",
+    "path": "/api/reports/f24aaeef-fde9-4a85-bf43-4ecad9ee6689/download",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:35:51.130961762Z",
+    "method": "POST",
+    "path": "/api/reports/af13743a-d1f4-48a2-8fef-38f78aed5d91/regenerate",
+    "status": 201
+  },
+  {
+    "timestamp": "2026-10-20T06:35:51.219558209Z",
+    "method": "GET",
+    "path": "/api/documents/05a7a293-15e8-495f-bb78-1d444b7c0e61/reports",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:36:38.633613308Z",
+    "method": "GET",
+    "path": "/api/reports/778ee5aa-03b0-4172-888a-111f3e7b5166",
+    "status": 200
+  },
+  {
+    "timestamp": "2026-10-20T06:36:38.666759983Z",
+    "method": "GET",
+    "path": "/api/reports/778ee5aa-03b0-4172-888a-111f3e7b5166/preview",
+    "status": 200
+  }
+]

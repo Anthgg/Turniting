@@ -13,6 +13,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import {
   OriginalRenderFidelityStatus,
@@ -47,7 +48,7 @@ import {
 } from './report-storage.js';
 
 const MAPPING_ENGINE = 'sequential-exact-token-matching';
-const MAPPING_VERSION = 'f0094-sequential-mapping-v1';
+const MAPPING_VERSION = 'f00941-source-bound-sequential-mapping-v1';
 const MAPPING_MIN_COVERAGE = 0.95;
 const MAPPING_MIN_CONFIDENCE = 0.98;
 const execFileAsync = promisify(execFile);
@@ -88,6 +89,7 @@ export interface DocumentLayoutSegment {
 
 export interface DocumentLayoutMap {
   version: string;
+  source?: OriginalRenderSourceIdentity;
   pages: Array<{
     pageIndex: number;
     width: number;
@@ -97,6 +99,7 @@ export interface DocumentLayoutMap {
 }
 
 export interface OriginalRenderInput {
+  sourceArtifactType: 'DOCUMENT_VERSION';
   documentId: string;
   documentVersionId: string;
   analysisRunId: string;
@@ -107,7 +110,16 @@ export interface OriginalRenderInput {
   segments: LayoutSegmentInput[];
 }
 
+export interface OriginalRenderSourceIdentity {
+  sourceArtifactType: 'DOCUMENT_VERSION';
+  documentId: string;
+  documentVersionId: string;
+  analysisRunId: string;
+  sourceChecksum: string;
+}
+
 export interface OriginalRenderResult {
+  source: OriginalRenderSourceIdentity;
   artifact: OriginalRenderArtifactRecord;
   buffer: Buffer;
   layoutMap: DocumentLayoutMap;
@@ -155,6 +167,7 @@ interface RenderedSource {
 
 @Injectable()
 export class OriginalDocumentRenderer {
+  private readonly logger = new Logger(OriginalDocumentRenderer.name);
   private readonly inFlight = new Map<
     string,
     Promise<OriginalRenderResult>
@@ -167,6 +180,7 @@ export class OriginalDocumentRenderer {
   ) {}
 
   async ensure(input: OriginalRenderInput): Promise<OriginalRenderResult> {
+    this.assertDocumentVersionSource(input);
     const cacheKey = digest(
       JSON.stringify([
         input.documentVersionId,
@@ -176,14 +190,19 @@ export class OriginalDocumentRenderer {
         LAYOUT_EXTRACTION_VERSION,
       ]),
     );
-    const cached = await this.readCachedRender(cacheKey);
+    const cached = await this.readCachedRender(cacheKey, input);
     if (cached) {
       const layoutMap = await this.ensureLayoutMap(cached.artifact, input);
-      return { ...cached, layoutMap };
+      return { ...cached, source: sourceIdentity(input), layoutMap };
     }
 
     const pending = this.inFlight.get(cacheKey);
-    if (pending) return pending;
+    if (pending) {
+      const rendered = await pending;
+      this.assertArtifactSource(rendered.artifact, input);
+      const layoutMap = await this.ensureLayoutMap(rendered.artifact, input);
+      return { ...rendered, source: sourceIdentity(input), layoutMap };
+    }
 
     const task = this.createRender(cacheKey, input);
     this.inFlight.set(cacheKey, task);
@@ -198,9 +217,10 @@ export class OriginalDocumentRenderer {
 
   async renderOriginalReview(
     input: AIReportInput,
-    originalPdf: Buffer,
-    layoutMap: DocumentLayoutMap,
+    renderedSource: OriginalRenderResult,
   ): Promise<Buffer> {
+    this.assertReviewSource(input, renderedSource);
+    const { buffer: originalPdf, layoutMap } = renderedSource;
     const document = await PDFDocument.load(originalPdf);
     const cover = document.insertPage(0, [595.28, 841.89]);
     const regular = await document.embedFont(StandardFonts.Helvetica);
@@ -227,13 +247,13 @@ export class OriginalDocumentRenderer {
       }
       for (const rectangle of mapped.rectangles) {
         const page = document.getPage(rectangle.pageIndex + 1);
-          const layoutPage = layoutMap.pages[rectangle.pageIndex];
-          const converted = toPdfRectangle(
-            page,
-            rectangle,
-            layoutPage?.width ?? 1,
-            layoutPage?.height ?? 1,
-          );
+        const layoutPage = layoutMap.pages[rectangle.pageIndex];
+        const converted = toPdfRectangle(
+          page,
+          rectangle,
+          layoutPage?.width ?? 1,
+          layoutPage?.height ?? 1,
+        );
         if (converted.width <= 0 || converted.height <= 0) continue;
         page.drawRectangle({
           ...converted,
@@ -325,12 +345,13 @@ export class OriginalDocumentRenderer {
     }
 
     const layoutMap = await this.ensureLayoutMap(artifact, input);
-    return { artifact, buffer: rendered.buffer, layoutMap };
+    return { source: sourceIdentity(input), artifact, buffer: rendered.buffer, layoutMap };
   }
 
   private async readCachedRender(
     cacheKey: string,
-  ): Promise<Omit<OriginalRenderResult, 'layoutMap'> | null> {
+    input: OriginalRenderInput,
+  ): Promise<Pick<OriginalRenderResult, 'artifact' | 'buffer'> | null> {
     const now = new Date();
     const artifact = await this.prisma.originalRenderArtifact.findUnique({
       where: { cacheKey },
@@ -343,6 +364,7 @@ export class OriginalDocumentRenderer {
     ) {
       return null;
     }
+    this.assertArtifactSource(artifact, input);
     try {
       const buffer = await this.reports.read(artifact.storageKey);
       if (digest(buffer) !== artifact.renderChecksum) return null;
@@ -379,13 +401,27 @@ export class OriginalDocumentRenderer {
       where: { cacheKey },
     });
     if (cached && !cached.deletedAt && cached.expiresAt > now) {
-      return cached.layoutMap as unknown as DocumentLayoutMap;
+      const layoutMap = cached.layoutMap as unknown as DocumentLayoutMap;
+      if (
+        cached.documentId !== input.documentId ||
+        cached.documentVersionId !== input.documentVersionId ||
+        cached.analysisRunId !== input.analysisRunId ||
+        cached.originalRenderArtifactId !== artifact.id ||
+        cached.sourceChecksum !== input.sourceChecksum ||
+        !sameSourceIdentity(layoutMap.source, sourceIdentity(input))
+      ) {
+        this.integrityViolation('REPORT_SOURCE_INTEGRITY_VIOLATION', input);
+      }
+      return layoutMap;
     }
 
-    const layoutMap = mapSegments(
-      artifact.layoutPages as unknown as HashedLayoutPage[],
-      input.segments,
-    );
+    const layoutMap = {
+      ...mapSegments(
+        artifact.layoutPages as unknown as HashedLayoutPage[],
+        input.segments,
+      ),
+      source: sourceIdentity(input),
+    };
     const data = {
       documentId: input.documentId,
       documentVersionId: input.documentVersionId,
@@ -417,6 +453,70 @@ export class OriginalDocumentRenderer {
       record = await this.prisma.documentLayoutMap.create({ data });
     }
     return record.layoutMap as unknown as DocumentLayoutMap;
+  }
+
+  private assertDocumentVersionSource(input: OriginalRenderInput): void {
+    if (!input || input.sourceArtifactType !== 'DOCUMENT_VERSION') {
+      this.integrityViolation('REPORT_ARTIFACT_CANNOT_BE_DOCUMENT_SOURCE', input);
+    }
+    if (
+      !input.documentId || !input.documentVersionId || !input.analysisRunId ||
+      !/^[a-f0-9]{64}$/u.test(input.sourceChecksum)
+    ) {
+      this.integrityViolation('REPORT_SOURCE_INTEGRITY_VIOLATION', input);
+    }
+  }
+
+  private assertArtifactSource(
+    artifact: OriginalRenderArtifactRecord,
+    input: Pick<OriginalRenderInput, 'documentId' | 'documentVersionId' | 'analysisRunId' | 'sourceChecksum'>,
+  ): void {
+    if (
+      artifact.documentId !== input.documentId ||
+      artifact.documentVersionId !== input.documentVersionId ||
+      artifact.sourceChecksum !== input.sourceChecksum ||
+      (artifact.sourceType === OriginalRenderSourceType.PDF &&
+        artifact.renderChecksum !== artifact.sourceChecksum)
+    ) {
+      this.integrityViolation('REPORT_SOURCE_INTEGRITY_VIOLATION', input);
+    }
+  }
+
+  private assertReviewSource(input: AIReportInput, rendered: OriginalRenderResult): void {
+    const expected: OriginalRenderSourceIdentity = {
+      sourceArtifactType: 'DOCUMENT_VERSION',
+      documentId: input.document.id,
+      documentVersionId: input.document.documentVersionId,
+      analysisRunId: input.run.id,
+      sourceChecksum: input.document.sourceChecksum,
+    };
+    if (rendered?.source?.sourceArtifactType !== 'DOCUMENT_VERSION') {
+      this.integrityViolation('REPORT_ARTIFACT_CANNOT_BE_DOCUMENT_SOURCE', expected);
+    }
+    if (
+      !sameSourceIdentity(rendered.source, expected) ||
+      !sameSourceIdentity(rendered.layoutMap.source, expected) ||
+      digest(rendered.buffer) !== rendered.artifact.renderChecksum
+    ) {
+      this.integrityViolation('REPORT_SOURCE_INTEGRITY_VIOLATION', expected);
+    }
+    this.assertArtifactSource(rendered.artifact, expected);
+  }
+
+  private integrityViolation(
+    code: 'REPORT_ARTIFACT_CANNOT_BE_DOCUMENT_SOURCE' | 'REPORT_SOURCE_INTEGRITY_VIOLATION',
+    input: Partial<OriginalRenderInput> | undefined,
+  ): never {
+    this.logger.warn(JSON.stringify({
+      event: 'report_source_integrity_violation',
+      code,
+      documentId: input?.documentId,
+      documentVersionId: input?.documentVersionId,
+      analysisRunId: input?.analysisRunId,
+      sourceArtifactType: input?.sourceArtifactType,
+      sourceChecksumPrefix: input?.sourceChecksum?.slice(0, 12),
+    }));
+    throw new ConflictException({ code, message: 'La fuente del reporte no corresponde a la versión del documento analizado.' });
   }
 
   private async renderSource(
@@ -668,6 +768,28 @@ export function mapSegments(
     })),
     segments: result,
   };
+}
+
+function sourceIdentity(input: OriginalRenderInput): OriginalRenderSourceIdentity {
+  return {
+    sourceArtifactType: 'DOCUMENT_VERSION',
+    documentId: input.documentId,
+    documentVersionId: input.documentVersionId,
+    analysisRunId: input.analysisRunId,
+    sourceChecksum: input.sourceChecksum,
+  };
+}
+
+function sameSourceIdentity(
+  source: OriginalRenderSourceIdentity | undefined,
+  expected: OriginalRenderSourceIdentity,
+): boolean {
+  return Boolean(source &&
+    source.sourceArtifactType === 'DOCUMENT_VERSION' &&
+    source.documentId === expected.documentId &&
+    source.documentVersionId === expected.documentVersionId &&
+    source.analysisRunId === expected.analysisRunId &&
+    source.sourceChecksum === expected.sourceChecksum);
 }
 
 function parseBboxLayout(xml: string): BboxPage[] {

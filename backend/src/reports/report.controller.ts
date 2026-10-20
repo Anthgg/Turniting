@@ -13,6 +13,7 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   GenerateAIReportDto,
+  GenerateBothAIReportsDto,
   GenerateSimilarityReportDto,
   ListReportsDto,
 } from './report.dto.js';
@@ -22,6 +23,15 @@ import { ReportService } from './report.service.js';
 @Controller()
 export class ReportController {
   constructor(private readonly reports: ReportService) {}
+
+  @Post('documents/:documentId/reports/ai/both')
+  @ApiOperation({ summary: 'Generate both AI PDFs from one explicitly selected persisted analysis' })
+  generateBothAI(
+    @Param('documentId', ParseUUIDPipe) documentId: string,
+    @Body() body: GenerateBothAIReportsDto,
+  ) {
+    return this.reports.generateBothAI(documentId, body.analysisRunId);
+  }
 
   @Post('documents/:documentId/reports/ai')
   @ApiOperation({

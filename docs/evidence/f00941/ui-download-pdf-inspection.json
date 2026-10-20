@@ -1,0 +1,204 @@
+{
+  "source": {
+    "filename": "thesis-fixture.pdf",
+    "sha256": "2c3be7c799ab9c2f9ed95123432249ed2f9838d36588ce30af4ee5f293c23206",
+    "pages": 18
+  },
+  "originalReview": {
+    "filename": "turniting_original-review_thesis-fixture_05a7a293_2026-10-20.pdf",
+    "sha256": "7de784586461d0e54cbf68e857b832160a0d433f562a7b246710bd9a840d9409",
+    "bytes": 15504,
+    "pages": 19,
+    "producer": "TURNITING",
+    "markers": {
+      "turniting.generatedBy": "TURNITING",
+      "turniting.reportId": "f9506c6d-a146-4902-bbac-f1c6c1070da1",
+      "turniting.reportVariant": "AI_ORIGINAL_REVIEW",
+      "turniting.analysisRunId": "5d214d15-8997-435d-87d5-f15556205a2d",
+      "turniting.sourceDocumentId": "05a7a293-15e8-495f-bb78-1d444b7c0e61",
+      "turniting.sourceDocumentVersionId": "6fdea428-e66e-42f2-af6b-17c4cc035664",
+      "turniting.rendererVersion": "f00941-original-source-integrity-v1"
+    }
+  },
+  "paragraphTechnical": {
+    "filename": "turniting_paragraph-technical_thesis-fixture_05a7a293_2026-10-20.pdf",
+    "sha256": "cd30b9d4cd550b990526126f5def8c8e369cf84ca381960bcb3348028c3ea81f",
+    "bytes": 8769,
+    "pages": 4,
+    "producer": "TURNITING",
+    "markers": {
+      "turniting.generatedBy": "TURNITING",
+      "turniting.reportId": "a8b6376e-4758-419d-b366-7cc58c934722",
+      "turniting.reportVariant": "AI_PARAGRAPH_TECHNICAL",
+      "turniting.analysisRunId": "5d214d15-8997-435d-87d5-f15556205a2d",
+      "turniting.sourceDocumentId": "05a7a293-15e8-495f-bb78-1d444b7c0e61",
+      "turniting.sourceDocumentVersionId": "6fdea428-e66e-42f2-af6b-17c4cc035664",
+      "turniting.rendererVersion": "f00941-paragraph-technical-source-integrity-v1"
+    }
+  },
+  "coverInvariants": {
+    "originalFilename": true,
+    "originalScore43_4": true,
+    "technicalScore43_4": true,
+    "originalThreshold59": true,
+    "technicalThreshold59": true,
+    "sameRunMarker": true,
+    "sameSourceVersionMarker": true
+  },
+  "sourcePageRawStreamsPreserved": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+  ],
+  "all18SourcePagesPreserved": true,
+  "nestedTechnicalSourcePages": [],
+  "highlightedPages": [
+    {
+      "reportPage": 3,
+      "sourcePage": 2,
+      "rectangles": 8,
+      "opacity": 0.20000000298023224
+    },
+    {
+      "reportPage": 5,
+      "sourcePage": 4,
+      "rectangles": 8,
+      "opacity": 0.20000000298023224
+    },
+    {
+      "reportPage": 7,
+      "sourcePage": 6,
+      "rectangles": 8,
+      "opacity": 0.20000000298023224
+    },
+    {
+      "reportPage": 10,
+      "sourcePage": 9,
+      "rectangles": 8,
+      "opacity": 0.20000000298023224
+    },
+    {
+      "reportPage": 13,
+      "sourcePage": 12,
+      "rectangles": 1,
+      "opacity": 0.20000000298023224
+    }
+  ],
+  "technicalParagraphCards": [
+    {
+      "paragraph": 1,
+      "localScore": "95.0 %"
+    },
+    {
+      "paragraph": 2,
+      "localScore": "80.0 %"
+    },
+    {
+      "paragraph": 3,
+      "localScore": "20.0 %"
+    },
+    {
+      "paragraph": 4,
+      "localScore": "61.0 %"
+    },
+    {
+      "paragraph": 5,
+      "localScore": "40.0 %"
+    },
+    {
+      "paragraph": 6,
+      "localScore": "90.0 %"
+    },
+    {
+      "paragraph": 7,
+      "localScore": "10.0 %"
+    },
+    {
+      "paragraph": 8,
+      "localScore": "58.0 %"
+    },
+    {
+      "paragraph": 9,
+      "localScore": "59.0 %"
+    },
+    {
+      "paragraph": 10,
+      "localScore": "NO EVALUADO"
+    },
+    {
+      "paragraph": 11,
+      "localScore": "NO EVALUADO"
+    },
+    {
+      "paragraph": 12,
+      "localScore": "96.0 %"
+    }
+  ],
+  "technicalParagraphCount": 12,
+  "technicalNoEvaluadoCards": 2,
+  "rendered": [
+    {
+      "path": "C:\\Users\\anthg\\Turniting\\docs\\evidence\\f00941\\original-review-cover.png",
+      "pdfPage": 1,
+      "label": "A - Original review cover"
+    },
+    {
+      "path": "C:\\Users\\anthg\\Turniting\\docs\\evidence\\f00941\\original-review-highlighted-source.png",
+      "pdfPage": 3,
+      "label": "A - Original source page 2: body 1 highlight"
+    },
+    {
+      "path": "C:\\Users\\anthg\\Turniting\\docs\\evidence\\f00941\\paragraph-technical-cover.png",
+      "pdfPage": 1,
+      "label": "B - Technical report cover"
+    },
+    {
+      "path": "C:\\Users\\anthg\\Turniting\\docs\\evidence\\f00941\\paragraph-technical-cards.png",
+      "pdfPage": 2,
+      "label": "B - Persisted paragraph scores"
+    }
+  ],
+  "contactSheet": "C:\\Users\\anthg\\Turniting\\docs\\evidence\\f00941\\ui-downloaded-dual-reports-contact-sheet.png",
+  "privateDocumentUsed": false,
+  "referenceCandidateHighlighted": true,
+  "referenceCandidateDiagnostic": "Synthetic inline References: citation is not classified as REFERENCE_SECTION by the unchanged presentation classifier; it remains scored at96%. Four expected body highlights and metadata suppression are verified.",
+  "visualInspection": {
+    "coverReadable": true,
+    "sourceHighlightAligned": true,
+    "technicalCardsReadable": true,
+    "localParagraphPercentagesAbsentFromOriginalReview": true,
+    "technicalParagraphScoresVerified": [
+      "80.0 %",
+      "20.0 %",
+      "61.0 %",
+      "40.0 %",
+      "90.0 %"
+    ],
+    "renderingDefectsObserved": false
+  },
+  "warnings": [
+    {
+      "code": "REFERENCE_INLINE_HEADING_NOT_CLASSIFIED",
+      "detail": "Existing presentation classifier does not exclude the synthetic inline References: citation."
+    }
+  ],
+  "actualPresentationFlagged": 5,
+  "expectedBodyFlagged": 4,
+  "actualBodyFlagged": 4,
+  "thresholdFlagged": 6
+}

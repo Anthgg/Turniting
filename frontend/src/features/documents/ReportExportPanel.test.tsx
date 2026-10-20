@@ -29,6 +29,8 @@ function analysisResult(status: "COMPLETED" | "RUNNING" = "COMPLETED") {
             status === "COMPLETED" ? "2026-10-18T12:00:01.000Z" : null,
           analyzerMode: "V3_ONLY",
           paragraphMode: "STRICT_PARAGRAPH",
+          documentScore: 0.434,
+          threshold: 0.59,
         },
       ],
     },
@@ -59,6 +61,7 @@ function artifact(
     sizeBytes: 1024 * 486,
     failureReason: status === "FAILED" ? "No se pudo generar el PDF. Intenta de nuevo." : null,
     generationVersion: "f0091-report-renderer-v2",
+    run: { id: RUN_ID, globalScore: 0.434, threshold: 0.59, modelNames: ["SYNTHETIC"], analyzerMode: "V3_ONLY" },
     generatedAt: "2026-10-18T12:00:00.000Z",
     expiresAt: "2026-10-19T12:00:00.000Z",
     deletedAt: null,
@@ -78,9 +81,8 @@ function renderPanel({
   generatePending?: boolean;
   downloadPending?: boolean;
 } = {}) {
-  queryMocks.useQuery
-    .mockReturnValueOnce(analysisResult(runStatus))
-    .mockReturnValueOnce({
+  queryMocks.useQuery.mockImplementation(({ queryKey }: { queryKey: readonly unknown[] }) =>
+    queryKey[0] !== "reports" ? analysisResult(runStatus) : {
       data: {
         items: reportStatus
           ? (reportTypes ?? ["AI_REPORT"]).map((type) => artifact(reportStatus, type))
@@ -90,23 +92,26 @@ function renderPanel({
       isError: false,
       error: null,
     });
-  queryMocks.useMutation
-    .mockReturnValueOnce({
+  let mutationIndex = 0;
+  const mutations = [
+    {
       isPending: generatePending,
       isError: false,
       error: null,
       mutate: vi.fn(),
-    })
-    .mockReturnValueOnce({
+    },
+    {
       isPending: downloadPending,
       variables: downloadPending ? artifact("AVAILABLE") : undefined,
       isError: false,
       error: null,
       mutate: vi.fn(),
-    });
-  queryMocks.useMutation
-    .mockReturnValueOnce({ isPending: false, isError: false, mutate: vi.fn() })
-    .mockReturnValueOnce({ isPending: false, isError: false, mutate: vi.fn() });
+    },
+    { isPending: false, isError: false, mutate: vi.fn() },
+    { isPending: false, isError: false, mutate: vi.fn() },
+    { isPending: false, isError: false, mutate: vi.fn() },
+  ];
+  queryMocks.useMutation.mockImplementation(() => mutations[mutationIndex++ % mutations.length]);
   return renderToStaticMarkup(
     createElement(ReportExportPanel, {
       documentId: DOCUMENT_ID,
@@ -127,6 +132,7 @@ describe("ReportExportPanel", () => {
 
     expect(html).toContain("Generar revisión original");
     expect(html).toContain("Generar detalle por párrafos");
+    expect(html).toContain("Generar ambos reportes");
     expect(html).toContain(
       "Aún no existe un análisis de similitud para esta versión.",
     );
@@ -206,5 +212,10 @@ describe("ReportExportPanel", () => {
     expect(html).toContain("Descargar detalle por párrafos");
     expect(html).toContain("Revisión original");
     expect(html).toContain("Detalle por párrafos");
+    expect(html).toContain("Regenerar revisión original");
+    expect(html).toContain("Regenerar detalle por párrafos");
+    expect(html.match(/43\.4 %/g)).toHaveLength(5);
+    expect(html.match(/59\.0 %/g)).toHaveLength(3);
+    expect(html).toContain(`data-analysis-run-id="${RUN_ID}"`);
   });
 });

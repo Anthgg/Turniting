@@ -36,9 +36,9 @@ function report(previewAvailable: boolean) {
       analyzerVersion: "synthetic",
       modelNames: ["SYNTHETIC"],
       thresholdProfile: "BALANCED",
-      threshold: 0.58,
+      threshold: 0.59,
       paragraphMode: "STRICT_PARAGRAPH",
-      globalScore: 0.42,
+      globalScore: 0.434,
     },
   };
 }
@@ -64,6 +64,8 @@ describe("ReportDetailPanel", () => {
     expect(html).toContain("report-preview-frame");
     expect(html).toContain(`/reports/${REPORT_ID}/preview`);
     expect(html).toContain("Vista previa: turniting_original-review");
+    expect(html).toContain("43.4 %");
+    expect(html).toContain("59.0 %");
   });
 
   it("does not request an inline preview when the PDF is unavailable", () => {

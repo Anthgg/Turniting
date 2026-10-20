@@ -3,6 +3,7 @@ import {
   getReportDetail,
   reportPreviewUrl,
   reportQueryKeys,
+  reportScoreLabel,
 } from "../../api/reports";
 
 function dateLabel(value: string) {
@@ -12,10 +13,6 @@ function dateLabel(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
-}
-
-function scoreLabel(score: number | null | undefined) {
-  return typeof score === "number" ? `${Math.round(score * 100)} %` : "No disponible";
 }
 
 export function ReportDetailPanel({
@@ -65,7 +62,8 @@ export function ReportDetailPanel({
           <div><dt>Modelo</dt><dd>{detail.data.run?.modelNames.join(" + ") || detail.data.run?.analyzerMode || "No disponible"}</dd></div>
           <div><dt>Profile</dt><dd>{detail.data.run?.thresholdProfile ?? "No disponible"}</dd></div>
           <div><dt>Paragraph mode</dt><dd>{detail.data.run?.paragraphMode ?? "No disponible"}</dd></div>
-          <div><dt>Señal global estimada</dt><dd>{scoreLabel(detail.data.run?.globalScore)}</dd></div>
+          <div><dt>Señal global estimada</dt><dd>{reportScoreLabel(detail.data.run?.globalScore)}</dd></div>
+          <div><dt>Umbral aplicado</dt><dd>{reportScoreLabel(detail.data.run?.threshold)}</dd></div>
           <div><dt>Generado</dt><dd>{dateLabel(detail.data.generatedAt)}</dd></div>
           <div><dt>Expira</dt><dd>{dateLabel(detail.data.expiresAt)}</dd></div>
           <div><dt>Estado</dt><dd>{detail.data.status === "ERROR" ? "Error" : detail.data.status}</dd></div>

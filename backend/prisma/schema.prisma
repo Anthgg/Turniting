@@ -31,6 +31,8 @@ model Document {
   reportArtifacts ReportArtifact[]
   originalRenderArtifacts OriginalRenderArtifact[]
   layoutMaps      DocumentLayoutMap[]
+  sourceAnalysisRuns AnalysisRun[] @relation("AnalysisRunSourceDocument")
+  sourceReportArtifacts ReportArtifact[] @relation("ReportArtifactSourceDocument")
 
   @@index([userId])
   @@index([status])
@@ -49,6 +51,9 @@ model DocumentVersion {
   documentId           String            @unique @db.Uuid
   storageKey           String            @unique
   fileHash             String            @db.Char(64)
+  originalFilename     String            @default(dbgenerated())
+  mimeType             String            @default(dbgenerated())
+  ingestionOrigin      String            @default("LEGACY_UNKNOWN")
   extractedText        String?           @db.Text
   extractionError      String?           @db.Text
   pageCount            Int?
@@ -70,6 +75,8 @@ model DocumentVersion {
   reportArtifacts      ReportArtifact[]
   originalRenderArtifacts OriginalRenderArtifact[]
   layoutMaps           DocumentLayoutMap[]
+  sourceAnalysisRuns   AnalysisRun[]      @relation("AnalysisRunSourceVersion")
+  sourceReportArtifacts ReportArtifact[] @relation("ReportArtifactSourceVersion")
 }
 
 enum OcrStatus {
@@ -675,6 +682,8 @@ enum AnalysisClassification {
 model AnalysisRun {
   id                     String                  @id @default(uuid()) @db.Uuid
   documentVersionId      String                  @db.Uuid
+  sourceDocumentId       String                  @default(dbgenerated()) @db.Uuid
+  sourceDocumentVersionId String                 @default(dbgenerated()) @db.Uuid
   status                 AnalysisRunStatus       @default(PENDING)
   analyzerMode           AnalyzerMode
   analyzerVersion        String
@@ -696,6 +705,8 @@ model AnalysisRun {
   createdAt              DateTime                @default(now()) @db.Timestamptz(6)
   completedAt            DateTime?               @db.Timestamptz(6)
   documentVersion        DocumentVersion         @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+  sourceDocument         Document                @relation("AnalysisRunSourceDocument", fields: [sourceDocumentId], references: [id], onDelete: Cascade)
+  sourceDocumentVersion  DocumentVersion         @relation("AnalysisRunSourceVersion", fields: [sourceDocumentVersionId], references: [id], onDelete: Cascade)
   modelResults           AnalysisModelResult[]
   segments               AnalysisSegment[]
   comparisonsAsBase      AnalysisComparison[]    @relation("ComparisonBase")
@@ -704,6 +715,7 @@ model AnalysisRun {
   layoutMaps             DocumentLayoutMap[]
 
   @@index([documentVersionId, createdAt])
+  @@index([sourceDocumentVersionId])
   @@index([status, createdAt])
 }
 
@@ -711,6 +723,11 @@ model ReportArtifact {
   id                String               @id @default(uuid()) @db.Uuid
   documentId        String               @db.Uuid
   documentVersionId String               @db.Uuid
+  sourceDocumentId  String               @default(dbgenerated()) @db.Uuid
+  sourceDocumentVersionId String         @default(dbgenerated()) @db.Uuid
+  sourceChecksum    String               @default(dbgenerated()) @db.Char(64)
+  generatedBy       String               @default("TURNITING")
+  analysisSnapshot  Json?
   analysisRunId     String?              @db.Uuid
   similarityRunId   String?              @db.Uuid
   type              ReportType
@@ -730,13 +747,16 @@ model ReportArtifact {
   updatedAt         DateTime             @updatedAt @db.Timestamptz(6)
   document          Document             @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentVersion   DocumentVersion      @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
-  analysisRun       AnalysisRun?         @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
+  sourceDocument    Document             @relation("ReportArtifactSourceDocument", fields: [sourceDocumentId], references: [id], onDelete: Cascade)
+  sourceDocumentVersion DocumentVersion  @relation("ReportArtifactSourceVersion", fields: [sourceDocumentVersionId], references: [id], onDelete: Cascade)
+  analysisRun       AnalysisRun?         @relation(fields: [analysisRunId], references: [id], onDelete: Restrict)
   auditEvents       ReportAuditEvent[]
 
   @@index([documentId, generatedAt])
   @@index([generatedAt])
   @@index([expiresAt, deletedAt])
   @@index([analysisRunId])
+  @@index([sourceDocumentVersionId])
   @@index([similarityRunId])
   @@index([fingerprint])
 }

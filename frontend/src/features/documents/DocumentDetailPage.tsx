@@ -707,6 +707,7 @@ export function DocumentDetailPage() {
             documentWorkflowStatus={documentWorkflowStatus}
           />
           <ReportExportPanel
+            key={`${id}:${record.documentVersionId ?? "source"}`}
             documentId={id}
             canExport={
               record.status === "EXTRACTED" && (record.characterCount ?? 0) > 0
