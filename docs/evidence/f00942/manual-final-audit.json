@@ -1,0 +1,139 @@
+{
+  "schemaVersion": "f00942-manual-tesis-audit-v2",
+  "auditStage": "FINAL_UNICODE",
+  "capturedAt": "2026-10-20T19:28:06.504Z",
+  "analysisRunId": "950d39fb-237c-45a7-ad53-ac7a5ab44920",
+  "scientific": {
+    "before": {
+      "fullRunSha256": "8ceb2916f83518c25720824518b84ee2894eb351b3fc30d6b6333d0ca63c4dc2",
+      "segmentsSha256": "2215aef71f55d2da23a7b477817a30af610ffd9c3c3f3daad9ef626b7f8358f3",
+      "modelResultsSha256": "322674f6c9bab689c8f7d6938ca8eb6799dc5969d6e76b247b7cf94326e79b0a",
+      "sourceVersionSha256": "cd475dd4b622dc19c408e0b8738fa8f6695d00091a17e514cde9bf99112d95c7",
+      "sourceAndRunSha256": "8116d62cd8cc0409d6c18442a63f383ec1ed6387325ce0ddd808ac0d64bedede"
+    },
+    "after": {
+      "fullRunSha256": "8ceb2916f83518c25720824518b84ee2894eb351b3fc30d6b6333d0ca63c4dc2",
+      "segmentsSha256": "2215aef71f55d2da23a7b477817a30af610ffd9c3c3f3daad9ef626b7f8358f3",
+      "modelResultsSha256": "322674f6c9bab689c8f7d6938ca8eb6799dc5969d6e76b247b7cf94326e79b0a",
+      "sourceVersionSha256": "cd475dd4b622dc19c408e0b8738fa8f6695d00091a17e514cde9bf99112d95c7",
+      "sourceAndRunSha256": "8116d62cd8cc0409d6c18442a63f383ec1ed6387325ce0ddd808ac0d64bedede"
+    },
+    "allFiveDigestsUnchanged": true,
+    "globalScore": 0.4342228555892896,
+    "threshold": 0.59,
+    "models": [
+      "ENSEMBLE_V2_V3"
+    ],
+    "segments": 526,
+    "evaluated": 50,
+    "insufficient": 476
+  },
+  "presentation": {
+    "counts": {
+      "totalSegments": 526,
+      "evaluated": 50,
+      "insufficient": 476,
+      "rawFlaggedCount": 4,
+      "presentationExcludedFlagged": 0,
+      "actionableHighlightCount": 4,
+      "structuralGroups": 120,
+      "evaluatedDisplayUnits": 50,
+      "evaluatedSegments": 50,
+      "insufficientSegments": 476
+    },
+    "audit": {
+      "sourceSegmentsTotal": 526,
+      "sourceSegmentsRepresented": 526,
+      "sourceSegmentsLost": 0,
+      "sourceSegmentsDuplicated": 0,
+      "technicalDisplayUnits": 186,
+      "structuralGroups": 120,
+      "evaluatedDisplayUnits": 50
+    },
+    "referenceAudit": {
+      "referenceSectionStartSegment": 372,
+      "referenceSegmentsCount": 154,
+      "referenceRawFlagged": 0,
+      "referenceActionableHighlights": 0
+    },
+    "evaluatedAnnotationCount": 50,
+    "evaluatedExactMappingMismatch": 0
+  },
+  "pdf": {
+    "reports": [
+      {
+        "id": "48dca3a5-122f-46e2-bec4-97803f563c5c",
+        "variant": "AI_ORIGINAL_REVIEW",
+        "status": "AVAILABLE",
+        "rendererVersion": "f00942-original-review-renderer-v2",
+        "analysisRunId": "950d39fb-237c-45a7-ad53-ac7a5ab44920",
+        "sourceDocumentId": "58d1d80c-5529-4c51-abdd-d85265f85038",
+        "sourceDocumentVersionId": "bb58899c-de88-46ee-bfd2-369d23c28545",
+        "sha256": "e4b867ec391c97494c9472ae70fa9a6c80805d7fa86b2ce1fe650b9d00a0386c",
+        "hashMatchesDatabase": true,
+        "pages": 19,
+        "globalDisplayed": true,
+        "thresholdDisplayed": true
+      },
+      {
+        "id": "8d7226d8-a13e-45e7-8bbf-03e1dec083ad",
+        "variant": "AI_PARAGRAPH_TECHNICAL",
+        "status": "AVAILABLE",
+        "rendererVersion": "f00942-paragraph-technical-renderer-v2",
+        "analysisRunId": "950d39fb-237c-45a7-ad53-ac7a5ab44920",
+        "sourceDocumentId": "58d1d80c-5529-4c51-abdd-d85265f85038",
+        "sourceDocumentVersionId": "bb58899c-de88-46ee-bfd2-369d23c28545",
+        "sha256": "ac070e01d9245d1b0602df6f299fcacf50ccde66f3b9faea8492f6594c36d344",
+        "hashMatchesDatabase": true,
+        "pages": 37,
+        "globalDisplayed": true,
+        "thresholdDisplayed": true
+      }
+    ],
+    "technical": {
+      "evaluatedExpected": 50,
+      "scoreCardMismatch": 0,
+      "sourceTextSegmentsExpected": 526,
+      "strictNfcWhitespaceMatches": 494,
+      "layoutNormalizedMatches": 526,
+      "missingLayoutIndices": [],
+      "textSearchRule": "Unicode NFC; generated footer removed; whitespace and invisible format characters ignored to compare PDF line wrapping/word boundaries. No letters, numbers, math symbols or punctuation folded.",
+      "boundsAudit": {
+        "pagesChecked": 37,
+        "textSpansOutsidePage": 0,
+        "pagesWithOutsideSpans": [],
+        "blankPages": [],
+        "method": "PyMuPDF text bounds on the actual browser download; no private text/images stored"
+      }
+    },
+    "original": {
+      "sourcePages": 18,
+      "sourcePagesWithExactOriginalStreams": 18,
+      "technicalPageStreamsNested": 0,
+      "sourceSha256Preserved": true
+    }
+  },
+  "legacy": [
+    {
+      "reportId": "f912a737-e941-456d-b929-df837e017ea5",
+      "status": "AVAILABLE",
+      "undeleted": true,
+      "pages": 19,
+      "hashPreserved": true
+    },
+    {
+      "reportId": "852bca86-0d41-4092-b048-61a1c86e1e0a",
+      "status": "AVAILABLE",
+      "undeleted": true,
+      "pages": 91,
+      "hashPreserved": true
+    },
+    {
+      "reportId": "dd865f05-9aff-4b3a-860e-171e186aef99",
+      "status": "AVAILABLE",
+      "undeleted": true,
+      "pages": 92,
+      "hashPreserved": true
+    }
+  ]
+}

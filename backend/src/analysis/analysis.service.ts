@@ -13,11 +13,15 @@ import {
   createReviewDocumentContext,
   getReviewEvidence,
   getReviewPresentation,
+  getReviewStructuralType,
   normalizeReviewSegmentOffsets,
   ReportReviewIntegrityError,
   type ReviewSegment,
 } from './review-presentation.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { buildTechnicalDisplayUnits, isTechnicalEvaluated, isTechnicalFlagged, isPresentationExcluded, TECHNICAL_UNIT_LABELS } from '../reports/technical-display.js';
+import type { AIReportParagraph } from '../reports/report.contracts.js';
+import { presentationStructureHint } from './presentation-structure.js';
 import type { AnalysisSegmentsQueryDto, AnalyzeDocumentDto, CompareAnalysesDto } from './dto/analysis.dto.js';
 
 export const ANALYZER_VERSION = 'f005-local-analyzer-v1';
@@ -472,10 +476,12 @@ export class AnalysisService {
     const text = run.documentVersion.extractedText ?? '';
     const textHashStale = run.textHash !== null && run.textHash !== sha256(text);
     let reviewContext: ReturnType<typeof createReviewDocumentContext> | null = null;
-    let reviewSegments = run.segments as ReviewSegment[];
+    let reviewSegments: (typeof run.segments[number] & ReviewSegment)[] = run.segments;
     let integrityCode: string | null = null;
     try {
-      reviewSegments = normalizeReviewSegmentOffsets(text, reviewSegments);
+      reviewSegments = normalizeReviewSegmentOffsets(text, reviewSegments).map(segment => ({
+        ...segment, ...presentationStructureHint(run.metadata, segment),
+      }));
       reviewContext = createReviewDocumentContext(text, reviewSegments);
     } catch (error) {
       if (!(error instanceof ReportReviewIntegrityError)) throw error;
@@ -512,6 +518,8 @@ export class AnalysisService {
       ...(query?.includeDocumentText ? { documentText: text } : {}),
       items: segments.map((s) => ({
         ...s,
+        ...presentationStructureHint(run.metadata, s),
+        structuralType: presentationStructureHint(run.metadata, s).structuralType ?? (reviewContext ? getReviewStructuralType(s as ReviewSegment, reviewContext) : 'BODY'),
         text: stale ? null : reviewContext?.byParagraphIndex.get(s.paragraphIndex)?.text ?? null,
         reviewPresentation: stale || !reviewContext
           ? { highlight: false, level: null, excludedReason: 'UNSCORED' as const }
@@ -537,6 +545,59 @@ export class AnalysisService {
           : {}),
       })),
       ...(paginated ? { page, pageSize, total, pages: Math.ceil(total / pageSize) } : {}),
+    };
+  }
+
+  /** Presentation only: reads canonical segments, never persists groups or invokes AI. */
+  async getTechnicalPresentation(id: string) {
+    const result = await this.getSegments(id, { includeDocumentText: true });
+    const threshold = result.items[0]?.evidence.threshold ?? null;
+    const paragraphs: AIReportParagraph[] = result.items.map(segment => ({
+      sourceSegmentId: segment.id, paragraphIndex: segment.paragraphIndex, textHash: segment.textHash,
+      charStart: segment.charStart, charEnd: segment.charEnd,
+      textPreview: segment.text ?? '', score: segment.calibratedScore ?? null,
+      classification: segment.classification, signalLevel: segment.signalLevel,
+      pageNumber: segment.pageNumber, words: segment.words, tokens: segment.tokens,
+      structuralType: segment.structuralType,
+      kind: segment.kind ?? undefined, structuralGroupId: segment.structuralGroupId,
+      reviewEvidence: segment.evidence, reviewPresentation: segment.reviewPresentation,
+      presentationExcluded: segment.evidence.presentationExcluded,
+      excludedReason: segment.evidence.excludedReason,
+      segmentEvidence: { type: 'PARAGRAPH', paragraphId: segment.paragraphIndex,
+        start: segment.charStart, end: segment.charEnd, score: segment.calibratedScore, level: segment.signalLevel },
+    }));
+    const started = performance.now();
+    const heapBefore = process.memoryUsage().heapUsed;
+    const presentation = buildTechnicalDisplayUnits(paragraphs, { extractedText: result.documentText ?? '', threshold });
+    const groupingMs = performance.now() - started;
+    const heapDeltaBytes = process.memoryUsage().heapUsed - heapBefore;
+    const references = paragraphs.filter(segment => segment.excludedReason === 'REFERENCE_SECTION');
+    this.logger.log(JSON.stringify({ event: 'technical_presentation_built', analysisRunId: id,
+      sourceSegments: presentation.audit.sourceSegmentsTotal, displayUnits: presentation.units.length,
+      structuralGroups: presentation.counts.structuralGroups, groupingMs: Math.round(groupingMs * 100) / 100 }));
+    return {
+      analysisRunId: id,
+      counts: { ...presentation.counts, evaluatedSegments: presentation.counts.evaluated,
+        insufficientSegments: presentation.counts.insufficient },
+      audit: presentation.audit,
+      actionableParagraphIndices: paragraphs.filter(segment => isTechnicalFlagged(segment, threshold) && !isPresentationExcluded(segment)).map(segment => segment.paragraphIndex),
+      referenceAudit: { referenceSectionStartSegment: references[0]?.paragraphIndex ?? null,
+        referenceSegmentsCount: references.length,
+        referenceRawFlagged: references.filter(segment => isTechnicalFlagged(segment, threshold)).length,
+        referenceActionableHighlights: references.filter(segment => isTechnicalFlagged(segment, threshold) && !isPresentationExcluded(segment)).length },
+      metrics: { groupingMs, heapDeltaBytes },
+      displayUnits: presentation.units.map(unit => ({
+        id: unit.id, type: unit.type, label: unit.type === 'EVALUATED_SEGMENT' && unit.sourceSegments[0]?.kind === 'PARAGRAPH' ? 'PÁRRAFO' : TECHNICAL_UNIT_LABELS[unit.type],
+        sourceSegmentIds: unit.sourceSegmentIds, paragraphIndices: unit.sourceSegmentIds,
+        positionStart: unit.positionStart, positionEnd: unit.positionEnd, text: unit.text,
+        presentationExcluded: unit.presentationExcluded, excludedReason: unit.excludedReason,
+        evaluatedSegments: unit.sourceSegments.filter(isTechnicalEvaluated).map(segment => ({
+          sourceSegmentId: segment.sourceSegmentId ?? segment.paragraphIndex,
+          paragraphIndex: segment.paragraphIndex, score: segment.score!, threshold,
+          flagged: isTechnicalFlagged(segment, threshold), presentationExcluded: isPresentationExcluded(segment),
+          excludedReason: segment.excludedReason, text: segment.textPreview,
+        })),
+      })),
     };
   }
 

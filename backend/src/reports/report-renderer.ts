@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { existsSync } from 'node:fs';
 import PDFDocument from 'pdfkit';
 import {
   createReviewDocumentContext,
@@ -19,6 +20,7 @@ import type {
   SimilarityMatch,
   SimilarityReportInput,
 } from './report.contracts.js';
+import { buildTechnicalDisplayUnits, isPresentationExcluded, isTechnicalEvaluated, isTechnicalFlagged } from './technical-display.js';
 
 export const REPORT_RENDERER_VERSION = 'f0093-threshold-span-ready-renderer-v4';
 export const SIMILARITY_RENDERER_VERSION = 'f0092-report-renderer-v3.1';
@@ -57,6 +59,19 @@ const SIMILARITY_DISCLAIMER =
   'Turniting compara el documento contra las fuentes disponibles en su corpus e índices configurados. La ausencia de una coincidencia no demuestra originalidad absoluta y el porcentaje no equivale al índice de similitud oficial de Turnitin.';
 
 type PDFDoc = InstanceType<typeof PDFDocument>;
+type TechnicalDisplayUnit = ReturnType<typeof buildTechnicalDisplayUnits>['units'][number];
+type TechnicalReportCounts = ReturnType<typeof buildTechnicalDisplayUnits>['counts'];
+
+function technicalUnicodeFonts(): Record<string, string> {
+  const families = [
+    ['/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-BoldItalic.ttf', '/usr/share/fonts/truetype/crosextra/Caladea-Regular.ttf', '/usr/share/fonts/truetype/crosextra/Carlito-Regular.ttf'],
+    ['/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf', '/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf', '/usr/share/fonts/truetype/liberation2/LiberationSans-Italic.ttf', '/usr/share/fonts/truetype/liberation2/LiberationSans-BoldItalic.ttf', '/usr/share/fonts/truetype/crosextra/Caladea-Regular.ttf', '/usr/share/fonts/truetype/crosextra/Carlito-Regular.ttf'],
+    ['C:/Windows/Fonts/arial.ttf', 'C:/Windows/Fonts/arialbd.ttf', 'C:/Windows/Fonts/ariali.ttf', 'C:/Windows/Fonts/arialbi.ttf', 'C:/Windows/Fonts/arial.ttf', 'C:/Windows/Fonts/arial.ttf'],
+  ];
+  const family = families.find((paths) => paths.every((fontPath) => existsSync(fontPath)));
+  if (!family) throw new Error('TECHNICAL_REPORT_UNICODE_FONTS_UNAVAILABLE');
+  return Object.fromEntries(['Helvetica', 'Helvetica-Bold', 'Helvetica-Oblique', 'Helvetica-BoldOblique', 'TechnicalDiacritics', 'TechnicalSubscripts'].map((alias, index) => [alias, family[index]!]));
+}
 type DistributionLevel = 'HIGH' | 'MODERATE' | 'LOW' | 'INSUFFICIENT';
 type RenderReviewSegment = VerifiedReviewRange & {
   paragraph: AIReportParagraph;
@@ -308,86 +323,64 @@ export class ReportRenderer {
   }
 
   async renderAIParagraphTechnical(input: AIReportInput): Promise<Buffer> {
-    const paragraphs = [...input.paragraphs].sort(
-      (left, right) => left.paragraphIndex - right.paragraphIndex,
-    );
-    const evaluated = paragraphs.filter(
-      (paragraph) => paragraph.score !== null,
-    ).length;
-    const flagged = paragraphs.filter(
-      (paragraph) =>
-        paragraph.score !== null &&
-        input.run.threshold !== null &&
-        paragraph.score >= input.run.threshold,
-    ).length;
+    const display = buildTechnicalDisplayUnits(input.paragraphs, {
+      extractedText: input.extractedText,
+      threshold: input.run.threshold,
+    });
     return this.renderPdf(
       'Detalle técnico por párrafos',
       input.reportId,
       input.generatedAt,
       (doc) => {
-        this.aiTechnicalCover(doc, input, { evaluated, flagged });
+        this.aiTechnicalCover(doc, input, display.counts, display.units.length);
         doc.addPage();
         this.section(doc, 'Resumen del análisis');
-        this.keyValue(
-          doc,
-          'Párrafos evaluados',
-          String(input.run.scoredSegments),
-          48,
-          doc.y,
-          240,
-        );
-        this.keyValue(
-          doc,
-          'Párrafos señalados',
-          String(flagged),
-          315,
-          doc.y,
-          230,
-        );
-        doc.moveDown(2.2);
-        this.keyValue(
-          doc,
-          'Párrafos insuficientes',
-          String(input.run.insufficientSegments),
-          48,
-          doc.y,
-          240,
-        );
-        this.keyValue(
-          doc,
-          'Umbral aplicado',
-          input.run.threshold === null
-            ? 'No disponible'
-            : percentage(input.run.threshold),
-          315,
-          doc.y,
-          230,
-        );
-        doc.moveDown(2.4);
+        const summaryY = doc.y;
+        const summary = [
+          ['Segmentos totales', display.counts.totalSegments],
+          ['Evaluados', input.run.scoredSegments],
+          ['Insuficientes', input.run.insufficientSegments],
+          ['Señalados por detector', display.counts.rawFlaggedCount],
+          ['Resaltados para revisión', display.counts.actionableHighlightCount],
+          ['Señalados excluidos', display.counts.presentationExcludedFlagged],
+          ['Unidades visuales', display.units.length],
+          ['Grupos estructurales', display.counts.structuralGroups],
+          ['Umbral aplicado', percentage(input.run.threshold)],
+        ] as const;
+        summary.forEach(([label, value], index) => {
+          this.keyValue(doc, label, String(value), 48 + (index % 3) * 170, summaryY + Math.floor(index / 3) * 42, 156);
+        });
+        doc.y = summaryY + 132;
         doc
           .font('Helvetica-Oblique')
           .fontSize(8.5)
           .fillColor(COLOR.muted)
           .text(
-            'El porcentaje mostrado por párrafo corresponde al score local del detector para ese segmento. No representa el porcentaje de contribución aritmética del párrafo al score global.',
+            'Cada porcentaje conserva el score local de su segmento. Los bloques estructurales reúnen texto para lectura y muestran sus scores internos sin calcular un score agregado.',
             48,
             doc.y,
             { width: 499, lineGap: 2 },
           );
         doc.moveDown(1.4);
         this.section(doc, 'Detalle técnico por párrafos');
-        for (const paragraph of paragraphs) {
-          this.technicalParagraphCard(doc, paragraph, input.run.threshold);
+        for (const unit of display.units) {
+          if (unit.type === 'EVALUATED_SEGMENT' || unit.type === 'INSUFFICIENT_SEGMENT') {
+            this.technicalParagraphCard(doc, unit.sourceSegments[0]!, input.run.threshold);
+          } else {
+            this.technicalStructuralBlock(doc, unit, input.run.threshold);
+          }
         }
       },
       false,
+      true,
     );
   }
 
   private aiTechnicalCover(
     doc: PDFDoc,
     input: AIReportInput,
-    counts: { evaluated: number; flagged: number },
+    counts: TechnicalReportCounts,
+    displayUnitCount: number,
   ): void {
     this.brand(doc, 'Detalle técnico por párrafos');
     doc.moveDown(1.1);
@@ -401,7 +394,7 @@ export class ReportRenderer {
     doc.moveDown(1.2);
 
     const cardY = doc.y;
-    doc.save().roundedRect(48, cardY, 499, 190, 8).fill(COLOR.panel).restore();
+    doc.save().roundedRect(48, cardY, 499, 250, 8).fill(COLOR.panel).restore();
     doc
       .font('Helvetica')
       .fontSize(8)
@@ -440,31 +433,21 @@ export class ReportRenderer {
       cardY + 112,
       210,
     );
-    this.keyValue(
-      doc,
-      'Evaluados',
-      String(input.run.scoredSegments || counts.evaluated),
-      66,
-      cardY + 130,
-      210,
-    );
-    this.keyValue(
-      doc,
-      'Señalados',
-      String(counts.flagged),
-      315,
-      cardY + 153,
-      210,
-    );
-    this.keyValue(
-      doc,
-      'Insuficientes',
-      String(input.run.insufficientSegments),
-      66,
-      cardY + 153,
-      210,
-    );
-    doc.y = cardY + 210;
+    const summaries = [
+      ['Segmentos totales', counts.totalSegments],
+      ['Evaluados', input.run.scoredSegments],
+      ['Insuficientes', input.run.insufficientSegments],
+      ['Señalados por detector', counts.rawFlaggedCount],
+      ['Resaltados para revisión', counts.actionableHighlightCount],
+      ['Señalados excluidos', counts.presentationExcludedFlagged],
+    ] as const;
+    summaries.forEach(([label, value], index) => {
+      this.keyValue(doc, label, String(value), 66 + (index % 3) * 158, cardY + 158 + Math.floor(index / 3) * 43, 150);
+    });
+    doc.y = cardY + 267;
+    doc.font('Helvetica').fontSize(8.5).fillColor(COLOR.muted)
+      .text(`Vista agrupada: ${displayUnitCount} unidades visuales; ${counts.structuralGroups} grupos estructurales.`, 48, doc.y, { width: 499 });
+    doc.moveDown(0.8);
     doc
       .font('Helvetica')
       .fontSize(8.5)
@@ -483,6 +466,7 @@ export class ReportRenderer {
     paragraph: AIReportParagraph,
     threshold: number | null,
   ): void {
+    const evaluated = isTechnicalEvaluated(paragraph);
     this.ensureSpace(doc, 66);
     const y = doc.y;
     doc.save().roundedRect(48, y, 499, 31, 5).fill(COLOR.panel).restore();
@@ -490,13 +474,13 @@ export class ReportRenderer {
       .font('Helvetica-Bold')
       .fontSize(10)
       .fillColor(COLOR.ink)
-      .text('PÁRRAFO ' + (paragraph.paragraphIndex + 1), 60, y + 9, {
+      .text((paragraph.kind?.toUpperCase() === 'PARAGRAPH' ? 'PÁRRAFO ' : 'SEGMENTO ') + (paragraph.paragraphIndex + 1), 60, y + 9, {
         width: 220,
       });
     const state =
-      paragraph.score === null
+      !evaluated
         ? 'NO EVALUADO'
-        : threshold !== null && paragraph.score >= threshold
+        : isTechnicalFlagged(paragraph, threshold)
           ? 'SEÑALADO'
           : 'NO SEÑALADO';
     doc
@@ -507,7 +491,7 @@ export class ReportRenderer {
     doc.y = y + 39;
 
     const localSignal =
-      paragraph.score === null
+      !evaluated
         ? 'NO EVALUADO'
         : percentage(paragraph.score);
     const thresholdLabel =
@@ -525,7 +509,7 @@ export class ReportRenderer {
       .text(stats.join('  |  '), 60, doc.y, { width: 475, lineGap: 1.5 });
     doc.moveDown(0.35);
 
-    if (paragraph.score === null) {
+    if (!evaluated) {
       doc
         .font('Helvetica-Oblique')
         .fontSize(8.5)
@@ -569,15 +553,86 @@ export class ReportRenderer {
       // oxlint-disable-next-line no-control-regex
       .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/gu, '')
       .trim();
-    doc
-      .font('Helvetica')
-      .fontSize(9)
-      .fillColor(COLOR.ink)
-      .text(text || 'Texto no disponible.', 60, doc.y, {
-        width: 475,
-        lineGap: 2,
-      });
+    doc.font('Helvetica').fontSize(9).fillColor(COLOR.ink);
+    this.technicalSourceText(doc, text || 'Texto no disponible.', doc.y, 2);
     doc.moveDown(1);
+  }
+
+  private technicalStructuralBlock(
+    doc: PDFDoc,
+    unit: TechnicalDisplayUnit,
+    threshold: number | null,
+  ): void {
+    const evaluated = unit.sourceSegments.filter(isTechnicalEvaluated);
+    const insufficient = unit.sourceSegments.length - evaluated.length;
+    // Keep the compact introduction and a first source line together; long blocks still flow across pages.
+    this.ensureSpace(doc, evaluated.length > 0 ? 150 : 110);
+    const titles: Record<string, string> = {
+      REFERENCE_GROUP: 'REFERENCIAS',
+      TABLE_GROUP: 'TABLA / ESTRUCTURA TABULAR',
+      METADATA_GROUP: 'DATOS DE PORTADA / METADATA',
+      CAPTION_GROUP: 'CAPTION / LEYENDA',
+      HEADING_GROUP: 'ENCABEZADOS',
+      STRUCTURAL_GROUP: 'FRAGMENTOS CONTIGUOS',
+    };
+    const y = doc.y;
+    doc.save().roundedRect(48, y, 499, 25, 4).fill(COLOR.panel).restore();
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLOR.ink)
+      .text(titles[unit.type] ?? 'ELEMENTO ESTRUCTURAL', 60, y + 7, { width: 475 });
+    doc.y = y + 31;
+    const ids = unit.sourceSegmentIds.map((id) => id + 1);
+    const contiguous = ids.every((id, index) => index === 0 || id === ids[index - 1]! + 1);
+    const sourceLabel = contiguous && ids.length > 1 ? `${ids[0]}-${ids[ids.length - 1]}` : ids.join(', ');
+    doc.font('Helvetica').fontSize(8).fillColor(COLOR.muted)
+      .text(`Segmentos fuente: ${sourceLabel} | ${unit.sourceSegments.length} elementos estructurales`, 60, doc.y, { width: 475, lineGap: 1 });
+    if (unit.presentationExcluded) {
+      doc.font('Helvetica-Bold').fontSize(7.8).fillColor(COLOR.muted)
+        .text(`EXCLUIDO DE REVISIÓN VISUAL${unit.excludedReason ? ` | ${unit.excludedReason}` : ''}`, 60, doc.y + 3, { width: 475 });
+    }
+    if (insufficient > 0) {
+      doc.font('Helvetica-Oblique').fontSize(8).fillColor(COLOR.muted)
+        .text(`${insufficient} elementos NO EVALUADOS por longitud/estructura.`, 60, doc.y + 3, { width: 475 });
+    }
+    if (evaluated.length > 0) {
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(COLOR.ink)
+        .text('Scores técnicos internos (sin agregación):', 60, doc.y + 4, { width: 475 });
+      for (const segment of evaluated) {
+        const flagged = isTechnicalFlagged(segment, threshold);
+        const excluded = isPresentationExcluded(segment);
+        const reason = segment.reviewEvidence?.excludedReason ?? segment.excludedReason ?? segment.reviewPresentation.excludedReason;
+        const status = flagged ? 'SEÑALADO' : 'NO SEÑALADO';
+        this.ensureSpace(doc, excluded ? 30 : 16);
+        doc.font('Helvetica-Bold').fontSize(8).fillColor(COLOR.ink)
+          .text(`SEGMENTO ${segment.paragraphIndex + 1} | ${percentage(segment.score)} | ${status}`, 60, doc.y + 2, { width: 475 });
+        if (excluded) {
+          doc.font('Helvetica').fontSize(7.5).fillColor(COLOR.muted)
+            .text(`EXCLUIDO DE REVISIÓN VISUAL${reason ? ` | ${reason}` : ''}`, 60, doc.y + 1, { width: 475 });
+        }
+      }
+    }
+    doc.font('Helvetica').fontSize(8.5).fillColor(COLOR.ink);
+    this.technicalSourceText(doc, unit.text || 'Texto no disponible.', doc.y + 5, 1.2);
+    doc.moveDown(0.9);
+  }
+
+  private technicalSourceText(doc: PDFDoc, text: string, y: number, lineGap: number): void {
+    const normalized = text.normalize('NFC');
+    const runs: { font: string; text: string }[] = [];
+    for (const { segment } of new Intl.Segmenter('und', { granularity: 'grapheme' }).segment(normalized)) {
+      // Installed Liberation omits combining marks and subscript digits; use system fonts with verified coverage.
+      const font = /\p{M}/u.test(segment) ? 'TechnicalDiacritics'
+        : /[\u2080-\u2089]/u.test(segment) ? 'TechnicalSubscripts' : 'Helvetica';
+      const previous = runs.at(-1);
+      if (previous?.font === font) previous.text += segment;
+      else runs.push({ font, text: segment });
+    }
+    runs.forEach((run, index) => {
+      doc.font(run.font);
+      const options = { width: 475, lineGap, continued: index < runs.length - 1 };
+      if (index === 0) doc.text(run.text, 60, y, options);
+      else doc.text(run.text, options);
+    });
+    doc.font('Helvetica');
   }
 
   renderSimilarity(input: SimilarityReportInput): Promise<Buffer> {
@@ -600,20 +655,26 @@ export class ReportRenderer {
     generatedAt: Date,
     draw: (doc: PDFDoc) => void,
     includeReportId = true,
+    useTechnicalUnicodeFonts = false,
   ): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
+      const unicodeFonts = useTechnicalUnicodeFonts ? technicalUnicodeFonts() : undefined;
       const doc = new PDFDocument({
         size: 'A4',
         margins: { top: 48, right: 48, bottom: 84, left: 48 },
         bufferPages: true,
         compress: true,
         info: { Title: title, Author: 'Turniting', CreationDate: generatedAt },
+        ...(unicodeFonts ? { font: unicodeFonts.Helvetica } : {}),
       });
       doc.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
       doc.on('error', reject);
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       try {
+        if (unicodeFonts) {
+          for (const [alias, fontPath] of Object.entries(unicodeFonts)) doc.registerFont(alias, fontPath);
+        }
         draw(doc);
         addFooter(doc, reportId, includeReportId);
         doc.end();

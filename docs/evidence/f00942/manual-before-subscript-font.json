@@ -1,0 +1,177 @@
+{
+  "schemaVersion": "f00942-manual-tesis-audit-v1",
+  "auditStage": "AFTER_UNICODE_FONT_HARDENING",
+  "capturedAt": "2026-10-20T14:00:08.485Z",
+  "analysisRunId": "950d39fb-237c-45a7-ad53-ac7a5ab44920",
+  "textSearchRule": "Unicode NFC + whitespace collapse + removal of known generated footer only; no private text retained",
+  "scientific": {
+    "before": {
+      "fullRunSha256": "8ceb2916f83518c25720824518b84ee2894eb351b3fc30d6b6333d0ca63c4dc2",
+      "segmentsSha256": "2215aef71f55d2da23a7b477817a30af610ffd9c3c3f3daad9ef626b7f8358f3",
+      "modelResultsSha256": "322674f6c9bab689c8f7d6938ca8eb6799dc5969d6e76b247b7cf94326e79b0a",
+      "sourceVersionSha256": "cd475dd4b622dc19c408e0b8738fa8f6695d00091a17e514cde9bf99112d95c7",
+      "sourceAndRunSha256": "8116d62cd8cc0409d6c18442a63f383ec1ed6387325ce0ddd808ac0d64bedede"
+    },
+    "after": {
+      "fullRunSha256": "8ceb2916f83518c25720824518b84ee2894eb351b3fc30d6b6333d0ca63c4dc2",
+      "segmentsSha256": "2215aef71f55d2da23a7b477817a30af610ffd9c3c3f3daad9ef626b7f8358f3",
+      "modelResultsSha256": "322674f6c9bab689c8f7d6938ca8eb6799dc5969d6e76b247b7cf94326e79b0a",
+      "sourceVersionSha256": "cd475dd4b622dc19c408e0b8738fa8f6695d00091a17e514cde9bf99112d95c7",
+      "sourceAndRunSha256": "8116d62cd8cc0409d6c18442a63f383ec1ed6387325ce0ddd808ac0d64bedede"
+    },
+    "allFiveDigestsUnchanged": true,
+    "globalScore": 0.4342228555892896,
+    "threshold": 0.59,
+    "models": [
+      "ENSEMBLE_V2_V3"
+    ],
+    "segments": 526,
+    "evaluated": 50,
+    "insufficient": 476
+  },
+  "presentation": {
+    "counts": {
+      "totalSegments": 526,
+      "evaluated": 50,
+      "insufficient": 476,
+      "rawFlaggedCount": 4,
+      "presentationExcludedFlagged": 0,
+      "actionableHighlightCount": 4,
+      "structuralGroups": 120,
+      "evaluatedDisplayUnits": 50,
+      "evaluatedSegments": 50,
+      "insufficientSegments": 476
+    },
+    "audit": {
+      "sourceSegmentsTotal": 526,
+      "sourceSegmentsRepresented": 526,
+      "sourceSegmentsLost": 0,
+      "sourceSegmentsDuplicated": 0,
+      "technicalDisplayUnits": 186,
+      "structuralGroups": 120,
+      "evaluatedDisplayUnits": 50
+    },
+    "referenceAudit": {
+      "referenceSectionStartSegment": 372,
+      "referenceSegmentsCount": 154,
+      "referenceRawFlagged": 0,
+      "referenceActionableHighlights": 0
+    },
+    "metrics": {
+      "groupingMs": 3.3065569999744184,
+      "heapDeltaBytes": 374720
+    },
+    "evaluatedAnnotationCount": 50,
+    "evaluatedExactMappingMismatch": 0
+  },
+  "pdf": {
+    "reports": [
+      {
+        "id": "48dca3a5-122f-46e2-bec4-97803f563c5c",
+        "variant": "AI_ORIGINAL_REVIEW",
+        "status": "AVAILABLE",
+        "rendererVersion": "f00942-original-review-renderer-v2",
+        "analysisRunId": "950d39fb-237c-45a7-ad53-ac7a5ab44920",
+        "sourceDocumentId": "58d1d80c-5529-4c51-abdd-d85265f85038",
+        "sourceDocumentVersionId": "bb58899c-de88-46ee-bfd2-369d23c28545",
+        "sha256": "e4b867ec391c97494c9472ae70fa9a6c80805d7fa86b2ce1fe650b9d00a0386c",
+        "hashMatchesDatabase": true,
+        "pages": 19,
+        "globalDisplayed": true,
+        "thresholdDisplayed": true,
+        "snapshotValuesUnchanged": true
+      },
+      {
+        "id": "5e2040f1-50dd-40f9-9b84-a0195e2f68b3",
+        "variant": "AI_PARAGRAPH_TECHNICAL",
+        "status": "AVAILABLE",
+        "rendererVersion": "f00942-paragraph-technical-renderer-v2",
+        "analysisRunId": "950d39fb-237c-45a7-ad53-ac7a5ab44920",
+        "sourceDocumentId": "58d1d80c-5529-4c51-abdd-d85265f85038",
+        "sourceDocumentVersionId": "bb58899c-de88-46ee-bfd2-369d23c28545",
+        "sha256": "05fc2720cbf511b753682fc474f1e51679a6b4781ea0383bd825aff2c50c73bf",
+        "hashMatchesDatabase": true,
+        "pages": 37,
+        "globalDisplayed": true,
+        "thresholdDisplayed": true,
+        "snapshotValuesUnchanged": true
+      }
+    ],
+    "technical": {
+      "evaluatedExpected": 50,
+      "evaluatedCardCount": 50,
+      "cardHeadersIncludingInsufficient": 66,
+      "scoreCardMismatch": 0,
+      "sourceTextSegmentsExpected": 526,
+      "sourceTextSegmentsSearchable": 491,
+      "sourceTextSegmentsMissing": 35,
+      "missingIndices": [
+        345,
+        363,
+        369,
+        373,
+        376,
+        383,
+        385,
+        395,
+        398,
+        403,
+        405,
+        408,
+        411,
+        421,
+        424,
+        427,
+        439,
+        442,
+        445,
+        459,
+        462,
+        465,
+        468,
+        471,
+        475,
+        478,
+        482,
+        486,
+        488,
+        491,
+        494,
+        505,
+        508,
+        510,
+        523
+      ]
+    },
+    "original": {
+      "sourcePages": 18,
+      "sourcePagesWithExactOriginalStreams": 18,
+      "technicalPageStreamsNested": 0,
+      "sourceSha256Preserved": true
+    }
+  },
+  "legacy": [
+    {
+      "reportId": "f912a737-e941-456d-b929-df837e017ea5",
+      "status": "AVAILABLE",
+      "undeleted": true,
+      "pages": 19,
+      "hashPreserved": true
+    },
+    {
+      "reportId": "852bca86-0d41-4092-b048-61a1c86e1e0a",
+      "status": "AVAILABLE",
+      "undeleted": true,
+      "pages": 91,
+      "hashPreserved": true
+    },
+    {
+      "reportId": "dd865f05-9aff-4b3a-860e-171e186aef99",
+      "status": "AVAILABLE",
+      "undeleted": true,
+      "pages": 92,
+      "hashPreserved": true
+    }
+  ],
+  "supersededBy": "manual-final-audit.json"
+}

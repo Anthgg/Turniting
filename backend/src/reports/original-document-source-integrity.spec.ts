@@ -176,6 +176,7 @@ describe('F009.4.1 persisted synthetic report sequence', () => {
       run: { ...fixture.input.run, id: 'f0094100-0000-4000-8000-000000000008', scoredSegments: 5, insufficientSegments: 0 },
       paragraphs: fixture.input.paragraphs.slice(1, 6).map((paragraph, paragraphIndex) => ({
         ...paragraph,
+        kind: 'PARAGRAPH',
         paragraphIndex,
         segmentEvidence: { ...paragraph.segmentEvidence, paragraphId: paragraphIndex },
       })),
@@ -264,7 +265,7 @@ describe('F009.4.1 persisted synthetic report sequence', () => {
         expect(technicalText).toContain('59.0 %');
         for (const percent of ['80.0 %', '20.0 %', '61.0 %', '40.0 %', '90.0 %']) expect(technicalText).toContain(percent);
         expect(technicalText.match(/Señal local estimada: NO EVALUADO/gu)).toHaveLength(2);
-        expect(technicalText.match(/PÁRRAFO \d+/gu)).toHaveLength(12);
+        expect(technicalText.match(/(?:PÁRRAFO|SEGMENTO) \d+/gu)).toHaveLength(12);
         const canonicalTechnicalText = technicalText
           .replace(/Turniting\s*\|\s*Reporte independiente\s*\|\s*Página\s+\d+\s+de\s+\d+/gu, '')
           .replace(/\s+/gu, ' ');

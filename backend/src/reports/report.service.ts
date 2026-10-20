@@ -19,6 +19,7 @@ import {
   createReviewDocumentContext,
   getReviewEvidence,
   getReviewPresentation,
+  getReviewStructuralType,
   normalizeReviewSegmentOffsets,
   ReportReviewIntegrityError,
   type ReviewSegment,
@@ -34,6 +35,7 @@ import { REPORT_STORAGE, type ReportStorageAdapter } from './report-storage.js';
 import { OriginalDocumentRenderer } from './original-document-renderer.js';
 import { resolveAnalysisSource, type ResolvedAnalysisSource } from './analysis-source.js';
 import { stampTurnitingReport } from './report-pdf-metadata.js';
+import { presentationStructureHint } from '../analysis/presentation-structure.js';
 import {
   AI_ORIGINAL_REVIEW_RENDERER_VERSION,
   AI_PARAGRAPH_TECHNICAL_RENDERER_VERSION,
@@ -735,7 +737,7 @@ export class ReportService {
       normalizedSegments = normalizeReviewSegmentOffsets(
         extractedText,
         fullRun.segments,
-      );
+      ).map(segment => ({ ...segment, ...presentationStructureHint(fullRun.metadata, segment) }));
       reviewContext = createReviewDocumentContext(
         extractedText,
         normalizedSegments,
@@ -769,6 +771,9 @@ export class ReportService {
         fullRun.threshold,
       );
       return {
+        sourceSegmentId: segment.id,
+        ...presentationStructureHint(fullRun.metadata, segment),
+        structuralType: presentationStructureHint(fullRun.metadata, segment).structuralType ?? getReviewStructuralType(segment as ReviewSegment, reviewContext),
         paragraphIndex: segment.paragraphIndex,
         textHash: segment.textHash,
         charStart: segment.charStart,

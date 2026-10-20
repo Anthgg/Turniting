@@ -2023,6 +2023,95 @@
   padding-top: 20px;
 }
 
+.analysis-detail-mode,
+.analysis-technical-unit-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.analysis-detail-mode {
+  margin-bottom: 16px;
+}
+
+.analysis-detail-mode button[aria-pressed="true"] {
+  border-color: var(--teal);
+  color: var(--teal-dark);
+  background: #edf7f5;
+}
+
+.analysis-technical-units {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.analysis-technical-unit {
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--teal);
+  background: var(--surface);
+}
+
+.analysis-technical-unit + .analysis-technical-unit {
+  margin-top: 10px;
+}
+
+.analysis-technical-unit.is-structural {
+  padding: 12px 20px;
+  border-left-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.analysis-technical-unit h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.analysis-technical-unit-heading small,
+.analysis-technical-unit-state,
+.analysis-technical-source-trace {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.analysis-technical-unit-text {
+  margin: 10px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+}
+
+.analysis-technical-member-scores > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 13px;
+}
+
+.analysis-technical-member-scores small,
+.analysis-presentation-excluded {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.analysis-technical-source-trace {
+  margin-top: 8px;
+}
+
+.analysis-technical-source-trace span {
+  display: block;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+
+.analysis-review-counts {
+  font-size: 12px;
+}
+
 .analysis-review-view {
   margin-top: 0;
   padding: 22px 26px 30px;

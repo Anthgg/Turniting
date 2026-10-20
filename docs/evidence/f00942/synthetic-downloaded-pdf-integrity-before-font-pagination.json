@@ -1,0 +1,233 @@
+{
+  "phase": "F009_4_2_REVIEW_PRESENTATION_HARDENING",
+  "evidenceScope": "Actual synthetic PDFs downloaded by the parent agent through the product browser UI; no private PDF.",
+  "sourceDocumentId": "7cf2c32d-caf9-45a1-9479-4a5bcbe88bbc",
+  "analysisRunId": "62e223e5-1801-4eab-9f10-6d77465b0f2b",
+  "source": {
+    "filename": "presentation-hardening-fixture.pdf",
+    "sha256": "437865a08f66a0ba85155deb82b970a177cb3b54299ce3cc6ac7c10c3961b35d",
+    "pages": 18
+  },
+  "originalReview": {
+    "reportId": "650d641c-7fd1-43e1-bd55-34ae011e18b1",
+    "sha256": "dedeba5904cd3bd30d5108ee5f2c6ec6846f4d5099c9813c3f3d75ce7681a035",
+    "pages": 19,
+    "sourcePagesWithYellowHighlightOneBased": [
+      2,
+      4,
+      7
+    ],
+    "highlightRectanglesPerSourcePage": {
+      "2": 7,
+      "4": 7,
+      "7": 7
+    },
+    "sourceContentStreamsPreservedPerPage": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "nestedTechnicalContentStreams": 0,
+    "pdfIdentityMetadata": {
+      "generatedBy": "TURNITING",
+      "reportId": "650d641c-7fd1-43e1-bd55-34ae011e18b1",
+      "reportVariant": "AI_ORIGINAL_REVIEW",
+      "analysisRunId": "62e223e5-1801-4eab-9f10-6d77465b0f2b",
+      "sourceDocumentId": "7cf2c32d-caf9-45a1-9479-4a5bcbe88bbc",
+      "sourceDocumentVersionId": "02b17938-df8e-4065-932a-2e9856751f07",
+      "rendererVersion": "f00942-original-review-renderer-v2"
+    },
+    "textSpansOutsidePage": []
+  },
+  "technicalReport": {
+    "reportId": "a57ce9c6-15f8-49b0-87c1-6e138f7f7291",
+    "sha256": "ec313084d4bd592045439687c06b34d252cf9858413021fcaea41ab79c844937",
+    "pages": 5,
+    "sourceSegments": 68,
+    "canonicalTextOccurrencesPerSegment": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "scoredSegments": [
+      {
+        "sourceSegment": 1,
+        "score": 0.95,
+        "label": "SEÑALADO",
+        "presentationExcluded": true,
+        "reason": "METADATA"
+      },
+      {
+        "sourceSegment": 11,
+        "score": 0.8,
+        "label": "SEÑALADO",
+        "presentationExcluded": false
+      },
+      {
+        "sourceSegment": 12,
+        "score": 0.2,
+        "label": "NO SEÑALADO",
+        "presentationExcluded": false
+      },
+      {
+        "sourceSegment": 13,
+        "score": 0.61,
+        "label": "SEÑALADO",
+        "presentationExcluded": false
+      },
+      {
+        "sourceSegment": 14,
+        "score": 0.4,
+        "label": "NO SEÑALADO",
+        "presentationExcluded": false
+      },
+      {
+        "sourceSegment": 35,
+        "score": 0.9,
+        "label": "SEÑALADO",
+        "presentationExcluded": false
+      },
+      {
+        "sourceSegment": 36,
+        "score": 0.1,
+        "label": "NO SEÑALADO",
+        "presentationExcluded": false
+      },
+      {
+        "sourceSegment": 37,
+        "score": 0.58,
+        "label": "NO SEÑALADO",
+        "presentationExcluded": false
+      },
+      {
+        "sourceSegment": 38,
+        "score": 0.25,
+        "label": "NO SEÑALADO",
+        "presentationExcluded": false
+      },
+      {
+        "sourceSegment": 39,
+        "score": 0.91,
+        "label": "SEÑALADO",
+        "presentationExcluded": true,
+        "reason": "REFERENCE_SECTION"
+      }
+    ],
+    "presentationUnits": 12,
+    "structuralGroups": 4,
+    "pdfIdentityMetadata": {
+      "generatedBy": "TURNITING",
+      "reportId": "a57ce9c6-15f8-49b0-87c1-6e138f7f7291",
+      "reportVariant": "AI_PARAGRAPH_TECHNICAL",
+      "analysisRunId": "62e223e5-1801-4eab-9f10-6d77465b0f2b",
+      "sourceDocumentId": "7cf2c32d-caf9-45a1-9479-4a5bcbe88bbc",
+      "sourceDocumentVersionId": "02b17938-df8e-4065-932a-2e9856751f07",
+      "rendererVersion": "f00942-paragraph-technical-renderer-v2"
+    },
+    "textSpansOutsidePage": []
+  },
+  "sameGlobalScore": 0.434,
+  "sameThreshold": 0.59,
+  "model": "SYNTHETIC_F00942_PERSISTED_SCORES",
+  "visualReview": {
+    "status": "PASS",
+    "originalReviewPagesInspected": 19,
+    "technicalReportPagesInspected": 5,
+    "method": "All actual browser downloaded PDF pages rasterized with PyMuPDF and inspected in seven contact sheets at 700 px per page; full page text bounds checked.",
+    "clippedTextFound": false,
+    "overlappingTextFound": false,
+    "unexpectedBlankPagesFound": false,
+    "observations": [
+      "Original source appendix pages remain intentionally sparse and unchanged.",
+      "Technical body paragraph 12 crosses pages 2 and 3 without missing text.",
+      "The first reference group header ends page 4; its score and content continue on page 5 without clipped text."
+    ]
+  },
+  "contactSheets": [
+    "synthetic-original-review-all-pages.png",
+    "synthetic-technical-all-pages.png",
+    "synthetic-original-cover-body-references.png"
+  ],
+  "sourceDocumentVersionId": "02b17938-df8e-4065-932a-2e9856751f07",
+  "sameRunAndSourcePdfMetadataVerified": true
+}

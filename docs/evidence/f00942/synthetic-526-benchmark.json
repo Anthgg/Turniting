@@ -1,0 +1,52 @@
+{
+  "benchmark": "F009_4_2_SYNTHETIC_526",
+  "privateDocumentUsed": false,
+  "inference": false,
+  "sourceSegments": 526,
+  "evaluated": 50,
+  "insufficient": 476,
+  "evaluatedBodySegments": 48,
+  "evaluatedStructuralAnnotations": 2,
+  "structuralSourceSegments": {
+    "metadata": 100,
+    "table": 200,
+    "references": 178
+  },
+  "groupingMs": 2.08,
+  "renderMs": 655.813,
+  "actualPages": 28,
+  "pdfBytes": 100558,
+  "displayUnits": 51,
+  "structuralGroups": 3,
+  "sourceSegmentsRepresented": 526,
+  "sourceSegmentsLost": 0,
+  "sourceSegmentsDuplicated": 0,
+  "scoresChanged": 0,
+  "blockScoresInvented": 0,
+  "inputUnchanged": true,
+  "inputTextSha256": "4da101fc9699475391aeb25563ceb50f311176f3aaa49e40d5be2740893977a8",
+  "memoryMeasurement": "process.memoryUsage before grouping, after grouping, and after rendering; sampled values, not a peak measurement",
+  "memory": {
+    "before": {
+      "rss": 119336960,
+      "heapTotal": 55554048,
+      "heapUsed": 25275248,
+      "external": 10200249,
+      "arrayBuffers": 7968652
+    },
+    "afterGrouping": {
+      "rss": 119336960,
+      "heapTotal": 55554048,
+      "heapUsed": 25628392,
+      "external": 10200289,
+      "arrayBuffers": 7968652
+    },
+    "afterRendering": {
+      "rss": 169390080,
+      "heapTotal": 64729088,
+      "heapUsed": 35961416,
+      "external": 32831163,
+      "arrayBuffers": 30599526
+    }
+  }
+}

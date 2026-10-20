@@ -1,0 +1,174 @@
+{
+  "phase": "F009_4_2_REVIEW_PRESENTATION_HARDENING",
+  "scope": "Only public synthetic Unicode text. No private document, persisted analysis, or model score was used.",
+  "imageId": "sha256:665aef89817ec6b59847906b2b5f2a08caa98c48f89dd5ca3f833db591a1509c",
+  "before": {
+    "evidenceScope": "Synthetic public Unicode probe only; no private document or persisted analysis.",
+    "expectedNfc": "Synthetic subscript probe: x₁ = 1; x₂ = 2; H₂O; α = 0.05; T̂ = −2; end.",
+    "exactNfcTextRetained": false,
+    "extractedSubscript1Count": 0,
+    "expectedSubscript1Count": 1,
+    "extractedSubscript2Count": 0,
+    "expectedSubscript2Count": 2,
+    "pdfSha256": "40a6b1233f8c3f1d1596de7042998d18b2ea5b4313adeaaf00396647e656470c"
+  },
+  "after": {
+    "evidenceScope": "Synthetic public Unicode probe only; no private document or persisted analysis.",
+    "expectedNfc": "Synthetic subscript probe: x₁ = 1; x₂ = 2; H₂O; α = 0.05; T̂ = −2; end.",
+    "exactNfcTextRetained": true,
+    "extractedSubscript1Count": 1,
+    "expectedSubscript1Count": 1,
+    "extractedSubscript2Count": 2,
+    "expectedSubscript2Count": 2,
+    "pdfSha256": "c014d9464e2e280d7edca9676748c9ba55d52e2cd3e82b69013656c278c83f81"
+  },
+  "fontCoverage": {
+    "LiberationSans": {
+      "₁": {
+        "glyphId": 0,
+        "supported": false
+      },
+      "₂": {
+        "glyphId": 0,
+        "supported": false
+      },
+      "̂": {
+        "glyphId": 0,
+        "supported": false
+      },
+      "α": {
+        "glyphId": 382,
+        "supported": true
+      },
+      "−": {
+        "glyphId": 571,
+        "supported": true
+      }
+    },
+    "Caladea": {
+      "₁": {
+        "glyphId": 0,
+        "supported": false
+      },
+      "₂": {
+        "glyphId": 0,
+        "supported": false
+      },
+      "̂": {
+        "glyphId": 290,
+        "supported": true
+      },
+      "α": {
+        "glyphId": 0,
+        "supported": false
+      },
+      "−": {
+        "glyphId": 361,
+        "supported": true
+      }
+    },
+    "Carlito": {
+      "₁": {
+        "glyphId": 408,
+        "supported": true
+      },
+      "₂": {
+        "glyphId": 409,
+        "supported": true
+      },
+      "̂": {
+        "glyphId": 0,
+        "supported": false
+      },
+      "α": {
+        "glyphId": 209,
+        "supported": true
+      },
+      "−": {
+        "glyphId": 436,
+        "supported": true
+      }
+    }
+  },
+  "finalPages": 2,
+  "expectedCharacters": [
+    "U+0302",
+    "U+03B1",
+    "U+2212",
+    "U+2081",
+    "U+2082"
+  ],
+  "unicodeTextExactNfcWhitespaceOnly": true,
+  "visualReview": {
+    "status": "PASS",
+    "pagesInspected": 2,
+    "glyphDetailInspected": true,
+    "clippedTextFound": false,
+    "overlappingTextFound": false,
+    "combiningCircumflexVisible": true,
+    "alphaMinusAndSubscriptsVisible": true
+  },
+  "artifacts": [
+    "synthetic-unicode-subscript-probe.pdf",
+    "synthetic-unicode-subscript-probe.png"
+  ],
+  "embeddedFontFamilies": [
+    "BZZZZZ+LiberationSans",
+    "CFZZZZ+LiberationSans-Italic",
+    "CJZZZZ+Carlito",
+    "CZZZZZ+LiberationSans-Bold",
+    "DDZZZZ+Caladea-Regular"
+  ],
+  "carlitoSubscriptDigitsCoverage": [
+    {
+      "codePoint": "U+2080",
+      "glyphId": 407,
+      "supported": true
+    },
+    {
+      "codePoint": "U+2081",
+      "glyphId": 408,
+      "supported": true
+    },
+    {
+      "codePoint": "U+2082",
+      "glyphId": 409,
+      "supported": true
+    },
+    {
+      "codePoint": "U+2083",
+      "glyphId": 410,
+      "supported": true
+    },
+    {
+      "codePoint": "U+2084",
+      "glyphId": 411,
+      "supported": true
+    },
+    {
+      "codePoint": "U+2085",
+      "glyphId": 412,
+      "supported": true
+    },
+    {
+      "codePoint": "U+2086",
+      "glyphId": 413,
+      "supported": true
+    },
+    {
+      "codePoint": "U+2087",
+      "glyphId": 414,
+      "supported": true
+    },
+    {
+      "codePoint": "U+2088",
+      "glyphId": 415,
+      "supported": true
+    },
+    {
+      "codePoint": "U+2089",
+      "glyphId": 416,
+      "supported": true
+    }
+  ]
+}

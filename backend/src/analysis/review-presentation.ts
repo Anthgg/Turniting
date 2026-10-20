@@ -73,12 +73,56 @@ export interface ReviewSegment extends ReviewRange {
   classification: string;
   calibratedScore?: number | null;
   evidence?: unknown;
+  /** Optional persisted structure hints; these never change scientific scores. */
+  structuralType?: string | null;
+  kind?: string | null;
+}
+
+export type ReviewStructuralType =
+  | 'BODY'
+  | 'REFERENCE_SECTION'
+  | 'ANNEX_SECTION'
+  | 'METADATA'
+  | 'CAPTION'
+  | 'HEADING'
+  | 'TABLE_CELL';
+
+export type ReferenceSectionStartRule =
+  | 'EXACT_HEADING'
+  | 'INLINE_COLON'
+  | 'NUMBERED_HEADING'
+  | 'HEADING_LINE';
+
+export interface ReferenceSectionStartDetection {
+  /** The normalized heading only: bibliographic/private contents are omitted. */
+  heading: string;
+  rule: ReferenceSectionStartRule;
+  inline: boolean;
+  numbered: boolean;
+}
+
+export interface ReferenceSectionDetectionContext {
+  /** Allows a separate heading line and content when format metadata confirms it. */
+  headingLike?: boolean;
+}
+
+export interface ReferenceSectionRange extends ReferenceSectionStartDetection {
+  startOffset: number;
+  endOffset: number;
+  /** Persisted, zero-based paragraph indexes, never newly segmented positions. */
+  startSegment: number;
+  endSegmentExclusive: number;
 }
 
 export interface ReviewDocumentContext {
   extractedText: string;
   segments: readonly VerifiedReviewRange[];
   referenceSectionStart: number | null;
+  referenceSectionStartSegment: number | null;
+  referenceSections: readonly ReferenceSectionRange[];
+  annexSectionStart: number | null;
+  annexSectionStartSegment: number | null;
+  structuralTypeByParagraphIndex: ReadonlyMap<number, ReviewStructuralType>;
   byParagraphIndex: ReadonlyMap<number, VerifiedReviewRange>;
 }
 
@@ -87,10 +131,10 @@ function sha256(value: string): string {
 }
 
 /** Validates persisted, end-exclusive offsets and hashes against extractedText. */
-export function verifyReportReviewRanges(
+export function verifyReportReviewRanges<T extends ReviewRange>(
   extractedText: string,
-  ranges: readonly ReviewRange[],
-): VerifiedReviewRange[] {
+  ranges: readonly T[],
+): (T & VerifiedReviewRange)[] {
   const ordered = [...ranges].sort(
     (left, right) =>
       left.charStart - right.charStart ||
@@ -140,10 +184,55 @@ export function createReviewDocumentContext(
   const byParagraphIndex = new Map(
     verifiedSegments.map((segment) => [segment.paragraphIndex, segment]),
   );
+  const referenceSections: ReferenceSectionRange[] = [];
+  const structuralTypeByParagraphIndex = new Map<number, ReviewStructuralType>();
+  let activeReference: ReferenceSectionRange | null = null;
+  let inAnnex = false;
+  let annexSectionStart: number | null = null;
+  let annexSectionStartSegment: number | null = null;
+
+  for (const segment of verifiedSegments) {
+    const hint = (segment.structuralType ?? segment.kind ?? '').toUpperCase();
+    const referenceStart = detectReferenceSectionStart(segment.text, {
+      headingLike: ['HEADING', 'SECTION_HEADING'].includes(hint),
+    });
+    const annexStart = isAnnexSectionHeading(segment.text);
+    if (annexStart) {
+      if (activeReference) {
+        activeReference.endOffset = segment.charStart;
+        activeReference.endSegmentExclusive = segment.paragraphIndex;
+        activeReference = null;
+      }
+      inAnnex = true;
+      annexSectionStart ??= segment.charStart;
+      annexSectionStartSegment ??= segment.paragraphIndex;
+    } else if (referenceStart && !activeReference) {
+      activeReference = {
+        ...referenceStart,
+        startOffset: segment.charStart,
+        endOffset: extractedText.length,
+        startSegment: segment.paragraphIndex,
+        endSegmentExclusive: (verifiedSegments.at(-1)?.paragraphIndex ?? -1) + 1,
+      };
+      referenceSections.push(activeReference);
+      inAnnex = false;
+    }
+    structuralTypeByParagraphIndex.set(
+      segment.paragraphIndex,
+      activeReference
+        ? 'REFERENCE_SECTION'
+        : classifyReviewStructure(segment, segment.text, annexStart, inAnnex),
+    );
+  }
   return {
     extractedText,
     segments: verifiedSegments,
-    referenceSectionStart: findReferenceSectionStart(verifiedSegments),
+    referenceSectionStart: referenceSections[0]?.startOffset ?? null,
+    referenceSectionStartSegment: referenceSections[0]?.startSegment ?? null,
+    referenceSections,
+    annexSectionStart,
+    annexSectionStartSegment,
+    structuralTypeByParagraphIndex,
     byParagraphIndex,
   };
 }
@@ -257,36 +346,96 @@ export function mergeReviewSpansForDisplay(
 }
 
 const REFERENCE_HEADINGS = new Set([
+  'bibliografía',
+  'bibliografías',
   'bibliografia',
   'bibliografias',
   'bibliography',
   'fuentes bibliograficas',
+  'fuentes bibliográficas',
   'literatura citada',
   'literature cited',
   'referencia',
   'referencias',
+  'referencias bibliográficas',
+  'referencias bibliograficas',
   'references',
   'works cited',
 ]);
 
 function normalizeHeading(value: string): string {
   return value
+    .normalize('NFC')
     .trim()
-    .replace(/^(?:\d+(?:\.\d+)*\.?\s+)/u, '')
-    .replace(/[:：]\s*$/u, '')
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
+    .replace(/\s+/gu, ' ')
     .toLocaleLowerCase('es-PE');
 }
 
+function withoutSectionNumber(value: string): { text: string; numbered: boolean } {
+  const match = /^(\d+(?:\.\d+)*|[ivxlcdm]+)[.)]?\s+(.+)$/u.exec(value);
+  if (!match) return { text: value, numbered: false };
+  const prefix = match[1]!;
+  const roman = /^(?=[ivxlcdm]+$)m{0,4}(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3})$/u;
+  if (!/^\d/u.test(prefix) && !roman.test(prefix)) {
+    return { text: value, numbered: false };
+  }
+  return { text: match[2]!, numbered: true };
+}
+
+/** Anchored heading syntax, never a substring search through body prose. */
+export function detectReferenceSectionStart(
+  value: string,
+  context: ReferenceSectionDetectionContext = {},
+): ReferenceSectionStartDetection | null {
+  const normalized = normalizeHeading(value);
+  const candidate = withoutSectionNumber(normalized);
+  const colon = candidate.text.search(/[:：]/u);
+  const heading = (colon < 0 ? candidate.text : candidate.text.slice(0, colon)).trim();
+  if (REFERENCE_HEADINGS.has(heading)) {
+    const inline = colon >= 0 && candidate.text.slice(colon + 1).trim().length > 0;
+    return {
+      heading,
+      rule: inline ? 'INLINE_COLON' : candidate.numbered ? 'NUMBERED_HEADING' : 'EXACT_HEADING',
+      inline,
+      numbered: candidate.numbered,
+    };
+  }
+  if (context.headingLike) {
+    const firstLine = value.normalize('NFC').trim().split(/\r?\n/u)[0] ?? '';
+    const lineCandidate = withoutSectionNumber(normalizeHeading(firstLine));
+    if (REFERENCE_HEADINGS.has(lineCandidate.text)) {
+      return {
+        heading: lineCandidate.text,
+        rule: 'HEADING_LINE',
+        inline: true,
+        numbered: lineCandidate.numbered,
+      };
+    }
+  }
+  return null;
+}
+
 export function isReferenceHeading(value: string): boolean {
-  return REFERENCE_HEADINGS.has(normalizeHeading(value));
+  return detectReferenceSectionStart(value) !== null;
 }
 
 export function findReferenceSectionStart(
   ranges: readonly VerifiedReviewRange[],
 ): number | null {
-  return ranges.find((range) => isReferenceHeading(range.text))?.charStart ?? null;
+  return ranges.find((range) => detectReferenceSectionStart(range.text))?.charStart ?? null;
+}
+
+/** Only an explicit annex heading ends the reference section. */
+export function isAnnexSectionHeading(value: string): boolean {
+  const candidate = withoutSectionNumber(normalizeHeading(value)).text;
+  const match = /^(?:anexos?|appendix|appendices|ap[eé]ndices?)(.*)$/u.exec(candidate);
+  if (!match) return false;
+  const remainder = match[1]!;
+  if (!remainder || /^\s*[:：](?:\s+.+)?$/u.test(remainder)) return true;
+  const identifier = /^\s+([a-z]|\d+|[ivxlcdm]+)(?:\s*[:：](?:\s+.+)?)?$/u.exec(remainder)?.[1];
+  if (!identifier) return false;
+  return identifier.length === 1 || /^\d/u.test(identifier) ||
+    /^(?=[ivxlcdm]+$)m{0,4}(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3})$/u.test(identifier);
 }
 
 function isLikelyHeading(value: string): boolean {
@@ -329,6 +478,32 @@ function captionReason(text: string): ReviewExcludedReason | null {
   )
     ? 'CAPTION'
     : null;
+}
+
+function classifyReviewStructure(
+  segment: ReviewSegment,
+  text: string,
+  annexHeading: boolean,
+  inAnnex: boolean,
+): ReviewStructuralType {
+  const hint = (segment.structuralType ?? segment.kind ?? '').toUpperCase();
+  if (annexHeading) return 'HEADING';
+  if (['TABLE', 'TABLE_CELL', 'TABLE_FRAGMENT'].includes(hint)) return 'TABLE_CELL';
+  if (['METADATA', 'COVER_METADATA'].includes(hint)) return 'METADATA';
+  if (['CAPTION', 'FIGURE_CAPTION', 'TABLE_CAPTION'].includes(hint)) return 'CAPTION';
+  if (['HEADING', 'SECTION_HEADING', 'TITLE'].includes(hint)) return 'HEADING';
+  if (metadataReason(segment, text)) return 'METADATA';
+  if (captionReason(text)) return 'CAPTION';
+  if (segment.classification === 'INSUFFICIENT_TEXT' && isLikelyHeading(text)) return 'HEADING';
+  return inAnnex ? 'ANNEX_SECTION' : 'BODY';
+}
+
+/** Cheap shared structure lookup for display grouping; no segment is rewritten. */
+export function getReviewStructuralType(
+  segment: ReviewSegment,
+  documentContext: ReviewDocumentContext,
+): ReviewStructuralType {
+  return documentContext.structuralTypeByParagraphIndex.get(segment.paragraphIndex) ?? 'BODY';
 }
 
 /** Shared presentation policy for the analysis UI and AI report renderer. */
@@ -379,11 +554,11 @@ export function getReviewEvidence(
   const text = verified.text;
   let excludedReason: ReviewExcludedReason | undefined;
 
-  if (
-    documentContext.referenceSectionStart !== null &&
-    segment.charStart >= documentContext.referenceSectionStart
-  ) {
+  const structuralType = getReviewStructuralType(segment, documentContext);
+  if (structuralType === 'REFERENCE_SECTION') {
     excludedReason = 'REFERENCE_SECTION';
+  } else if (['METADATA', 'CAPTION', 'HEADING'].includes(structuralType)) {
+    excludedReason = structuralType as 'METADATA' | 'CAPTION' | 'HEADING';
   } else {
     excludedReason = metadataReason(segment, text) ?? captionReason(text) ?? undefined;
   }

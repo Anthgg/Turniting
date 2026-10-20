@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
@@ -10,6 +11,9 @@ import type {
 
 const renderer = new ReportRenderer();
 const reportId = 'f41df3b7-70e7-40a1-8dbb-5d011be30d37';
+const popplerAvailable = (() => {
+  try { execFileSync('pdftotext', ['-v'], { stdio: 'ignore', timeout: 5_000 }); return true; } catch { return false; }
+})();
 
 function pageCount(pdf: Buffer): number {
   return [...pdf.toString('latin1').matchAll(/\/Type\s*\/Page\b/g)].length;
@@ -44,6 +48,15 @@ function compactPdfText(pdf: Buffer): string {
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
     .replace(/\s+/g, '')
+    .toLowerCase();
+}
+
+function unicodeCompactPdfText(pdf: Buffer): string {
+  // Embedded font streams contain glyph IDs, so decode their ToUnicode mapping with a real PDF reader.
+  return execFileSync('pdftotext', ['-enc', 'UTF-8', '-', '-'], { input: pdf, encoding: 'utf8', timeout: 15_000 })
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/\s+/gu, '')
     .toLowerCase();
 }
 
@@ -131,6 +144,7 @@ function syntheticAIInput(options: {
       sourceOffset = charEnd + 2;
       const insufficient = paragraphIndex === 4 || paragraphIndex === 5;
       return {
+        kind: 'PARAGRAPH',
         paragraphIndex,
         textHash: sha256(textPreview.replace(/\s+/gu, ' ').trim()),
         charStart,
@@ -337,7 +351,7 @@ describe('ReportRenderer', () => {
     expect(pdf.toString('latin1')).toContain('/Count ');
   });
 
-  it('renders technical scores at the exact persisted threshold and keeps insufficient text unevaluated', async () => {
+  it.skipIf(!popplerAvailable)('renders technical scores at the exact persisted threshold and keeps insufficient text unevaluated', async () => {
     const input = syntheticAIInput({ paragraphCount: 6 });
     input.run.threshold = 0.644295302013423;
     input.paragraphs[0] = {
@@ -381,7 +395,7 @@ describe('ReportRenderer', () => {
     input.paragraphs[1]!.textPreview = completeText;
 
     const pdf = await renderer.renderAIParagraphTechnical(input);
-    const content = compactPdfText(pdf);
+    const content = unicodeCompactPdfText(pdf);
 
     expect(pageCount(pdf)).toBeGreaterThan(1);
     expect(content).toContain('onestepbelowthethresholdisnotflagged');
@@ -394,7 +408,7 @@ describe('ReportRenderer', () => {
     expect(content).toContain('noseñalado'.normalize('NFD').replace(/\p{Diacritic}/gu, ''));
     expect(content).toContain('noevaluado');
     expect(content).toContain('reference_section');
-    expect(content).toContain('norepresentaelporcentajedecontribucionaritmeticadelparrafo');
+    expect(content).toContain('sin calcular un score agregado'.replace(/\s+/gu, ''));
     expect(content).not.toContain('0.0%');
   });
 

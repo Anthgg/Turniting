@@ -160,6 +160,44 @@ export const segmentListSchema = z.object({
   pages: z.number().optional(),
 })
 
+export const technicalPresentationSchema = z.object({
+  analysisRunId: z.string().uuid(),
+  counts: z.object({
+    totalSegments: z.number().int().nonnegative(),
+    evaluatedSegments: z.number().int().nonnegative(),
+    insufficientSegments: z.number().int().nonnegative(),
+    rawFlaggedCount: z.number().int().nonnegative(),
+    presentationExcludedFlagged: z.number().int().nonnegative(),
+    actionableHighlightCount: z.number().int().nonnegative(),
+    structuralGroups: z.number().int().nonnegative(),
+  }),
+  actionableParagraphIndices: z.array(z.number().int().nonnegative()),
+  displayUnits: z.array(z.object({
+    id: z.string(),
+    type: z.enum(['EVALUATED_SEGMENT', 'INSUFFICIENT_SEGMENT', 'STRUCTURAL_GROUP', 'REFERENCE_GROUP', 'TABLE_GROUP', 'METADATA_GROUP', 'CAPTION_GROUP', 'HEADING_GROUP']),
+    label: z.string(),
+    sourceSegmentIds: z.array(z.number().int().nonnegative()),
+    paragraphIndices: z.array(z.number().int().nonnegative()),
+    positionStart: z.number(),
+    positionEnd: z.number(),
+    text: z.string(),
+    presentationExcluded: z.boolean(),
+    excludedReason: z.string().nullable().optional(),
+    evaluatedSegments: z.array(z.object({
+      sourceSegmentId: z.union([z.string(), z.number()]),
+      paragraphIndex: z.number().int().nonnegative(),
+      score: z.number(),
+      threshold: z.number().nullable(),
+      flagged: z.boolean(),
+      presentationExcluded: z.boolean(),
+      excludedReason: z.string().nullable().optional(),
+      text: z.string(),
+    }).passthrough()),
+  }).passthrough()),
+}).passthrough()
+
+export type TechnicalPresentation = z.infer<typeof technicalPresentationSchema>
+
 export const comparisonParagraphSchema = z.object({
   status: z.enum(['UNCHANGED', 'MODIFIED', 'ADDED', 'REMOVED']),
   baseParagraphIndex: nullableNumber,
@@ -431,6 +469,7 @@ export const analysisQueryKeys = {
   run: (id: string) => ['analysis', 'run', id] as const,
   segments: (id: string, query?: AnalysisSegmentsQuery) => ['analysis', 'segments', id, query ?? null] as const,
   reviewDocument: (id: string) => ['analysis', 'review-document', id] as const,
+  technicalPresentation: (id: string) => ['analysis', 'technical-presentation', id] as const,
   segmentContext: (analysisId: string, segmentId: string) => ['analysis', 'segment-context', analysisId, segmentId] as const,
 }
 
@@ -467,6 +506,10 @@ export function getAnalysisReviewDocument(analysisId: string) {
     `/analyses/${analysisId}/segments?includeDocumentText=true`,
     segmentListSchema,
   )
+}
+
+export function getAnalysisTechnicalPresentation(analysisId: string) {
+  return getJson(`/analyses/${analysisId}/technical-presentation`, technicalPresentationSchema)
 }
 
 export function getAnalysisSegmentContext(analysisId: string, segmentId: string) {

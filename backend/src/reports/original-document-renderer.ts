@@ -657,12 +657,18 @@ export class OriginalDocumentRenderer {
     const flagged = input.paragraphs.filter((paragraph) =>
       isActionablyFlagged(paragraph, input.run.threshold),
     ).length;
+    const rawFlagged = input.paragraphs.filter((paragraph) =>
+      isFlaggedByThreshold(paragraph, input.run.threshold),
+    ).length;
     const summary = [
       ['Documento', input.document.filename],
       ['Señal global estimada', formatPercent(input.run.documentScore)],
       ['Umbral aplicado', formatPercent(input.run.threshold)],
-      ['Párrafos evaluados', String(evaluated)],
-      ['Párrafos señalados', String(flagged)],
+      ['Segmentos totales', String(input.paragraphs.length)],
+      ['Segmentos evaluados', String(evaluated)],
+      ['Señalados por detector', String(rawFlagged)],
+      ['Resaltados para revisión', String(flagged)],
+      ['Señalados excluidos', String(rawFlagged - flagged)],
       [
         'Fecha',
         input.generatedAt.toLocaleString('es-PE', {
@@ -691,7 +697,7 @@ export class OriginalDocumentRenderer {
     }
     const notice =
       'Turniting proporciona una estimación probabilística independiente. No constituye un reporte oficial de Turnitin ni prueba por sí solo la autoría o el uso de inteligencia artificial.';
-    drawWrappedText(page, notice, regular, 56, 420, 500, 10, 15, muted);
+    drawWrappedText(page, notice, regular, 56, 340, 500, 10, 15, muted);
   }
 }
 

@@ -13,6 +13,7 @@ vi.mock('@tanstack/react-query', () => queryMocks)
 
 import { AnalysisPanel } from './AnalysisPanel'
 import { groupParagraphSegments } from './analysis-utils'
+import type { TechnicalPresentation } from '../../api/analysis'
 
 const RUN_ID = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d'
 
@@ -162,6 +163,27 @@ function contextQuery() {
   return { data: undefined, error: null, isError: false, isPending: false, refetch: vi.fn() }
 }
 
+function technicalPresentationQuery() {
+  const items = reviewDocumentQuery().data.items;
+  const unit = (indices: number[], type: TechnicalPresentation['displayUnits'][number]['type'], label: string, excludedReason?: string): TechnicalPresentation['displayUnits'][number] => ({
+    id: `unit-${indices.join('-')}`, type, label, sourceSegmentIds: indices, paragraphIndices: indices,
+    positionStart: items[indices[0]].charStart, positionEnd: items[indices[indices.length - 1]].charEnd,
+    text: indices.map((index) => items[index].text).join('\n'), presentationExcluded: Boolean(excludedReason),
+    ...(excludedReason ? { excludedReason } : {}),
+    evaluatedSegments: indices.flatMap((index) => {
+      const segment = items[index];
+      return segment.calibratedScore === null ? [] : [{ sourceSegmentId: segment.id, paragraphIndex: index, score: segment.calibratedScore, threshold: 0.8, flagged: segment.calibratedScore >= 0.8, presentationExcluded: Boolean(excludedReason), ...(excludedReason ? { excludedReason } : {}), text: segment.text }];
+    }),
+  });
+  const data: TechnicalPresentation = {
+    analysisRunId: RUN_ID,
+    counts: { totalSegments: 9, evaluatedSegments: 7, insufficientSegments: 2, rawFlaggedCount: 5, presentationExcludedFlagged: 4, actionableHighlightCount: 1, structuralGroups: 3 },
+    actionableParagraphIndices: [3],
+    displayUnits: [unit([0, 1, 2], 'METADATA_GROUP', 'DATOS DE PORTADA', 'METADATA'), unit([3], 'EVALUATED_SEGMENT', 'SEGMENTO 4'), unit([4], 'EVALUATED_SEGMENT', 'SEGMENTO 5'), unit([5], 'EVALUATED_SEGMENT', 'SEGMENTO 6'), unit([6], 'CAPTION_GROUP', 'CAPTION', 'CAPTION'), unit([7, 8], 'REFERENCE_GROUP', 'REFERENCIAS', 'REFERENCE_SECTION')],
+  };
+  return { data, isPending: false, isError: false, refetch: vi.fn() };
+}
+
 function renderPanel({
   historyError = false,
   segmentsRunId = RUN_ID,
@@ -170,6 +192,7 @@ function renderPanel({
   runStatus = 'COMPLETED',
   paragraphMode = 'CONTEXTUAL_PARAGRAPH',
   initialView = 'SUMMARY',
+  initialDetailMode = 'GROUPED',
 }: {
   historyError?: boolean
   segmentsRunId?: string
@@ -178,6 +201,7 @@ function renderPanel({
   runStatus?: string
   paragraphMode?: string
   initialView?: 'SUMMARY' | 'REVIEW' | 'DETAIL'
+  initialDetailMode?: 'GROUPED' | 'SEGMENTS'
 } = {}) {
   queryMocks.useQuery
     .mockReturnValueOnce(modelList())
@@ -185,6 +209,7 @@ function renderPanel({
     .mockReturnValueOnce(segmentsQuery(segmentsRunId, segmentsError))
     .mockReturnValueOnce(reviewDocumentQuery())
     .mockReturnValueOnce(contextQuery())
+    .mockReturnValueOnce(technicalPresentationQuery())
   queryMocks.useMutation.mockReturnValue({
     error: analysisError ? new Error('synthetic analysis failure') : null,
     isError: analysisError,
@@ -200,6 +225,7 @@ function renderPanel({
       hasText: true,
       researchMode: true,
       initialView,
+      initialDetailMode,
     }),
   ))
 }
@@ -220,7 +246,7 @@ describe('AnalysisPanel run provenance and operation errors', () => {
   })
 
   it('suppresses the fatal analysis error for a completed run and scopes secondary errors locally', () => {
-    const html = renderPanel({ historyError: true, segmentsError: true, analysisError: true, initialView: 'DETAIL' })
+    const html = renderPanel({ historyError: true, segmentsError: true, analysisError: true, initialView: 'DETAIL', initialDetailMode: 'SEGMENTS' })
 
     expect(html).toContain('Con contexto breve')
     expect(html).toContain('Solo el párrafo')
@@ -231,7 +257,7 @@ describe('AnalysisPanel run provenance and operation errors', () => {
   })
 
   it('keeps a contextual run label from history while the new analysis form defaults to strict', () => {
-    const html = renderPanel({ initialView: 'DETAIL' })
+    const html = renderPanel({ initialView: 'DETAIL', initialDetailMode: 'SEGMENTS' })
 
     expect(html).toContain('Con contexto breve')
     expect(html).toContain('Solo el párrafo')
@@ -240,7 +266,7 @@ describe('AnalysisPanel run provenance and operation errors', () => {
   })
 
   it('does not show a context badge or drawer action for a strict historical run', () => {
-    const html = renderPanel({ paragraphMode: 'STRICT_PARAGRAPH', initialView: 'DETAIL' })
+    const html = renderPanel({ paragraphMode: 'STRICT_PARAGRAPH', initialView: 'DETAIL', initialDetailMode: 'SEGMENTS' })
 
     expect(html).toContain('Modo de párrafo')
     expect(html).toContain('Solo el párrafo')
@@ -249,7 +275,7 @@ describe('AnalysisPanel run provenance and operation errors', () => {
   })
 
   it('renders a collapsed context drawer trigger for contextual paragraphs', () => {
-    const html = renderPanel({ initialView: 'DETAIL' })
+    const html = renderPanel({ initialView: 'DETAIL', initialDetailMode: 'SEGMENTS' })
 
     expect(html).toContain('Ver contexto utilizado')
     expect(html).toContain('aria-expanded="false"')
@@ -264,7 +290,7 @@ describe('AnalysisPanel run provenance and operation errors', () => {
   })
 
   it('does not render segments returned for a different analysisRunId', () => {
-    const html = renderPanel({ segmentsRunId: '9a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', initialView: 'DETAIL' })
+    const html = renderPanel({ segmentsRunId: '9a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', initialView: 'DETAIL', initialDetailMode: 'SEGMENTS' })
 
     expect(html).toContain('La respuesta de párrafos no corresponde al análisis seleccionado')
     expect(html).not.toContain('Synthetic run paragraph')
@@ -272,7 +298,7 @@ describe('AnalysisPanel run provenance and operation errors', () => {
 
   it('renders summary and detail as separate tabs while retaining the existing detail controls', () => {
     const summary = renderPanel({ paragraphMode: 'STRICT_PARAGRAPH', initialView: 'SUMMARY' })
-    const detail = renderPanel({ paragraphMode: 'STRICT_PARAGRAPH', initialView: 'DETAIL' })
+    const detail = renderPanel({ paragraphMode: 'STRICT_PARAGRAPH', initialView: 'DETAIL', initialDetailMode: 'SEGMENTS' })
 
     expect(summary).toContain('analysis-view-tabs');
     expect(summary).toContain('analysis-summary-band');
@@ -310,9 +336,32 @@ describe('AnalysisPanel run provenance and operation errors', () => {
     expect(html).toContain('Referencia bibliográfica');
     expect(html).toContain('analysis-review-paragraph-action');
     expect(html).not.toContain('analysis-review-drawer');
+    expect(html).toContain('Superan el umbral: 5');
+    expect(html).toContain('Mostrados en revisión: 1');
+    expect(html).toContain('Señalados excluidos de revisión visual: 4');
     for (let index = 1; index < positions.length; index += 1) {
       expect(positions[index]).toBeGreaterThan(positions[index - 1]!);
     }
+  })
+
+  it('defaults technical detail to the grouped API presentation while keeping the raw segment view optional', () => {
+    const html = renderPanel({ initialView: 'DETAIL' });
+    expect(html).toContain('aria-pressed="true">Agrupada');
+    expect(html).toContain('aria-pressed="false">Segmentos');
+    expect(html).toContain('Detalle técnico agrupado');
+    expect(html).toContain('91.0 %');
+    expect(html).toContain('49.0 %');
+    expect(html).toContain('20.0 %');
+    expect(html).toContain('data-display-unit-type="REFERENCE_GROUP"');
+    expect(html).toContain('DATOS DE PORTADA');
+    expect(html).not.toContain('analysis-heatmap-strip');
+  })
+
+  it('uses full-run presentation counts instead of the raw segment page counts', () => {
+    const html = renderPanel({ initialView: 'SUMMARY' });
+    expect(html).toContain('7 evaluados · 5 superan el umbral');
+    expect(html).toContain('1 resaltados · 4 señalados excluidos de revisión visual');
+    expect(segmentsQuery().data.items).toHaveLength(1);
   })
 
   it('compacts consecutive INSUFFICIENT_TEXT paragraphs (>= 2) while leaving single items ungrouped', () => {

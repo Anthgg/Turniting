@@ -30,6 +30,12 @@ export class AnalysisController {
     return this.analysis.getSegments(id, query);
   }
 
+  @Get('analyses/:id/technical-presentation')
+  @ApiOperation({ summary: 'Read-only grouped presentation of the persisted analysis segments' })
+  presentation(@Param('id', ParseUUIDPipe) id: string) {
+    return this.analysis.getTechnicalPresentation(id);
+  }
+
   @Get('analyses/:id/segments/:segmentId/context')
   context(
     @Param('id', ParseUUIDPipe) id: string,

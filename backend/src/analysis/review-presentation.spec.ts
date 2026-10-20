@@ -4,8 +4,13 @@ import {
   codePointOffsetToUtf16,
   convertPythonSpansToUtf16,
   createReviewDocumentContext,
+  detectReferenceSectionStart,
+  findReferenceSectionStart,
   getReviewEvidence,
   getReviewPresentation,
+  getReviewStructuralType,
+  isAnnexSectionHeading,
+  isReferenceHeading,
   mergeReviewSpansForDisplay,
   normalizeReviewSegmentOffsets,
   ReportReviewIntegrityError,
@@ -156,5 +161,200 @@ describe('threshold review evidence', () => {
       fallbackReason: 'SPAN_EVIDENCE_UNAVAILABLE',
     });
     expect(getReviewPresentation(item, context, 0.59).highlight).toBe(true);
+  });
+});
+
+function documentFixture(
+  texts: readonly string[],
+  options: readonly Partial<ReviewSegment>[] = [],
+) {
+  let cursor = 0;
+  const segments = texts.map((text, paragraphIndex) => {
+    const item = segment(text, 0.8, {
+      paragraphIndex,
+      charStart: cursor,
+      charEnd: cursor + text.length,
+      textHash: hash(text.replace(/\s+/gu, ' ').trim()),
+      ...options[paragraphIndex],
+    });
+    cursor += text.length + 2;
+    return item;
+  });
+  const text = texts.join('\n\n');
+  return { text, segments, context: createReviewDocumentContext(text, segments) };
+}
+
+describe('reference section presentation state', () => {
+  it.each([
+    'Referencias',
+    'Referencias:',
+    'Referencias bibliográficas',
+    'Referencias bibliográficas:',
+    'Bibliografía',
+    'Bibliografía:',
+    'References',
+    'References:',
+    'Bibliography',
+    'Bibliography:',
+    'REFERENCIAS BIBLIOGRÁFICAS',
+    'Fuentes bibliográficas',
+    'Literatura citada',
+    'Works cited',
+  ])('recognizes the explicit heading %s', (text) => {
+    expect(detectReferenceSectionStart(text)).toMatchObject({
+      inline: false,
+      numbered: false,
+      rule: 'EXACT_HEADING',
+    });
+    expect(isReferenceHeading(text)).toBe(true);
+  });
+
+  it.each([
+    ['References: Smith et al. (2025). Synthetic bibliography.', 'references'],
+    ['Referencias: Pérez et al. (2024). Fuente sintética.', 'referencias'],
+    ['Bibliografía: García (2023). Fuente sintética.', 'bibliografía'],
+    ['  BIBLIOGRAFI\u0301A：\tGarcía et al.  ', 'bibliografía'],
+    ['  REFERENCIAS \n BIBLIOGRÁFICAS: Pérez (2025). ', 'referencias bibliográficas'],
+  ])('recognizes normalized inline heading syntax in %s', (text, heading) => {
+    expect(detectReferenceSectionStart(text)).toEqual({
+      heading,
+      inline: true,
+      numbered: false,
+      rule: 'INLINE_COLON',
+    });
+  });
+
+  it.each([
+    '5. Referencias',
+    'VI. Referencias',
+    '6 REFERENCIAS',
+    '5.2. Referencias bibliográficas:',
+    'IV) Bibliography',
+  ])('recognizes the clearly numbered heading %s', (text) => {
+    expect(detectReferenceSectionStart(text)).toMatchObject({
+      inline: false,
+      numbered: true,
+      rule: 'NUMBERED_HEADING',
+    });
+  });
+
+  it('records numbering and inline syntax without retaining bibliographic contents', () => {
+    expect(detectReferenceSectionStart('VI. References: Smith, private-looking test entry.'))
+      .toEqual({ heading: 'references', inline: true, numbered: true, rule: 'INLINE_COLON' });
+  });
+
+  it.each([
+    'Las referencias utilizadas en esta investigación fueron seleccionadas cuidadosamente.',
+    'Estas referencias permiten explicar los resultados obtenidos.',
+    'La bibliografía analizada demuestra una mejora en el método.',
+    'Las referencias [1] y [2] muestran resultados consistentes.',
+    'Este marco se apoya en referencias recientes.',
+    'References are discussed in the next section.',
+    'References to prior work: they support the method.',
+    'Referencias utilizadas para validar el procedimiento.',
+    'Bibliografía analizada demuestra resultados favorables.',
+    '5. Referencias utilizadas en esta investigación.',
+    'Referencias .............. 40',
+    '“References: Smith et al.” es una cita de ejemplo.',
+    'VIIII. Referencias',
+  ])('keeps normal prose/contents entries outside references: %s', (text) => {
+    expect(detectReferenceSectionStart(text)).toBeNull();
+    const fixture = documentFixture([text]);
+    expect(fixture.context.referenceSectionStart).toBeNull();
+    expect(getReviewEvidence(fixture.segments[0]!, 0.59, fixture.context).excludedReason)
+      .not.toBe('REFERENCE_SECTION');
+  });
+
+  it('uses explicit heading metadata for a separate heading line without guessing from body prose', () => {
+    const text = 'References\nSmith et al. (2025). Synthetic citation.';
+    expect(detectReferenceSectionStart(text)).toBeNull();
+    expect(detectReferenceSectionStart(text, { headingLike: true }))
+      .toMatchObject({ heading: 'references', rule: 'HEADING_LINE', inline: true });
+    const fixture = documentFixture([text], [{ structuralType: 'HEADING' }]);
+    expect(getReviewEvidence(fixture.segments[0]!, 0.59, fixture.context).excludedReason)
+      .toBe('REFERENCE_SECTION');
+  });
+
+  it('retains six raw flagged scores while two reference exclusions leave four actionable highlights', () => {
+    const fixture = documentFixture([
+      'El primer párrafo sintético describe resultados verificables del procedimiento.',
+      'El segundo párrafo sintético explica la metodología utilizada en la evaluación.',
+      'El tercer párrafo sintético presenta observaciones suficientes sobre el método.',
+      'El cuarto párrafo sintético analiza las conclusiones del caso de prueba.',
+      'References: Smith et al. (2025). Synthetic reference heading and first entry.',
+      'García (2024). Another synthetic bibliographic entry.',
+    ], [
+      { calibratedScore: 0.8 }, { calibratedScore: 0.61 },
+      { calibratedScore: 0.9 }, { calibratedScore: 0.59 },
+      { calibratedScore: 0.91 }, { calibratedScore: 0.83 },
+    ]);
+    const before = structuredClone(fixture.segments);
+    const evidence = fixture.segments.map((item) => getReviewEvidence(item, 0.59, fixture.context));
+    expect(evidence.filter((item) => item.evaluated)).toHaveLength(6);
+    expect(evidence.filter((item) => item.flagged)).toHaveLength(6);
+    expect(evidence.filter((item) => item.flagged && item.presentationExcluded)).toHaveLength(2);
+    expect(evidence.filter((item) => item.flagged && !item.presentationExcluded)).toHaveLength(4);
+    expect(evidence.map((item) => item.score)).toEqual([0.8, 0.61, 0.9, 0.59, 0.91, 0.83]);
+    expect(evidence.map((item) => item.threshold)).toEqual(Array(6).fill(0.59));
+    expect(fixture.segments).toEqual(before);
+    expect(fixture.context.referenceSectionStartSegment).toBe(4);
+    expect(fixture.context.referenceSectionStart).toBe(fixture.segments[4]!.charStart);
+    expect(findReferenceSectionStart(fixture.context.segments)).toBe(fixture.segments[4]!.charStart);
+    expect(fixture.context.referenceSections).toEqual([{
+      heading: 'references', rule: 'INLINE_COLON', inline: true, numbered: false,
+      startOffset: fixture.segments[4]!.charStart, endOffset: fixture.text.length,
+      startSegment: 4, endSegmentExclusive: 6,
+    }]);
+  });
+
+  it('keeps the reference state through prose mentions of annexes, then exits only at an explicit annex heading', () => {
+    const fixture = documentFixture([
+      'References: Smith et al. (2025). Synthetic citation.',
+      'Los anexos contienen material adicional y se describen en una referencia.',
+      'ANEXOS',
+      'El anexo explica resultados adicionales mediante prosa sintética evaluada.',
+    ]);
+    expect(fixture.context.referenceSections[0]).toMatchObject({
+      startSegment: 0, endSegmentExclusive: 2, endOffset: fixture.segments[2]!.charStart,
+    });
+    expect(fixture.context.annexSectionStartSegment).toBe(2);
+    expect(fixture.context.annexSectionStart).toBe(fixture.segments[2]!.charStart);
+    expect(getReviewStructuralType(fixture.segments[1]!, fixture.context)).toBe('REFERENCE_SECTION');
+    expect(getReviewStructuralType(fixture.segments[2]!, fixture.context)).toBe('HEADING');
+    expect(getReviewStructuralType(fixture.segments[3]!, fixture.context)).toBe('ANNEX_SECTION');
+    expect(getReviewEvidence(fixture.segments[2]!, 0.59, fixture.context)).toMatchObject({
+      evaluated: true, flagged: true, presentationExcluded: true, excludedReason: 'HEADING',
+    });
+    expect(getReviewEvidence(fixture.segments[3]!, 0.59, fixture.context)).toMatchObject({
+      evaluated: true, flagged: true, presentationExcluded: false,
+    });
+  });
+
+  it.each(['ANEXOS', 'ANEXO', 'APPENDIX', 'APPENDICES', 'Apéndices', '7. Anexos', 'Anexo A: Instrumento', 'Appendix II'])
+  ('recognizes the explicit annex transition %s', (text) => {
+    expect(isAnnexSectionHeading(text)).toBe(true);
+  });
+
+  it.each([
+    'Los anexos presentan resultados complementarios.',
+    'Anexos utilizados para la validación.',
+    'Anexos permiten revisar los datos.',
+    'Appendix supplementary material',
+    'Anexo CIVIL',
+  ])('does not end references on ordinary appendix prose: %s', (text) => {
+    expect(isAnnexSectionHeading(text)).toBe(false);
+  });
+
+  it('uses persisted structural hints for grouping without changing table scores or body actionability', () => {
+    const fixture = documentFixture([
+      'Celda sintética con contenido evaluado y trazable.',
+      'La prosa de cuerpo conserva exactamente su predicción persistida.',
+    ], [{ structuralType: 'TABLE_CELL', calibratedScore: 0.83241 }, { calibratedScore: 0.59 }]);
+    expect(getReviewStructuralType(fixture.segments[0]!, fixture.context)).toBe('TABLE_CELL');
+    expect(getReviewStructuralType(fixture.segments[1]!, fixture.context)).toBe('BODY');
+    expect(getReviewEvidence(fixture.segments[0]!, 0.59, fixture.context)).toMatchObject({
+      evaluated: true, flagged: true, score: 0.83241, threshold: 0.59,
+    });
+    expect(getReviewPresentation(fixture.segments[1]!, fixture.context, 0.59).highlight).toBe(true);
   });
 });

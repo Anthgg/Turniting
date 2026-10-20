@@ -13,6 +13,7 @@ import {
   listAnalyzerModels,
   listDocumentAnalyses,
   getAnalysisSegmentContext,
+  getAnalysisTechnicalPresentation,
   type AnalysisSegment,
   type AnalysisSegmentFilter,
   type AnalysisSegmentSort,
@@ -24,6 +25,9 @@ import {
 import { ApiRequestError } from "../../api/client";
 import { Icon } from "../../components/Icon";
 import { splitReviewText } from "./review-text";
+import { TechnicalGroupedDetail } from "./TechnicalGroupedDetail";
+import { technicalPercentage } from "./technical-presentation-utils";
+import { actionableReviewSegments, nextReviewNavigationIndex, reviewEvidenceForSegment } from "./review-presentation";
 import {
   ANALYZER_LABEL,
   DEFAULT_PARAGRAPH_MODE,
@@ -86,35 +90,6 @@ function contextTokenLabel(tokens: Record<string, number> | null) {
     .join(" · ");
 }
 
-const REVIEW_PRESENTATION_EXCLUSIONS = new Set([
-  "REFERENCE_SECTION",
-  "METADATA",
-  "CAPTION",
-  "HEADING",
-  "INSUFFICIENT_TEXT",
-]);
-
-function reviewEvidenceForSegment(segment: AnalysisSegment, threshold: number | null) {
-  if (segment.evidence) return segment.evidence;
-  const evaluated = segment.classification !== "INSUFFICIENT_TEXT" &&
-    typeof segment.calibratedScore === "number" && Number.isFinite(segment.calibratedScore);
-  const flagged = evaluated && threshold !== null && Number.isFinite(threshold) &&
-    segment.calibratedScore! >= threshold;
-  const reason = segment.reviewPresentation?.excludedReason;
-  const presentationExcluded = Boolean(reason && REVIEW_PRESENTATION_EXCLUSIONS.has(reason));
-  return {
-    evaluated,
-    flagged,
-    score: segment.calibratedScore,
-    threshold,
-    presentationExcluded,
-    ...(presentationExcluded && reason ? { excludedReason: reason } : {}),
-    granularity: "PARAGRAPH" as const,
-    paragraphFlagged: flagged,
-    spans: [],
-  };
-}
-
 export function AnalysisPanel({
   documentId,
   fileName,
@@ -122,6 +97,7 @@ export function AnalysisPanel({
   researchMode = false,
   documentWorkflowStatus,
   initialView = "SUMMARY",
+  initialDetailMode = "GROUPED",
 }: {
   documentId: string;
   fileName?: string;
@@ -129,6 +105,7 @@ export function AnalysisPanel({
   researchMode?: boolean;
   documentWorkflowStatus?: string;
   initialView?: AnalysisView;
+  initialDetailMode?: "GROUPED" | "SEGMENTS";
 }) {
   const queryClient = useQueryClient();
   const models = useQuery({
@@ -167,6 +144,7 @@ export function AnalysisPanel({
     paragraphIndex: null,
     sequence: 0,
   });
+  const [detailMode, setDetailMode] = useState<"GROUPED" | "SEGMENTS">(initialDetailMode);
 
   useEffect(() => {
     if (!models.data || analyzerTouched.current) return;
@@ -223,6 +201,7 @@ export function AnalysisPanel({
       setReviewSelectedParagraphIndex(null);
       setReviewNavigationIndex(0);
       setReviewJump({ paragraphIndex: null, sequence: 0 });
+      setDetailMode("GROUPED");
       await queryClient.invalidateQueries({
         queryKey: analysisQueryKeys.documentAnalyses(documentId),
       });
@@ -280,6 +259,16 @@ export function AnalysisPanel({
     ),
     retry: 1,
   });
+  const technicalPresentation = useQuery({
+    queryKey: analysisQueryKeys.technicalPresentation(runId ?? "none"),
+    queryFn: () => getAnalysisTechnicalPresentation(runId as string),
+    enabled: Boolean(runId && run?.status === "COMPLETED"),
+    retry: 1,
+  });
+  const presentationData = technicalPresentation.data?.analysisRunId === runId
+    ? technicalPresentation.data
+    : undefined;
+  const presentationCounts = presentationData?.counts;
   const totalParagraphs = segmentsMatchRun
     ? (segments.data?.total ?? paragraphItems.length)
     : 0;
@@ -319,16 +308,14 @@ export function AnalysisPanel({
     });
   }, [activeView, reviewJump.paragraphIndex, reviewJump.sequence, reviewDocument.data]);
 
-  const enableCompaction = filter === "ALL" && sort === "PARAGRAPH";
-  const displayItems = groupParagraphSegments(paragraphItems, enableCompaction);
+  const displayItems = groupParagraphSegments(paragraphItems, false);
   const reviewSegments = [...(reviewDocument.data?.items ?? [])].sort(
     (left, right) => left.charStart - right.charStart || left.charEnd - right.charEnd,
   );
-  const reviewFlaggedSegments = reviewSegments.filter(
-    (segment) => {
-      const evidence = reviewEvidenceForSegment(segment, run?.threshold ?? null);
-      return evidence.flagged && !evidence.presentationExcluded;
-    },
+  const reviewFlaggedSegments = actionableReviewSegments(
+    reviewSegments,
+    run?.threshold ?? null,
+    presentationData?.actionableParagraphIndices,
   );
   const selectedFlaggedIndex = reviewFlaggedSegments.findIndex(
     (segment) => segment.paragraphIndex === reviewSelectedParagraphIndex,
@@ -462,13 +449,8 @@ export function AnalysisPanel({
   }
 
   function navigateFlagged(direction: -1 | 1) {
-    if (!reviewFlaggedSegments.length) return;
-    const baseIndex = selectedFlaggedIndex >= 0
-      ? selectedFlaggedIndex
-      : direction > 0
-        ? reviewNavigationIndex - 1
-        : reviewNavigationIndex;
-    const nextIndex = (baseIndex + direction + reviewFlaggedSegments.length) % reviewFlaggedSegments.length;
+    const nextIndex = nextReviewNavigationIndex(reviewFlaggedSegments.length, selectedFlaggedIndex, reviewNavigationIndex, direction);
+    if (nextIndex === null) return;
     const segment = reviewFlaggedSegments[nextIndex]!;
     setReviewNavigationIndex(nextIndex);
     setActiveView("REVIEW");
@@ -478,6 +460,8 @@ export function AnalysisPanel({
 
   function renderParagraphRow(segment: AnalysisSegment) {
     const level = signalLevel(segment.calibratedScore);
+    const evidence = reviewEvidenceForSegment(segment, run?.threshold ?? null);
+    const unitLabel = segment.kind === "PARAGRAPH" ? "Párrafo" : "Segmento";
     const expanded = Boolean(expandedParagraphs[segment.paragraphIndex]);
     const preview =
       segment.text && segment.text.length > 260 && !expanded
@@ -497,20 +481,14 @@ export function AnalysisPanel({
       >
         <div className="analysis-paragraph-head">
           <div className="analysis-paragraph-id">
-            <strong>Párrafo {segment.paragraphIndex + 1}</strong>
+            <strong>{unitLabel} {segment.paragraphIndex + 1}</strong>
             {segment.pageNumber !== null && <small>pág. {segment.pageNumber}</small>}
           </div>
           <div className="analysis-paragraph-badges">
             <span className="analysis-paragraph-score">
-              {segment.classification === "INSUFFICIENT_TEXT"
-                ? "Texto insuficiente"
-                : formatSignal(segment.calibratedScore)}
+              {evidence.evaluated ? technicalPercentage(segment.calibratedScore) : "NO EVALUADO"}
             </span>
-            {level && (
-              <span className={`analysis-level level-pill-${level.toLowerCase()}`}>
-                {SIGNAL_LABEL[level]}
-              </span>
-            )}
+            <span className="analysis-threshold-state">{!evidence.evaluated ? "NO EVALUADO" : evidence.flagged ? "SEÑALADO" : "NO SEÑALADO"}</span>
             {run?.paragraphMode === "CONTEXTUAL_PARAGRAPH" && (
               <span className="analysis-context-badge">
                 {segment.classification === "INSUFFICIENT_TEXT"
@@ -522,6 +500,7 @@ export function AnalysisPanel({
         </div>
 
         {preview && <p className="analysis-paragraph-text">{preview}</p>}
+        {evidence.presentationExcluded && <p className="analysis-presentation-excluded">EXCLUIDO DE REVISIÓN VISUAL · {evidence.excludedReason}</p>}
 
         <div className="analysis-paragraph-footer">
           {segment.text && segment.text.length > 260 && (
@@ -1065,9 +1044,13 @@ export function AnalysisPanel({
             <div>
               <dt>Revisión por umbral</dt>
               <dd>
-                {run.evaluatedSegments ?? run.scoredSegments} evaluados · {run.flaggedSegments ?? "—"} señalados · {run.insufficientSegments} insuficientes
+                {presentationCounts?.evaluatedSegments ?? run.evaluatedSegments ?? run.scoredSegments} evaluados · {presentationCounts?.rawFlaggedCount ?? run.flaggedSegments ?? "—"} superan el umbral · {run.insufficientSegments} insuficientes
               </dd>
             </div>
+            {run.status === "COMPLETED" && <div>
+              <dt>Mostrados en revisión</dt>
+              <dd>{presentationCounts?.actionableHighlightCount ?? "—"} resaltados · {presentationCounts?.presentationExcludedFlagged ?? "—"} señalados excluidos de revisión visual</dd>
+            </div>}
             <div>
               <dt>Agregación</dt>
               <dd className="analysis-mono">{run.documentAggregation ?? "—"}</dd>
@@ -1094,6 +1077,9 @@ export function AnalysisPanel({
             <div>
               <h3>Documento para revisión</h3>
               <p>El texto conserva el orden del documento y muestra la unidad revisada por el análisis.</p>
+              <p className="analysis-review-counts" aria-label="Conteos de revisión">
+                Superan el umbral: {presentationCounts?.rawFlaggedCount ?? run.flaggedSegments ?? "—"} · Mostrados en revisión: {presentationCounts?.actionableHighlightCount ?? reviewFlaggedSegments.length} · Señalados excluidos de revisión visual: {presentationCounts?.presentationExcludedFlagged ?? "—"}
+              </p>
             </div>
             <nav className="analysis-review-navigation" aria-label="Navegación por señalados">
               <button className="button button-quiet" type="button" disabled={!reviewFlaggedSegments.length} onClick={() => navigateFlagged(-1)}>
@@ -1102,7 +1088,7 @@ export function AnalysisPanel({
               <span aria-live="polite">
                 {reviewFlaggedSegments.length
                   ? `Señalado ${visibleFlaggedIndex + 1} de ${reviewFlaggedSegments.length}`
-                  : "Sin párrafos señalados"}
+                  : "Sin segmentos accionables"}
               </span>
               <button className="button button-quiet" type="button" disabled={!reviewFlaggedSegments.length} onClick={() => navigateFlagged(1)}>
                 Siguiente
@@ -1154,12 +1140,25 @@ export function AnalysisPanel({
           role="tabpanel"
           aria-labelledby="analysis-tab-detail"
         >
+          <div className="analysis-detail-mode" role="group" aria-label="Vista del detalle técnico">
+            <span>Vista:</span>
+            <button className="button button-quiet" type="button" aria-pressed={detailMode === "GROUPED"} onClick={() => setDetailMode("GROUPED")}>Agrupada</button>
+            <button className="button button-quiet" type="button" aria-pressed={detailMode === "SEGMENTS"} onClick={() => setDetailMode("SEGMENTS")}>Segmentos</button>
+          </div>
+          {detailMode === "GROUPED" ? (
+            <>
+              {technicalPresentation.isPending && <p className="analysis-notice" role="status">Cargando detalle técnico agrupado…</p>}
+              {technicalPresentation.isError && <p className="analysis-notice analysis-error" role="alert">No se pudo cargar el detalle agrupado. <button className="button button-quiet" type="button" onClick={() => void technicalPresentation.refetch()}>Reintentar detalle</button></p>}
+              {technicalPresentation.data && !presentationData && <p className="analysis-notice analysis-error" role="alert">El detalle agrupado no corresponde al análisis seleccionado.</p>}
+              {presentationData && <TechnicalGroupedDetail presentation={presentationData} onReview={jumpToParagraph} />}
+            </>
+          ) : <>
       {run?.status === "COMPLETED" && researchMode && (
         <div className="analysis-list-bar">
           <div className="analysis-list-heading">
-            <h3>Párrafos del documento</h3>
+            <h3>Segmentos del documento</h3>
             <span className="analysis-result-count">
-              {totalParagraphs} {totalParagraphs === 1 ? "párrafo" : "párrafos"}
+              {totalParagraphs} {totalParagraphs === 1 ? "segmento" : "segmentos"}
             </span>
           </div>
           <div className="analysis-segment-controls">
@@ -1375,6 +1374,7 @@ export function AnalysisPanel({
           </button>
         </p>
       )}
+          </>}
         </div>
       )}
     </section>

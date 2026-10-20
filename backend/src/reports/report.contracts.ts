@@ -23,6 +23,10 @@ export interface AIReportSegmentEvidence {
 }
 
 export interface AIReportParagraph {
+  sourceSegmentId?: string;
+  kind?: string;
+  structuralType?: string;
+  structuralGroupId?: string;
   paragraphIndex: number;
   textHash: string;
   charStart: number;
