@@ -139,6 +139,7 @@ export function AnalysisPanel({
   const [contextSegmentId, setContextSegmentId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<AnalysisView>(initialView);
   const [reviewSelectedParagraphIndex, setReviewSelectedParagraphIndex] = useState<number | null>(null);
+  const [reviewContextOpen, setReviewContextOpen] = useState(false);
   const [reviewNavigationIndex, setReviewNavigationIndex] = useState(0);
   const [reviewJump, setReviewJump] = useState<{ paragraphIndex: number | null; sequence: number }>({
     paragraphIndex: null,
@@ -199,6 +200,7 @@ export function AnalysisPanel({
       setContextSegmentId(null);
       setActiveView("SUMMARY");
       setReviewSelectedParagraphIndex(null);
+      setReviewContextOpen(false);
       setReviewNavigationIndex(0);
       setReviewJump({ paragraphIndex: null, sequence: 0 });
       setDetailMode("GROUPED");
@@ -310,6 +312,15 @@ export function AnalysisPanel({
     });
   }, [activeView, reviewJump.paragraphIndex, reviewJump.sequence, reviewDocument.data]);
 
+  useEffect(() => {
+    if (!reviewContextOpen) return;
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setReviewContextOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [reviewContextOpen]);
+
   const displayItems = groupParagraphSegments(paragraphItems, false);
   const reviewSegments = [...(reviewDocument.data?.items ?? [])].sort(
     (left, right) => left.charStart - right.charStart || left.charEnd - right.charEnd,
@@ -327,6 +338,9 @@ export function AnalysisPanel({
   const selectedReviewSegment = reviewSegments.find(
     (segment) => segment.paragraphIndex === reviewSelectedParagraphIndex,
   );
+  const selectedReviewEvidence = selectedReviewSegment
+    ? reviewEvidenceForSegment(selectedReviewSegment, run?.threshold ?? null)
+    : null;
   const reviewText = reviewDocument.data?.documentText ?? "";
   const reviewBlocks: ReactNode[] = [];
   if (reviewDocument.data && !reviewDocument.data.stale) {
@@ -363,10 +377,11 @@ export function AnalysisPanel({
             <button
               className="analysis-review-paragraph-action"
               type="button"
-              aria-expanded={selected}
+              aria-pressed={selected}
               aria-label={`Párrafo ${segment.paragraphIndex + 1}, ${formatSignal(segment.calibratedScore)}, resaltado para revisión, umbral visual ${visualThresholdLabel}`}
               onClick={() => {
                 setReviewSelectedParagraphIndex(selected ? null : segment.paragraphIndex);
+                setReviewContextOpen(!selected);
                 const index = reviewFlaggedSegments.findIndex((item) => item.paragraphIndex === segment.paragraphIndex);
                 if (index >= 0) setReviewNavigationIndex(index);
               }}
@@ -378,42 +393,6 @@ export function AnalysisPanel({
           )}
           {presentation?.excludedReason === "REFERENCE_SECTION" && (
             <small className="analysis-review-reference-label">Referencia bibliográfica</small>
-          )}
-          {selected && selectedReviewSegment && (
-            <aside
-              className="analysis-review-drawer"
-              role="region"
-              aria-label={`Detalles del párrafo ${segment.paragraphIndex + 1}`}
-            >
-              <div className="analysis-review-drawer-head">
-                <h4>Párrafo {segment.paragraphIndex + 1}</h4>
-                <button
-                  className="analysis-text-toggle"
-                  type="button"
-                  onClick={() => setReviewSelectedParagraphIndex(null)}
-                >
-                  Cerrar detalles
-                </button>
-              </div>
-              <dl className="analysis-review-drawer-grid">
-                <div><dt>Señal local</dt><dd>{technicalPercentage(segment.calibratedScore)}</dd></div>
-                <div><dt>Nivel</dt><dd>{presentation?.level ? SIGNAL_LABEL[presentation.level] : "Sin nivel"}</dd></div>
-                <div><dt>Umbral del detector</dt><dd>{technicalPercentage(evidence.threshold)}</dd></div>
-                <div><dt>Estado del detector</dt><dd>{!evidence.evaluated ? "NO EVALUADO" : evidence.flagged ? "SEÑALADO" : "NO SEÑALADO"}</dd></div>
-                <div><dt>Revisión visual</dt><dd>{evidence.reviewHighlighted ? "RESALTADO" : "NO RESALTADO"}</dd></div>
-                <div><dt>Umbral de revisión visual</dt><dd>{visualThresholdLabel}</dd></div>
-                <div><dt>Tokens</dt><dd>{segment.tokens ?? "—"}</dd></div>
-                <div><dt>Words</dt><dd>{segment.words ?? "—"}</dd></div>
-                <div><dt>Modelo</dt><dd>{segment.modelName}</dd></div>
-                <div><dt>Modo</dt><dd>{run?.paragraphMode ?? "—"}</dd></div>
-                {run?.paragraphMode === "CONTEXTUAL_PARAGRAPH" && (
-                  <>
-                    <div><dt>Contexto previo</dt><dd>{contextTokenLabel(segment.contextTokensBefore ?? null)}</dd></div>
-                    <div><dt>Contexto posterior</dt><dd>{contextTokenLabel(segment.contextTokensAfter ?? null)}</dd></div>
-                  </>
-                )}
-              </dl>
-            </aside>
           )}
         </article>,
       );
@@ -458,6 +437,7 @@ export function AnalysisPanel({
     setReviewNavigationIndex(nextIndex);
     setActiveView("REVIEW");
     setReviewSelectedParagraphIndex(segment.paragraphIndex);
+    setReviewContextOpen(true);
     setReviewJump((current) => ({ paragraphIndex: segment.paragraphIndex, sequence: current.sequence + 1 }));
   }
 
@@ -911,6 +891,7 @@ export function AnalysisPanel({
             onClick={() => {
               setActiveView("REVIEW");
               setReviewSelectedParagraphIndex(null);
+              setReviewContextOpen(false);
             }}
           >
             Revisión
@@ -1083,7 +1064,7 @@ export function AnalysisPanel({
               <h3>Documento para revisión</h3>
               <p>El texto conserva el orden del documento y muestra la unidad revisada por el análisis.</p>
               <p className="analysis-review-counts" aria-label="Conteos de revisión">
-                Señalados por detector: {presentationCounts?.rawFlaggedCount ?? run.flaggedSegments ?? "—"} · Resaltados para revisión: {reviewHighlightCount ?? reviewFlaggedSegments.length} · Señalados por detector excluidos de revisión visual: {presentationCounts?.presentationExcludedFlagged ?? "—"}
+                {reviewHighlightCount ?? reviewFlaggedSegments.length} fragmentos resaltados para revisión visual
               </p>
             </div>
             <nav className="analysis-review-navigation" aria-label="Navegación por resaltados para revisión">
@@ -1125,8 +1106,95 @@ export function AnalysisPanel({
                 <span><i className="review-legend-high" /> Señal local {visualThresholdLabel}: resaltado para revisión</span>
                 <span>El criterio visual es independiente del umbral de clasificación del modelo.</span>
               </div>
-              <div className="analysis-review-document" aria-label="Texto completo en orden documental">
-                {reviewBlocks}
+              <div className="analysis-review-workspace">
+                <div className="analysis-review-document" aria-label="Texto completo en orden documental">
+                  {reviewBlocks}
+                </div>
+                <aside className={`analysis-review-context${reviewContextOpen ? " is-open" : ""}`} aria-label="Panel contextual de revisión">
+                  <div className="analysis-review-context-heading">
+                    <div>
+                      <span>Señal global</span>
+                      <strong>{formatPercentPoints(runScorePercent)}</strong>
+                      <small>{reviewHighlightCount ?? reviewFlaggedSegments.length} fragmentos resaltados para revisar</small>
+                    </div>
+                    <button
+                      className="analysis-review-context-toggle"
+                      type="button"
+                      aria-expanded={reviewContextOpen}
+                      aria-controls="analysis-review-context-body"
+                      onClick={() => setReviewContextOpen((open) => !open)}
+                    >
+                      {reviewContextOpen ? "Ocultar contexto" : "Mostrar contexto"}
+                    </button>
+                  </div>
+                  <div className="analysis-review-context-body" id="analysis-review-context-body">
+                    {selectedReviewSegment && selectedReviewEvidence ? (
+                      <>
+                        <div className="analysis-review-context-segment-head">
+                          <h4>Párrafo {selectedReviewSegment.paragraphIndex + 1}</h4>
+                          <button
+                            className="analysis-text-toggle"
+                            type="button"
+                            onClick={() => {
+                              setReviewSelectedParagraphIndex(null);
+                              setReviewContextOpen(false);
+                            }}
+                          >
+                            Quitar selección
+                          </button>
+                        </div>
+                        <dl className="analysis-review-context-summary">
+                          <div>
+                            <dt>Señal local</dt>
+                            <dd>{technicalPercentage(selectedReviewSegment.calibratedScore)}</dd>
+                          </div>
+                          <div>
+                            <dt>Detector</dt>
+                            <dd>{!selectedReviewEvidence.evaluated ? "NO EVALUADO" : selectedReviewEvidence.flagged ? "SEÑALADO" : "NO SEÑALADO"}</dd>
+                          </div>
+                          <div>
+                            <dt>Revisión visual</dt>
+                            <dd>{selectedReviewEvidence.reviewHighlighted ? "RESALTADO" : "NO RESALTADO"}</dd>
+                          </div>
+                        </dl>
+                        <details className="analysis-review-technical-details">
+                          <summary>Detalles técnicos</summary>
+                          <dl className="analysis-review-context-technical">
+                            <div><dt>Nivel</dt><dd>{selectedReviewSegment.reviewPresentation?.level ? SIGNAL_LABEL[selectedReviewSegment.reviewPresentation.level] : "Sin nivel"}</dd></div>
+                            <div><dt>Umbral del detector</dt><dd>{technicalPercentage(selectedReviewEvidence.threshold)}</dd></div>
+                            <div><dt>Umbral visual</dt><dd>{visualThresholdLabel}</dd></div>
+                            <div><dt>Modelo</dt><dd>{selectedReviewSegment.modelName}</dd></div>
+                            <div><dt>Versión del analizador</dt><dd>{run.analyzerVersion}</dd></div>
+                            <div><dt>Perfil del umbral</dt><dd>{run.thresholdProfile}</dd></div>
+                            <div><dt>Calibración</dt><dd>{run.modelResults?.map((model) => model.calibration).filter(Boolean).join(" · ") || "No disponible"}</dd></div>
+                            <div><dt>Modo</dt><dd>{run.paragraphMode ?? "—"}</dd></div>
+                            <div><dt>Tokens</dt><dd>{selectedReviewSegment.tokens ?? "—"}</dd></div>
+                            <div><dt>Palabras</dt><dd>{selectedReviewSegment.words ?? "—"}</dd></div>
+                            {run.paragraphMode === "CONTEXTUAL_PARAGRAPH" && (
+                              <>
+                                <div><dt>Contexto previo</dt><dd>{contextTokenLabel(selectedReviewSegment.contextTokensBefore ?? null)}</dd></div>
+                                <div><dt>Contexto posterior</dt><dd>{contextTokenLabel(selectedReviewSegment.contextTokensAfter ?? null)}</dd></div>
+                              </>
+                            )}
+                            <div><dt>ID del análisis</dt><dd className="analysis-mono">{run.id}</dd></div>
+                            <div><dt>ID del documento</dt><dd className="analysis-mono">{run.documentId ?? documentId}</dd></div>
+                            <div><dt>ID del segmento</dt><dd className="analysis-mono">{selectedReviewSegment.id}</dd></div>
+                          </dl>
+                        </details>
+                      </>
+                    ) : (
+                      <p className="analysis-review-context-empty">Selecciona un párrafo resaltado para ver su señal y estado.</p>
+                    )}
+                    <details className="analysis-review-technical-details analysis-review-global-details">
+                      <summary>Detalles técnicos del análisis</summary>
+                      <dl className="analysis-review-context-technical">
+                        <div><dt>Señalados por detector</dt><dd>{presentationCounts?.rawFlaggedCount ?? run.flaggedSegments ?? "—"}</dd></div>
+                        <div><dt>Excluidos de revisión visual</dt><dd>{presentationCounts?.presentationExcludedFlagged ?? "—"}</dd></div>
+                        <div><dt>Umbral del detector</dt><dd>{technicalPercentage(run.threshold ?? null)}</dd></div>
+                      </dl>
+                    </details>
+                  </div>
+                </aside>
               </div>
             </>
           )}

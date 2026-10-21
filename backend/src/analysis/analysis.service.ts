@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { AnalysisClassification, AnalysisRunStatus, AnalyzerMode, Prisma } from '@prisma/client';
 import { AiService, type AiAnalyzerModelStatus, type AiAnalyzerSegment, type AnalyzerModeName } from '../ai/ai.service.js';
@@ -22,9 +23,10 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { buildTechnicalDisplayUnits, isTechnicalEvaluated, isTechnicalFlagged, isPresentationExcluded, TECHNICAL_UNIT_LABELS } from '../reports/technical-display.js';
 import type { AIReportParagraph } from '../reports/report.contracts.js';
 import { presentationStructureHint } from './presentation-structure.js';
-import { REVIEW_PRESENTATION_POLICY } from './review-highlight-policy.js';
+import { REVIEW_HIGHLIGHT_THRESHOLD, REVIEW_PRESENTATION_POLICY } from './review-highlight-policy.js';
 import { isReviewHighlighted } from '../reports/technical-display.js';
 import type { AnalysisSegmentsQueryDto, AnalyzeDocumentDto, CompareAnalysesDto } from './dto/analysis.dto.js';
+import type { QuickAnalysisDto, QuickAnalysisResponse } from './dto/quick-analysis.dto.js';
 
 export const ANALYZER_VERSION = 'f005-local-analyzer-v1';
 const MODEL_FOR_MODE: Record<string, string> = {
@@ -33,6 +35,22 @@ const MODEL_FOR_MODE: Record<string, string> = {
   ENSEMBLE: 'ENSEMBLE_V2_V3',
   F006_1_ONLY: 'EXPERIMENTAL_F006_1_MODEL',
   F006_1_1_ONLY: 'EXPERIMENTAL_F006_1_1_MODEL',
+};
+
+const ANALYZER_MODE_FOR_LOCAL_MODEL: Record<string, AnalyzerModeName> = {
+  CANDIDATE_MODEL_V2: 'V2_ONLY',
+  CANDIDATE_MODEL_V3: 'V3_ONLY',
+  ENSEMBLE_V2_V3: 'ENSEMBLE',
+  EXPERIMENTAL_F006_1_MODEL: 'F006_1_ONLY',
+  EXPERIMENTAL_F006_1_1_MODEL: 'F006_1_1_ONLY',
+};
+
+const QUICK_MODEL_DISPLAY_NAMES: Record<string, string> = {
+  CANDIDATE_MODEL_V2: 'Candidate Model V2',
+  CANDIDATE_MODEL_V3: 'Candidate Model V3',
+  ENSEMBLE_V2_V3: 'V2 + V3 Ensemble',
+  EXPERIMENTAL_F006_1_MODEL: 'F006.1 Experimental',
+  EXPERIMENTAL_F006_1_1_MODEL: 'F006.1.1 Experimental',
 };
 
 const REVIEW_CAPABILITIES = {
@@ -401,6 +419,70 @@ export class AnalysisService {
       throw error;
     }
     return this.getRun(run.id);
+  }
+
+  async quickAnalyze(dto: QuickAnalysisDto): Promise<QuickAnalysisResponse> {
+    if (!dto.text.trim()) {
+      throw new BadRequestException('Text must contain non-whitespace characters');
+    }
+
+    const started = Date.now();
+    const { policy } = await this.ai.listAnalyzerModels();
+    const localModel = policy.resolvedLocalPreferredAnalyzer;
+    if (typeof localModel !== 'string' || !ANALYZER_MODE_FOR_LOCAL_MODEL[localModel]) {
+      throw new ServiceUnavailableException('No supported local analyzer is currently available');
+    }
+
+    const analyzer = ANALYZER_MODE_FOR_LOCAL_MODEL[localModel];
+    const languageCode = dto.languageCode ?? 'other';
+    const analysis = await this.ai.analyzeParagraphs({
+      text: dto.text,
+      analyzer,
+      thresholdProfile: 'BALANCED',
+      paragraphMode: 'STRICT_PARAGRAPH',
+      languageCode,
+    });
+
+    const paragraphs = analysis.segments.map((segment) => {
+      const evaluated = evaluatedSegment(segment);
+      const score = evaluated ? segment.calibratedScore : null;
+      const status = evaluated ? segment.classification : 'INSUFFICIENT_TEXT';
+      return {
+        index: segment.paragraphIndex,
+        status,
+        score,
+        scientificFlag: evaluated ? status === 'MACHINE_SIGNAL' : null,
+        reviewHighlighted: evaluated && typeof score === 'number' && score > REVIEW_HIGHLIGHT_THRESHOLD,
+      };
+    });
+    const scoredParagraphs = paragraphs.filter((paragraph) => paragraph.status !== 'INSUFFICIENT_TEXT').length;
+    const insufficientParagraphs = paragraphs.length - scoredParagraphs;
+    const modelId = analysis.model;
+    const score = analysis.documentScore;
+    const scientificFlag = analysis.documentClassification;
+    const evaluated = scientificFlag !== null && evaluatedSegment({
+      classification: scientificFlag,
+      calibratedScore: score,
+    });
+
+    return {
+      evaluated,
+      score,
+      scientificFlag,
+      reviewHighlighted: evaluated && typeof score === 'number' && score > REVIEW_HIGHLIGHT_THRESHOLD,
+      scoredParagraphs,
+      insufficientParagraphs,
+      scientificThreshold: analysis.threshold,
+      reviewThreshold: REVIEW_HIGHLIGHT_THRESHOLD,
+      model: {
+        id: modelId,
+        displayName: QUICK_MODEL_DISPLAY_NAMES[modelId] ?? modelId,
+        version: analysis.modelVersion,
+      },
+      languageCode,
+      latencyMs: Date.now() - started,
+      paragraphs,
+    };
   }
 
   private async cacheIdentity(analyzer: AnalyzerModeName) {

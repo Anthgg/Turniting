@@ -330,7 +330,12 @@ describe('AnalysisPanel run provenance and operation errors', () => {
     ].map((phrase) => html.indexOf(phrase));
 
     expect(html).toContain('aria-selected="true" aria-controls="analysis-review-view"');
+    expect(html).toContain('analysis-review-workspace');
     expect(html).toContain('analysis-review-document');
+    expect(html).toContain('analysis-review-context');
+    expect(html).toContain('aria-controls="analysis-review-context-body"');
+    expect(html).toContain('Señal global');
+    expect(html).toContain('2 fragmentos resaltados para revisión visual');
     expect(html).toContain('analysis-review-highlight');
     expect(html).not.toContain('is-highlight-moderate');
     expect(html).not.toContain('is-highlight-high');
@@ -338,9 +343,9 @@ describe('AnalysisPanel run provenance and operation errors', () => {
     expect(html).toContain('Referencia bibliográfica');
     expect(html).toContain('analysis-review-paragraph-action');
     expect(html).not.toContain('analysis-review-drawer');
-    expect(html).toContain('Señalados por detector: 5');
-    expect(html).toContain('Resaltados para revisión: 2');
-    expect(html).toContain('Señalados por detector excluidos de revisión visual: 4');
+    expect(html).toContain('Detalles técnicos del análisis');
+    expect(html).not.toContain('Señalados por detector: 5');
+    expect(html).not.toContain('Señalados por detector excluidos de revisión visual: 4');
     expect(html).toContain('Señal local &gt;20.0 %');
     expect(html.match(/<mark class="analysis-review-highlight"/g)).toHaveLength(2);
     for (let index = 1; index < positions.length; index += 1) {

@@ -443,6 +443,33 @@ export const analyzerModelListSchema = z.object({
   items: z.array(analyzerModelSchema),
 }).passthrough()
 
+export const quickAnalysisResponseSchema = z.object({
+  evaluated: z.boolean(),
+  score: nullableNumber,
+  scientificFlag: classification.nullable(),
+  reviewHighlighted: z.boolean(),
+  scoredParagraphs: z.number().int().nonnegative(),
+  insufficientParagraphs: z.number().int().nonnegative(),
+  scientificThreshold: z.number().min(0).max(1),
+  reviewThreshold: z.number().min(0).max(1),
+  model: z.object({
+    id: z.string(),
+    displayName: z.string(),
+    version: z.string(),
+  }),
+  languageCode: z.enum(LANGUAGE_CODES),
+  latencyMs: z.number().nonnegative(),
+  paragraphs: z.array(z.object({
+    index: z.number().int().nonnegative(),
+    status: classification,
+    score: nullableNumber,
+    scientificFlag: z.boolean().nullable(),
+    reviewHighlighted: z.boolean(),
+  })),
+})
+
+export type QuickAnalysisResponse = z.infer<typeof quickAnalysisResponseSchema>
+
 export type AnalysisRun = z.infer<typeof analysisRunSchema>
 export type AnalysisSegment = z.infer<typeof segmentSchema>
 export type AnalysisComparison = z.infer<typeof comparisonSchema>
@@ -489,6 +516,10 @@ export const analysisQueryKeys = {
 
 export function listAnalyzerModels() {
   return getJson('/models', analyzerModelListSchema)
+}
+
+export function analyzeQuickText(text: string) {
+  return postJson('/analysis/quick', quickAnalysisResponseSchema, { text })
 }
 
 export function listDocumentAnalyses(documentId: string) {

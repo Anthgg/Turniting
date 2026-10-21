@@ -2,12 +2,19 @@ import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestj
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AnalysisService } from './analysis.service.js';
 import { AnalysisSegmentsQueryDto, AnalyzeDocumentDto, CompareAnalysesDto } from './dto/analysis.dto.js';
+import { QuickAnalysisDto } from './dto/quick-analysis.dto.js';
 import { AnalyzerModelsService } from './models.service.js';
 
 @ApiTags('analysis')
 @Controller()
 export class AnalysisController {
   constructor(private readonly analysis: AnalysisService) {}
+
+  @Post('analysis/quick')
+  @ApiOperation({ summary: 'Run an ephemeral local analysis on pasted text' })
+  quick(@Body() body: QuickAnalysisDto) {
+    return this.analysis.quickAnalyze(body);
+  }
 
   @Post('documents/:id/analyze')
   @ApiOperation({ summary: 'Run the local AI analyzer on the document text (independent AI signal, not a Turnitin score)' })

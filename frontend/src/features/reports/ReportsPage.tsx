@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import "./ReportsPage.css";
 import {
   deleteReport,
   downloadReport,
@@ -132,49 +133,60 @@ export function ReportsPage() {
   }
 
   const items = reports.data?.items ?? [];
+  const total = reports.data?.total ?? 0;
   const pageCount = Math.max(1, Math.ceil((reports.data?.total ?? 0) / REPORT_HISTORY_PAGE_SIZE));
 
   return (
-    <div className="dashboard-main report-history-page">
-      <div className="page-heading documents-page-heading">
+    <main className="dashboard-main reports-page">
+      <header className="reports-page-heading">
         <div>
-          <p className="eyebrow">DOCUMENTOS GENERADOS POR TURNITING</p>
-          <h1>Reportes</h1>
-          <p className="page-subtitle">Consulta, descarga y administra reportes independientes de análisis de IA.</p>
+          <p className="reports-eyebrow">BIBLIOTECA DE DOCUMENTOS</p>
+          <h1>Reportes PDF</h1>
+          <p>Consulta los archivos generados por tus análisis, revisa su vigencia y administra cada reporte.</p>
         </div>
-        <Link className="button button-quiet" to="/turnitin-reports">Turnitin importados</Link>
-      </div>
+        <Link className="button button-quiet reports-import-link" to="/turnitin-reports">Turnitin importados</Link>
+      </header>
 
-      <section className="report-history-section" aria-labelledby="report-history-title">
-        <div className="report-history-heading">
+      <section className="reports-history-panel" aria-labelledby="report-history-title">
+        <div className="reports-history-heading">
           <div>
-            <p className="eyebrow">HISTORIAL GLOBAL</p>
+            <p className="reports-eyebrow">HISTORIAL</p>
             <h2 id="report-history-title">Reportes de Turniting</h2>
+            <p>Los PDFs se conservan por tiempo limitado; revisa la fecha de expiración antes de compartirlos.</p>
           </div>
-          <span className="report-history-total">{reports.data?.total ?? 0} reportes</span>
+          <span className="reports-history-total" aria-live="polite">
+            <strong>{total}</strong> {total === 1 ? "reporte" : "reportes"}
+          </span>
         </div>
 
-        <div className="report-filter-toolbar" aria-label="Filtros de reportes">
-          <div className="report-filter-group" aria-label="Tipo de reporte">
-            <button type="button" className={!type ? "is-selected" : ""} aria-pressed={!type} onClick={() => updateType(undefined)}>Todos</button>
-            <button type="button" className={type === "AI_ORIGINAL_REVIEW" ? "is-selected" : ""} aria-pressed={type === "AI_ORIGINAL_REVIEW"} onClick={() => updateType("AI_ORIGINAL_REVIEW")}>Revisión original</button>
-            <button type="button" className={type === "AI_PARAGRAPH_TECHNICAL" ? "is-selected" : ""} aria-pressed={type === "AI_PARAGRAPH_TECHNICAL"} onClick={() => updateType("AI_PARAGRAPH_TECHNICAL")}>Detalle por párrafos</button>
-            <button type="button" className={type === "AI_REPORT" ? "is-selected" : ""} aria-pressed={type === "AI_REPORT"} onClick={() => updateType("AI_REPORT")}>IA anterior</button>
-            <button type="button" className={type === "SIMILARITY_REPORT" ? "is-selected" : ""} aria-pressed={type === "SIMILARITY_REPORT"} onClick={() => updateType("SIMILARITY_REPORT")}>Similitud</button>
-          </div>
-          <div className="report-filter-group" aria-label="Estado del reporte">
-            {statusFilters.map((filter) => (
-              <button
-                type="button"
-                key={filter.label}
-                className={status === filter.value ? "is-selected" : ""}
-                aria-pressed={status === filter.value}
-                onClick={() => updateStatus(filter.value)}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
+        <div className="reports-filter-toolbar" aria-label="Filtros de reportes">
+          <label className="reports-filter-field">
+            <span>Tipo de reporte</span>
+            <select
+              aria-label="Tipo de reporte"
+              value={type ?? ""}
+              onChange={(event) => updateType(event.target.value ? event.target.value as ReportType : undefined)}
+            >
+              <option value="">Todos los tipos</option>
+              <option value="AI_ORIGINAL_REVIEW">Revisión original</option>
+              <option value="AI_PARAGRAPH_TECHNICAL">Detalle por párrafos</option>
+              <option value="AI_REPORT">Reporte IA anterior</option>
+              <option value="SIMILARITY_REPORT">Similitud</option>
+            </select>
+          </label>
+          <label className="reports-filter-field">
+            <span>Estado</span>
+            <select
+              aria-label="Estado del reporte"
+              value={status ?? ""}
+              onChange={(event) => updateStatus(event.target.value ? event.target.value as ReportStatus : undefined)}
+            >
+              {statusFilters.map((filter) => (
+                <option key={filter.label} value={filter.value ?? ""}>{filter.label}</option>
+              ))}
+            </select>
+          </label>
+          <span className="reports-filter-summary">{total} {total === 1 ? "resultado" : "resultados"}</span>
         </div>
 
         {message && <p className="report-export-note" role="status">{message}</p>}
@@ -184,54 +196,84 @@ export function ReportsPage() {
         {reports.isPending && <p className="report-export-note" role="status">Cargando historial…</p>}
         {reports.isError && <p className="report-export-error" role="alert">No se pudo cargar el historial de reportes.</p>}
         {reports.data && items.length === 0 && (
-          <div className="report-history-empty">
+          <div className="reports-empty-state">
+            <span className="reports-empty-icon" aria-hidden="true">PDF</span>
             <strong>No hay reportes para estos filtros.</strong>
             <span>Los PDFs generados desde análisis completados aparecerán aquí.</span>
           </div>
         )}
 
         {items.length > 0 && (
-          <div className="report-table-wrap">
-            <table className="report-history-table">
-              <thead>
-                <tr><th>Tipo</th><th>Documento</th><th>Run</th><th>Señal global</th><th>Modelo</th><th>Estado</th><th>Generado</th><th>Expira</th><th>Tamaño</th><th>Acciones</th></tr>
-              </thead>
-              <tbody>
-                {items.map((report) => {
-                  const hint = expiryHint(report);
-                  const canRegenerate = report.status !== "GENERATING";
-                  return (
-                    <tr key={report.id}>
-                      <td data-label="Tipo">{typeLabel(report.type)}</td>
-                      <td data-label="Documento" className="report-document-cell">
-                        <button type="button" className="button button-quiet" onClick={() => setPreviewReportId(report.id)} title={report.documentName ?? report.documentId}>{report.documentName ?? `Documento ${report.documentId.slice(0, 8)}`}</button>
-                      </td>
-                      <td data-label="Run">{report.runLabel ?? report.analysisRunId?.slice(0, 8) ?? "—"}</td>
-                      <td data-label="Señal global">{reportScoreLabel(report.run?.globalScore)}</td>
-                      <td data-label="Modelo">{reportModelLabel(report)}</td>
-                      <td data-label="Estado"><span className={`report-artifact-status is-${report.status.toLowerCase()}`}>{statusLabel(report.status)}</span></td>
-                      <td data-label="Generado">{dateLabel(report.generatedAt)}</td>
-                      <td data-label="Expira">
-                        {report.status === "AVAILABLE" ? <><time dateTime={report.expiresAt}>{dateLabel(report.expiresAt)}</time>{hint && <small className="report-expiry-hint">{hint}</small>}</> : "—"}
-                      </td>
-                      <td data-label="Tamaño">{formatSize(report.sizeBytes)}</td>
-                      <td data-label="Acciones" className="report-row-actions">
-                        {report.status === "AVAILABLE" && report.previewAvailable !== false && <button type="button" className="button button-quiet" onClick={() => setPreviewReportId(report.id)} aria-label={`Ver ${typeLabel(report.type)}`}>Ver PDF</button>}
-                        {report.status !== "AVAILABLE" && <button type="button" className="button button-quiet" onClick={() => setPreviewReportId(report.id)}>Detalles</button>}
-                        {report.status === "AVAILABLE" && <button type="button" className="button button-quiet" disabled={download.isPending} onClick={() => download.mutate(report)}>Descargar</button>}
-                        {canRegenerate && isAIReport(report.type) && <button type="button" className="button button-quiet" disabled={regenerate.isPending} onClick={() => regenerate.mutate(report.id)}>Regenerar</button>}
-                        {report.status !== "DELETED" && <button type="button" className="button button-quiet button-danger-quiet" disabled={remove.isPending || report.status === "GENERATING"} onClick={() => confirmDelete(report.id)}>Eliminar</button>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="reports-history-list" aria-label="Historial de reportes PDF">
+            {items.map((report) => {
+              const hint = expiryHint(report);
+              const canRegenerate = report.status !== "GENERATING";
+              const documentName = report.documentName ?? `Documento ${report.documentId.slice(0, 8)}`;
+              const runLabel = report.runLabel ?? report.analysisRunId?.slice(0, 8) ?? "—";
+              return (
+                <article className="reports-history-row" key={report.id}>
+                  <span className="reports-pdf-mark" aria-hidden="true">PDF</span>
+                  <div className="reports-primary-details">
+                    <div className="reports-row-kicker">
+                      <span className="reports-type-label">{typeLabel(report.type)}</span>
+                      <span className={`reports-status is-${report.status.toLowerCase()}`}>{statusLabel(report.status)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="reports-document-name"
+                      onClick={() => setPreviewReportId(report.id)}
+                      title={report.documentName ?? report.documentId}
+                    >
+                      {documentName}
+                    </button>
+                    <div className="reports-row-subtitle">
+                      <span>Generado <time dateTime={report.generatedAt}>{dateLabel(report.generatedAt)}</time></span>
+                      <span className="reports-row-separator" aria-hidden="true">·</span>
+                      <span title={report.analysisRunId ?? undefined}>Run {runLabel}</span>
+                    </div>
+                  </div>
+
+                  <dl className="reports-row-metadata">
+                    <div>
+                      <dt>Señal global</dt>
+                      <dd>{reportScoreLabel(report.run?.globalScore)}</dd>
+                    </div>
+                    <div>
+                      <dt>Modelo</dt>
+                      <dd>{reportModelLabel(report)}</dd>
+                    </div>
+                    <div>
+                      <dt>Expira</dt>
+                      <dd>
+                        {report.status === "AVAILABLE" ? (
+                          <>
+                            <time dateTime={report.expiresAt}>{dateLabel(report.expiresAt)}</time>
+                            {hint && <small className="reports-expiry-hint">{hint}</small>}
+                          </>
+                        ) : "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Tamaño</dt>
+                      <dd>{formatSize(report.sizeBytes)}</dd>
+                    </div>
+                  </dl>
+
+                  <div className="reports-row-actions" aria-label={`Acciones para ${documentName}`}>
+                    {report.status === "AVAILABLE" && report.previewAvailable !== false && <button type="button" className="button button-quiet" onClick={() => setPreviewReportId(report.id)} aria-label={`Ver ${typeLabel(report.type)}`}>Ver PDF</button>}
+                    {report.status !== "AVAILABLE" && <button type="button" className="button button-quiet" onClick={() => setPreviewReportId(report.id)}>Detalles</button>}
+                    {report.status === "AVAILABLE" && <button type="button" className="button button-quiet" disabled={download.isPending} onClick={() => download.mutate(report)}>Descargar</button>}
+                    {canRegenerate && isAIReport(report.type) && <button type="button" className="button button-quiet" disabled={regenerate.isPending} onClick={() => regenerate.mutate(report.id)}>Regenerar</button>}
+                    {report.status !== "DELETED" && <button type="button" className="button button-quiet button-danger-quiet" disabled={remove.isPending || report.status === "GENERATING"} onClick={() => confirmDelete(report.id)}>Eliminar</button>}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
 
         {reports.data && reports.data.total > 0 && (
-          <nav className="report-pagination" aria-label="Paginación de reportes">
+          <nav className="reports-pagination" aria-label="Paginación de reportes">
             <button className="button button-quiet" type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Anterior</button>
             <span>Página {page} de {pageCount}</span>
             <button className="button button-quiet" type="button" disabled={page >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>Siguiente</button>
@@ -240,6 +282,6 @@ export function ReportsPage() {
       </section>
 
       {previewReportId && <ReportDetailPanel reportId={previewReportId} onClose={() => setPreviewReportId(null)} />}
-    </div>
+    </main>
   );
 }

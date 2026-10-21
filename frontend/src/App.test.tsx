@@ -11,7 +11,7 @@ vi.mock('@tanstack/react-query', () => queryMocks)
 
 import { WorkspaceLayout } from './App'
 
-function renderLayout(initialPath: string, activeDocName = 'TESIS_EC_sin_Turnitin.docx') {
+function renderLayout(initialPath: string, activeDocName = 'synthetic-example.docx') {
   queryMocks.useQuery
     .mockReturnValueOnce({
       data: {
@@ -63,38 +63,42 @@ function renderLayout(initialPath: string, activeDocName = 'TESIS_EC_sin_Turniti
   )
 }
 
-describe('F006.2.4 Top Bar + Floating Bottom Dock Layout', () => {
+describe('F009.5 workspace navigation shell', () => {
   beforeEach(() => {
     queryMocks.useQuery.mockReset()
   })
 
-  it('completely removes the left sidebar and renders the top bar and floating bottom dock', () => {
+  it('renders grouped sidebar navigation and removes the floating bottom dock', () => {
     const html = renderLayout('/')
 
-    expect(html).not.toContain('class="sidebar"')
-    expect(html).not.toContain('<aside')
+    expect(html).toContain('class="app-sidebar"')
+    expect(html).toContain('class="sidebar-navigation"')
     expect(html).toContain('class="topbar"')
     expect(html).toContain('Turniting')
-    expect(html).toContain('Área académica')
-    expect(html).toContain('Entorno local')
-    expect(html).toContain('class="bottom-dock"')
     expect(html).toContain('aria-label="Navegación principal"')
-    expect(html).toContain('data-tooltip="Inicio"')
-    expect(html).toContain('data-tooltip="Documentos"')
-    expect(html).toContain('data-tooltip="Análisis IA"')
-    expect(html).toContain('data-tooltip="Comparar versiones"')
-    expect(html).toContain('data-tooltip="Reportes Turniting"')
-    expect(html).toContain('data-tooltip="Modelos"')
-    expect(html).toContain('data-tooltip="Datasets"')
+    expect(html).toContain('Analizar documento')
+    expect(html).toContain('Análisis rápido')
+    expect(html).toContain('aria-label="Historial de análisis"')
+    expect(html).toContain('aria-label="Reportes"')
+    expect(html).toContain('Estado local')
+    expect(html).not.toContain('bottom-dock')
+    expect(html).not.toContain('Área académica')
   })
 
-  it('marks the active dock item for /documents and /documents/:id (Análisis IA) and updates breadcrumbs', () => {
+  it('marks current document, quick analysis, and review destinations', () => {
     const docsHtml = renderLayout('/documents')
-    expect(docsHtml).toContain('aria-label="Documentos" data-tooltip="Documentos" aria-current="page" class="dock-item is-active" href="/documents"')
-    expect(docsHtml).toContain('breadcrumb-current" aria-current="page">Documentos<')
+    expect(docsHtml).toContain('aria-label="Analizar documento" title="Analizar documento" aria-current="page" class="sidebar-link is-active" href="/documents"')
+    expect(docsHtml).toContain('breadcrumb-current" aria-current="page" title="Analizar documento">Analizar documento<')
 
-    const analysisHtml = renderLayout('/documents/79e92350-c705-486d-bc56-8d431e41bf7a')
-    expect(analysisHtml).toContain('class="dock-item is-active" aria-label="Análisis IA"')
-    expect(analysisHtml).toContain('TESIS_EC_sin_Turnitin.docx')
+    const quickHtml = renderLayout('/analysis/quick')
+    expect(quickHtml).toContain('aria-label="Análisis rápido" title="Análisis rápido" aria-current="page" class="sidebar-link is-active" href="/analysis/quick"')
+
+    const historyHtml = renderLayout('/history')
+    expect(historyHtml).toContain('aria-label="Historial de análisis" title="Historial de análisis" aria-current="page" class="sidebar-link is-active" href="/history"')
+    expect(historyHtml).toContain('breadcrumb-current" aria-current="page" title="Historial de análisis">Historial de análisis<')
+
+    const reviewHtml = renderLayout('/documents/79e92350-c705-486d-bc56-8d431e41bf7a')
+    expect(reviewHtml).toContain('aria-label="Revisión" aria-current="page"')
+    expect(reviewHtml).toContain('synthetic-example.docx')
   })
 })

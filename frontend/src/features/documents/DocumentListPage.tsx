@@ -1,13 +1,21 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { documentQueryKeys, listDocuments } from '../../api/documents'
+import { documentQueryKeys, listDocuments, type DocumentSummary } from '../../api/documents'
 import { Icon } from '../../components/Icon'
-import { DocumentUpload } from './DocumentUpload'
 import { ApiErrorNotice } from './ApiErrorNotice'
+import { DocumentUpload } from './DocumentUpload'
 import { formatBytes, formatDate, statusClass, statusLabel } from './document-utils'
+import './DocumentListPage.css'
 
 const PAGE_SIZE = 10
+
+function documentAction(status: DocumentSummary['status']) {
+  if (status === 'EXTRACTED') return { label: 'Analizar documento', primary: true }
+  if (status === 'OCR_REQUIRED') return { label: 'Revisar OCR', primary: false }
+  if (status === 'FAILED') return { label: 'Revisar documento', primary: false }
+  return { label: 'Ver estado', primary: false }
+}
 
 export function DocumentListPage() {
   const [page, setPage] = useState(1)
@@ -23,110 +31,145 @@ export function DocumentListPage() {
   const canGoForward = pageData ? page < pageData.totalPages : false
 
   return (
-    <div className="dashboard-main documents-main">
-      <div className="page-heading documents-page-heading">
-        <div>
+    <div className="dashboard-main documents-main documents-library">
+      <header className="documents-library-heading">
+        <div className="documents-library-title">
           <p className="eyebrow">BIBLIOTECA ACADÉMICA</p>
           <h1>Documentos</h1>
-          <p className="page-subtitle">Sube un archivo y sigue su extracción y análisis desde un solo lugar.</p>
+          <p className="page-subtitle">Sube tus archivos y abre los documentos listos para analizar.</p>
         </div>
-        <div className="page-heading-actions">
-          <Link className="button button-quiet" to="/">
-            <Icon name="arrow-right" size={16} className="back-arrow" />
-            <span>Volver al inicio</span>
-          </Link>
+        <Link className="button button-quiet documents-home-link" to="/">
+          <Icon name="arrow-right" size={16} className="back-arrow" />
+          <span>Volver al inicio</span>
+        </Link>
+      </header>
+
+      <section className="documents-upload-panel" aria-labelledby="documents-upload-heading">
+        <div className="documents-upload-heading">
+          <div>
+            <p className="eyebrow">AÑADIR A LA BIBLIOTECA</p>
+            <h2 id="documents-upload-heading">Subir un documento</h2>
+          </div>
+          <span className="documents-upload-formats">PDF · DOCX · TXT · PNG · JPEG</span>
         </div>
-      </div>
+        <DocumentUpload />
+      </section>
 
-      <DocumentUpload />
-
-      <section className="documents-section open-section" aria-labelledby="documents-list-title">
-        <div className="documents-section-heading">
+      <section className="documents-section documents-library-section" aria-labelledby="documents-list-title">
+        <div className="documents-library-toolbar">
           <div>
             <p className="eyebrow">ARCHIVOS EN EL ENTORNO</p>
             <h2 id="documents-list-title">Tus documentos</h2>
           </div>
-          <div className="documents-section-meta">
-            {pageData && <span>{pageData.total} {pageData.total === 1 ? 'documento' : 'documentos'}</span>}
+          <div className="documents-library-controls">
+            <span className="documents-library-count" aria-live="polite" aria-atomic="true">
+              {pageData && `${pageData.total} ${pageData.total === 1 ? 'documento' : 'documentos'}`}
+            </span>
             <button
-              className="icon-button"
+              className="icon-button documents-refresh-button"
               type="button"
               onClick={() => void documents.refetch()}
               disabled={documents.isFetching}
               aria-label="Actualizar lista de documentos"
               aria-busy={documents.isFetching}
             >
-              <Icon name="refresh" size={16} className={documents.isFetching ? 'is-spinning' : undefined} />
+              <span aria-hidden="true">
+                <Icon name="refresh" size={16} className={documents.isFetching ? 'is-spinning' : undefined} />
+              </span>
             </button>
           </div>
         </div>
 
-        {documents.isError && <ApiErrorNotice error={documents.error} title="No se pudieron cargar los documentos" />}
+        {documents.isError && (
+          <div className="documents-load-error">
+            <ApiErrorNotice error={documents.error} title="No se pudieron cargar los documentos" />
+            <button className="button button-quiet" type="button" onClick={() => void documents.refetch()} disabled={documents.isFetching}>
+              Reintentar
+            </button>
+          </div>
+        )}
 
         {documents.isPending && (
-          <div className="documents-empty-state" role="status" aria-live="polite">
-            <span className="state-indicator is-animated" />
+          <div className="documents-library-state" role="status" aria-live="polite">
+            <span className="documents-loading-mark" aria-hidden="true" />
             <span>Cargando documentos…</span>
           </div>
         )}
 
         {pageData && pageData.items.length === 0 && (
-          <div className="documents-empty-state">
-            <span className="empty-file-icon"><Icon name="file" size={20} /></span>
+          <div className="documents-library-empty" role="status" aria-live="polite">
+            <span className="documents-empty-icon" aria-hidden="true"><Icon name="file" size={20} /></span>
             <strong>Aún no hay documentos</strong>
-            <span>Los archivos que subas aparecerán aquí con su estado de procesamiento.</span>
+            <span>Sube un archivo para seguir aquí su procesamiento y análisis.</span>
           </div>
         )}
 
         {pageData && pageData.items.length > 0 && (
           <>
-            <div className="finder-table-wrap">
-              <table className="finder-table" aria-label="Documentos subidos">
-                <thead>
-                  <tr>
-                    <th>Documento</th>
-                    <th>Tipo</th>
-                    <th>Tamaño</th>
-                    <th>Estado</th>
-                    <th>Fecha</th>
-                    <th className="finder-col-action">Abrir</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageData.items.map((document) => (
-                    <tr className="document-list-row" key={document.id}>
-                      <td className="finder-col-name document-list-name">
-                        <Link to={`/documents/${document.id}`} title={document.originalName}>
-                          <Icon name="file" size={16} />
-                          <span>{document.originalName}</span>
-                        </Link>
-                      </td>
-                      <td className="finder-col-mono">{document.extension?.toUpperCase() || 'ARCHIVO'}</td>
-                      <td className="finder-col-mono">{formatBytes(document.sizeBytes)}</td>
-                      <td>
-                        <span className={statusClass(document.status)}>{statusLabel(document.status)}</span>
-                      </td>
-                      <td className="finder-col-date">
-                        <time className="document-list-date" dateTime={document.createdAt}>{formatDate(document.createdAt)}</time>
-                      </td>
-                      <td className="finder-col-action">
-                        <Link className="document-open-link finder-row-action" to={`/documents/${document.id}`} aria-label={`Abrir ${document.originalName}`}>
-                          <span>Detalle</span>
+            <ul className="documents-library-list" aria-label="Lista de documentos">
+              {pageData.items.map((document) => {
+                const action = documentAction(document.status)
+                const detailHref = `/documents/${document.id}`
+                const fileType = document.extension?.toUpperCase() || 'ARCHIVO'
+
+                return (
+                  <li className="documents-library-item" key={document.id}>
+                    <article className="documents-library-card">
+                      <span className="documents-library-file-icon" aria-hidden="true">
+                        <Icon name="file" size={19} />
+                      </span>
+                      <div className="documents-library-document">
+                        <div className="documents-library-document-heading">
+                          <h3>
+                            <Link className="documents-library-document-link" to={detailHref} title={document.originalName}>
+                              {document.originalName}
+                            </Link>
+                          </h3>
+                          <span className={statusClass(document.status)}>{statusLabel(document.status)}</span>
+                        </div>
+                        <div className="documents-library-metadata">
+                          <span>{fileType}</span>
+                          <span aria-hidden="true">·</span>
+                          <span>{formatBytes(document.sizeBytes)}</span>
+                          <span className="documents-library-date">
+                            <span aria-hidden="true">·</span>
+                            <time dateTime={document.createdAt}>{formatDate(document.createdAt)}</time>
+                          </span>
+                        </div>
+                      </div>
+                      <div className="documents-library-card-action">
+                        <Link
+                          className={`button ${action.primary ? 'button-primary' : 'button-quiet'} documents-library-open-link`}
+                          to={detailHref}
+                          aria-label={`${action.label}: ${document.originalName}`}
+                        >
+                          <span>{action.label}</span>
                           <Icon name="arrow-right" size={15} />
                         </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <nav className="pagination" aria-label="Paginación de documentos">
+                      </div>
+                    </article>
+                  </li>
+                )
+              })}
+            </ul>
+
+            <nav className="pagination documents-library-pagination" aria-label="Paginación de documentos">
               <span>Página {pageData.page} de {totalPages || 1}</span>
               <div>
-                <button className="button button-quiet" type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={!canGoBack || documents.isFetching}>
+                <button
+                  className="button button-quiet"
+                  type="button"
+                  onClick={() => setPage((value) => Math.max(1, value - 1))}
+                  disabled={!canGoBack || documents.isFetching}
+                >
                   Anterior
                 </button>
-                <button className="button button-quiet" type="button" onClick={() => setPage((value) => value + 1)} disabled={!canGoForward || documents.isFetching}>
+                <button
+                  className="button button-quiet"
+                  type="button"
+                  onClick={() => setPage((value) => value + 1)}
+                  disabled={!canGoForward || documents.isFetching}
+                >
                   Siguiente
                 </button>
               </div>

@@ -94,6 +94,10 @@ describe("ReportsPage", () => {
 
     expect(html).toContain("Reportes de Turniting");
     expect(html).toContain("Turnitin importados");
+    expect(html).toContain('class="reports-history-list"');
+    expect(html).toContain('class="reports-history-row"');
+    expect(html).toContain('aria-label="Tipo de reporte"');
+    expect(html).toContain('aria-label="Estado del reporte"');
     expect(html).toContain("muestra_sintetica.docx");
     expect(html).toContain("31ec6f6f · V3_ONLY");
     expect(html).toContain("Disponible");
