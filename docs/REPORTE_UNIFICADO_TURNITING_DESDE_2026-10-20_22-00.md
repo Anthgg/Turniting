@@ -359,3 +359,15 @@ This section is updated after integrated verification. Test text and result fixt
 ## Final Review-context presentation
 
 The final revision places paragraph review content and context side by side on desktop. The contextual panel reports the global signal and highlight count plus the selected paragraph's signal, detector state, and review state. On mobile it becomes a collapsible bottom sheet. Technical IDs, analyzer version, threshold profile, calibration details, and related metadata are available in a closed-by-default disclosure. Structural tests and TypeScript checks pass; visual behavior at the final breakpoint layout was not rechecked in a live browser because the local runtime was unavailable.
+
+---
+
+## Apéndice D — F009.5.1 QA visual final y Docker Compose
+
+La QA posterior se ejecutó con el entorno local ya activo. La navegación móvil ahora conserva el rail lateral persistente del escritorio: 72 px en móvil/tablet y 248 px expandida en escritorio. Inicio, Documentos, Análisis rápido, Comparación, Reportes, Historial, Modelos y Estado técnico pasaron en tres viewports, sin overflow horizontal ni errores/advertencias de consola. No existe drawer deslizable en el breakpoint compacto.
+
+Los cuatro servicios Compose (`ai-service`, `backend`, `db`, `frontend`) terminaron `healthy`; las cinco rutas HTTP revisadas respondieron 200. Se preservaron los cuatro volúmenes. No se reinició Docker ni se hizo `down -v`; la imagen frontend se reconstruyó sin caché después del ajuste del menú. F009.5.1 detalla versiones, conteos y las pruebas locales.
+
+**Limitación pendiente:** en los reportes sintéticos, el detalle por párrafos marca seis segmentos por encima de `>20.0 %`, pero el mapa de fuente devuelve `REVIEW_HIGHLIGHT_NOT_VISUALLY_LOCATED` para el segmento `F00951-PAGE2-PARA-1`. La revisión sobre el PDF original no resalta ese segmento, aunque el detalle técnico lo muestra como revisable. La QA visual de navegación pasa; la cobertura universal de resaltado en el original queda parcial hasta corregir la ubicación exacta. También se observó actividad concurrente en los agregados de documentos/corridas/reportes. No se abrió ni alteró otro documento; sus nombres visibles en inicio no se copiaron al informe y no se consultó su contenido.
+
+**Documentación:** [F009_5_1_FINAL_VISUAL_QA_DOCKER.md](./F009_5_1_FINAL_VISUAL_QA_DOCKER.md).

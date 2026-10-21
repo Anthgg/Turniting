@@ -1,31 +1,56 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
 import { documentQueryKeys, getDocument, listDocuments } from './api/documents'
 import { Icon } from './components/Icon'
-import { ComparePage } from './features/analysis/ComparePage'
-import { ModelsPage } from './features/analysis/ModelsPage'
-import { QuickAnalysisPage } from './features/analysis/QuickAnalysisPage'
-import { AnalysisHistoryPage } from './features/analysis/AnalysisHistoryPage'
 import { HomeRecentActivity } from './features/analysis/HomeRecentActivity'
-import { DocumentDetailPage } from './features/documents/DocumentDetailPage'
-import { DocumentListPage } from './features/documents/DocumentListPage'
 import { formatDate, statusClass, statusLabel } from './features/documents/document-utils'
-import { DatasetDetailPage } from './features/datasets/DatasetDetailPage'
-import { DatasetsPage } from './features/datasets/DatasetsPage'
-import { TurnitinReportDetailPage } from './features/turnitin/TurnitinReportDetailPage'
-import { TurnitinReportsPage } from './features/turnitin/TurnitinReportsPage'
-import { ReportsPage } from './features/reports/ReportsPage'
-import { SettingsPage } from './features/settings/SettingsPage'
+const ComparePage = lazy(() =>
+  import('./features/analysis/ComparePage').then(({ ComparePage }) => ({ default: ComparePage })),
+)
+const ModelsPage = lazy(() =>
+  import('./features/analysis/ModelsPage').then(({ ModelsPage }) => ({ default: ModelsPage })),
+)
+const QuickAnalysisPage = lazy(() =>
+  import('./features/analysis/QuickAnalysisPage').then(({ QuickAnalysisPage }) => ({ default: QuickAnalysisPage })),
+)
+const AnalysisHistoryPage = lazy(() =>
+  import('./features/analysis/AnalysisHistoryPage').then(({ AnalysisHistoryPage }) => ({ default: AnalysisHistoryPage })),
+)
+const DocumentDetailPage = lazy(() =>
+  import('./features/documents/DocumentDetailPage').then(({ DocumentDetailPage }) => ({ default: DocumentDetailPage })),
+)
+const DocumentListPage = lazy(() =>
+  import('./features/documents/DocumentListPage').then(({ DocumentListPage }) => ({ default: DocumentListPage })),
+)
+const DatasetDetailPage = lazy(() =>
+  import('./features/datasets/DatasetDetailPage').then(({ DatasetDetailPage }) => ({ default: DatasetDetailPage })),
+)
+const DatasetsPage = lazy(() =>
+  import('./features/datasets/DatasetsPage').then(({ DatasetsPage }) => ({ default: DatasetsPage })),
+)
+const TurnitinReportDetailPage = lazy(() =>
+  import('./features/turnitin/TurnitinReportDetailPage').then(({ TurnitinReportDetailPage }) => ({ default: TurnitinReportDetailPage })),
+)
+const TurnitinReportsPage = lazy(() =>
+  import('./features/turnitin/TurnitinReportsPage').then(({ TurnitinReportsPage }) => ({ default: TurnitinReportsPage })),
+)
+const ReportsPage = lazy(() =>
+  import('./features/reports/ReportsPage').then(({ ReportsPage }) => ({ default: ReportsPage })),
+)
+const SettingsPage = lazy(() =>
+  import('./features/settings/SettingsPage').then(({ SettingsPage }) => ({ default: SettingsPage })),
+)
+
+function RouteLoadingFallback() {
+  return <div className="route-loading" role="status" aria-live="polite">Cargando vista…</div>
+}
 
 export function WorkspaceLayout() {
   const location = useLocation()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
   const [tabletSidebar, setTabletSidebar] = useState(false)
-  const menuToggleRef = useRef<HTMLButtonElement>(null)
-  const sidebarRef = useRef<HTMLElement>(null)
   const docMatch = /^\/documents\/([^/]+)$/.exec(location.pathname)
   const activeDocId = docMatch ? decodeURIComponent(docMatch[1]) : null
 
@@ -87,88 +112,20 @@ export function WorkspaceLayout() {
     return () => media.removeEventListener('change', updateTablet)
   }, [])
 
-  useEffect(() => {
-    const closeDrawerOnHistoryNavigation = () => setMobileDrawerOpen(false)
-    window.addEventListener('popstate', closeDrawerOnHistoryNavigation)
-    return () => window.removeEventListener('popstate', closeDrawerOnHistoryNavigation)
-  }, [])
-
-  useEffect(() => {
-    if (!mobileDrawerOpen) return
-
-    const panel = sidebarRef.current
-    const previousBodyOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const focusable = () => Array.from(
-      panel?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])') ?? [],
-    ).filter((element) => element.getClientRects().length > 0)
-    panel?.querySelector<HTMLElement>('.mobile-drawer-close')?.focus()
-
-    function handleDrawerKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        setMobileDrawerOpen(false)
-        window.requestAnimationFrame(() => menuToggleRef.current?.focus())
-        return
-      }
-      if (event.key !== 'Tab') return
-
-      const items = focusable()
-      if (items.length === 0) return
-      const first = items[0]
-      const last = items[items.length - 1]
-      if (event.shiftKey && (document.activeElement === first || !panel?.contains(document.activeElement))) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && (document.activeElement === last || !panel?.contains(document.activeElement))) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-
-    window.addEventListener('keydown', handleDrawerKeyDown)
-    return () => {
-      window.removeEventListener('keydown', handleDrawerKeyDown)
-      document.body.style.overflow = previousBodyOverflow
-    }
-  }, [mobileDrawerOpen])
-
-  function closeMobileDrawer(focusMain = false) {
-    if (!mobileDrawerOpen) return
-    setMobileDrawerOpen(false)
-    window.requestAnimationFrame(() => {
-      if (focusMain) document.getElementById('main-content')?.focus()
-      else menuToggleRef.current?.focus()
-    })
-  }
-
   const sidebarLinkClass = ({ isActive }: { isActive: boolean }) =>
     `sidebar-link${isActive ? ' is-active' : ''}`
 
   return (
-    <div className={`app-shell${effectiveSidebarCollapsed ? ' is-sidebar-collapsed' : ''}${mobileDrawerOpen ? ' is-mobile-drawer-open' : ''}`}>
+    <div className={`app-shell${effectiveSidebarCollapsed ? ' is-sidebar-collapsed' : ''}`}>
       <a className="skip-link" href="#main-content">Saltar al contenido principal</a>
 
-      {mobileDrawerOpen && (
-        <button
-          className="sidebar-backdrop"
-          type="button"
-          tabIndex={-1}
-          aria-label="Cerrar navegación"
-          onClick={() => closeMobileDrawer()}
-        />
-      )}
-
       <aside
-        ref={sidebarRef}
         id="primary-navigation-panel"
-        className={`app-sidebar${effectiveSidebarCollapsed ? ' is-collapsed' : ''}${mobileDrawerOpen ? ' is-mobile-open' : ''}`}
+        className={`app-sidebar${effectiveSidebarCollapsed ? ' is-collapsed' : ''}`}
         aria-label="Navegación principal"
-        role={mobileDrawerOpen ? 'dialog' : undefined}
-        aria-modal={mobileDrawerOpen || undefined}
       >
         <div className="sidebar-brand-row">
-          <Link className="brand" to="/" aria-label="Turniting, inicio" onClick={() => closeMobileDrawer(true)}>
+          <Link className="brand" to="/" aria-label="Turniting, inicio">
             <span className="brand-mark" aria-hidden="true">T</span>
             <span className="brand-name">Turniting</span>
           </Link>
@@ -183,88 +140,69 @@ export function WorkspaceLayout() {
           >
             <Icon name="chevron-right" size={16} />
           </button>
-          <button
-            className="mobile-drawer-close"
-            type="button"
-            aria-label="Cerrar navegación"
-            onClick={() => closeMobileDrawer()}
-          >
-            <span aria-hidden="true">×</span>
-          </button>
         </div>
 
         <nav className="sidebar-navigation" id="primary-navigation" aria-label="Principal">
           <div className="sidebar-group">
             <span className="sidebar-group-label">Inicio</span>
-            <NavLink to="/" end className={sidebarLinkClass} aria-label="Inicio" title="Inicio" onClick={() => closeMobileDrawer(true)}>
+            <NavLink to="/" end className={sidebarLinkClass} aria-label="Inicio" title="Inicio">
               <Icon name="grid" size={18} /><span className="sidebar-link-label">Inicio</span>
             </NavLink>
           </div>
 
           <div className="sidebar-group">
             <span className="sidebar-group-label">Analizar</span>
-            <NavLink to="/documents" end className={sidebarLinkClass} aria-label="Analizar documento" title="Analizar documento" onClick={() => closeMobileDrawer(true)}>
+            <NavLink to="/documents" end className={sidebarLinkClass} aria-label="Analizar documento" title="Analizar documento">
               <Icon name="file-plus" size={18} /><span className="sidebar-link-label">Documento</span>
             </NavLink>
-            <NavLink to="/analysis/quick" end className={sidebarLinkClass} aria-label="Análisis rápido" title="Análisis rápido" onClick={() => closeMobileDrawer(true)}>
+            <NavLink to="/analysis/quick" end className={sidebarLinkClass} aria-label="Análisis rápido" title="Análisis rápido">
               <Icon name="spark" size={18} /><span className="sidebar-link-label">Análisis rápido</span>
             </NavLink>
           </div>
 
           <div className="sidebar-group">
             <span className="sidebar-group-label">Resultados</span>
-            <Link to={analysisTargetHref} className={`sidebar-link${isReviewRoute ? ' is-active' : ''}`} aria-label="Revisión" aria-current={isReviewRoute ? 'page' : undefined} title="Revisión" onClick={() => closeMobileDrawer(true)}>
+            <Link to={analysisTargetHref} className={`sidebar-link${isReviewRoute ? ' is-active' : ''}`} aria-label="Revisión" aria-current={isReviewRoute ? 'page' : undefined} title="Revisión">
               <Icon name="file" size={18} /><span className="sidebar-link-label">Revisión</span>
             </Link>
-            <NavLink to="/reports" className={sidebarLinkClass} aria-label="Reportes" title="Reportes" onClick={() => closeMobileDrawer(true)}>
+            <NavLink to="/reports" className={sidebarLinkClass} aria-label="Reportes" title="Reportes">
               <Icon name="layers" size={18} /><span className="sidebar-link-label">Reportes</span>
             </NavLink>
-            <NavLink to="/history" className={sidebarLinkClass} aria-label="Historial de análisis" title="Historial de análisis" onClick={() => closeMobileDrawer(true)}>
+            <NavLink to="/history" className={sidebarLinkClass} aria-label="Historial de análisis" title="Historial de análisis">
               <Icon name="clock" size={18} /><span className="sidebar-link-label">Historial</span>
             </NavLink>
-            <NavLink to="/turnitin-reports" className={sidebarLinkClass} aria-label="Reportes de Turnitin" title="Reportes de Turnitin" onClick={() => closeMobileDrawer(true)}>
+            <NavLink to="/turnitin-reports" className={sidebarLinkClass} aria-label="Reportes de Turnitin" title="Reportes de Turnitin">
               <Icon name="file" size={18} /><span className="sidebar-link-label">Reportes de Turnitin</span>
             </NavLink>
-            <NavLink to="/analysis/compare" className={sidebarLinkClass} aria-label="Comparar versiones" title="Comparar versiones" onClick={() => closeMobileDrawer(true)}>
+            <NavLink to="/analysis/compare" className={sidebarLinkClass} aria-label="Comparar versiones" title="Comparar versiones">
               <Icon name="diff" size={18} /><span className="sidebar-link-label">Comparar versiones</span>
             </NavLink>
           </div>
 
           <div className="sidebar-group">
             <span className="sidebar-group-label">Configuración</span>
-            <NavLink to="/models" className={sidebarLinkClass} aria-label="Modelos" title="Modelos" onClick={() => closeMobileDrawer(true)}>
+            <NavLink to="/models" className={sidebarLinkClass} aria-label="Modelos" title="Modelos">
               <Icon name="brain" size={18} /><span className="sidebar-link-label">Modelos</span>
             </NavLink>
-            <NavLink to="/datasets" className={sidebarLinkClass} aria-label="Datasets" title="Datasets" onClick={() => closeMobileDrawer(true)}>
+            <NavLink to="/datasets" className={sidebarLinkClass} aria-label="Datasets" title="Datasets">
               <Icon name="database" size={18} /><span className="sidebar-link-label">Datasets</span>
             </NavLink>
-            <NavLink to="/settings" className={sidebarLinkClass} aria-label="Estado técnico" title="Estado técnico" onClick={() => closeMobileDrawer(true)}>
+            <NavLink to="/settings" className={sidebarLinkClass} aria-label="Estado técnico" title="Estado técnico">
               <Icon name="server" size={18} /><span className="sidebar-link-label">Estado técnico</span>
             </NavLink>
           </div>
         </nav>
 
         <div className="sidebar-footer">
-          <Link className="sidebar-local-status" to="/settings" aria-label="Estado local: ver estado técnico" title="Estado local" onClick={() => closeMobileDrawer(true)}>
+          <Link className="sidebar-local-status" to="/settings" aria-label="Estado local: ver estado técnico" title="Estado local">
             <span className="environment-dot" aria-hidden="true" />
             <span className="sidebar-link-label">Estado local</span>
           </Link>
         </div>
       </aside>
 
-      <div className="app-frame" inert={mobileDrawerOpen}>
+      <div className="app-frame">
         <header className="topbar">
-          <button
-            ref={menuToggleRef}
-            className="mobile-menu-toggle"
-            type="button"
-            aria-label={mobileDrawerOpen ? 'Cerrar navegación' : 'Abrir navegación'}
-            aria-controls="primary-navigation-panel"
-            aria-expanded={mobileDrawerOpen}
-            onClick={() => setMobileDrawerOpen((value) => !value)}
-          >
-            <span className="mobile-menu-glyph" aria-hidden="true"><i /><i /><i /></span>
-          </button>
           <nav className="breadcrumbs" aria-label="Ubicación actual">
             {location.pathname !== '/' && <><Link to="/">Inicio</Link><Icon name="chevron-right" size={13} /></>}
             <span className="breadcrumb-current" aria-current="page" title={pageTitle}>{pageTitle}</span>
@@ -272,7 +210,11 @@ export function WorkspaceLayout() {
         </header>
 
         <div className="main-shell">
-          <main id="main-content" className="main-content" tabIndex={-1}><Outlet /></main>
+          <main id="main-content" className="main-content" tabIndex={-1}>
+            <Suspense fallback={<RouteLoadingFallback />}>
+              <Outlet />
+            </Suspense>
+          </main>
         </div>
       </div>
     </div>
