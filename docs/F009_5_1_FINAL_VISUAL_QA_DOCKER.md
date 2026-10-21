@@ -7,7 +7,7 @@
 
 ## Alcance y cambio aplicado
 
-Se corrigió la navegación compacta para conservar la misma barra lateral persistente del escritorio. En anchos compactos se muestra un rail fijo de iconos de 72 px; en escritorio la barra expandida conserva 248 px y su control para contraerla. Se eliminaron el botón de menú móvil, el drawer deslizable, el fondo superpuesto y su comportamiento modal. Las rutas permanecen accesibles desde el rail.
+Se corrigió la navegación compacta para conservar la misma barra lateral persistente del escritorio. En anchos compactos se muestra un rail fijo de iconos de 72 px; en escritorio la barra permanece expandida a 248 px y ya no tiene un control para contraerla. Se eliminaron el botón de menú móvil, el drawer deslizable, el fondo superpuesto y su comportamiento modal. Las rutas permanecen accesibles desde la barra.
 
 Los cambios de interfaz están en `frontend/src/App.tsx` y `frontend/src/App.css`. No se modificaron backend, puntuación, inferencia, modelos, pesos, entrenamiento, datasets, holdout ni umbrales científicos o visuales.
 
@@ -21,7 +21,11 @@ Se recorrieron Inicio, Documentos, Análisis rápido, Comparación, Reportes, Hi
 | 768 × 1023 (tablet solicitado: 768 × 1024) | 72 px | 0 / 0 en las 8 rutas | `sticky`, transformación `none`, sin control de drawer |
 | 1367 × 764 (escritorio solicitado: 1366 × 768) | 248 px | 0 / 0 en las 8 rutas | `sticky`, transformación `none` |
 
-El análisis rápido también se comprobó en los seis tamaños solicitados: 1920×1080, 1440×900, 1366×768, 1024×768, 768×1024 y 390×844. En todos se mantuvo visible el rail y no hubo overflow horizontal. En escritorio, contraer y expandir la barra cambió entre 248 px y 72 px sin perder la selección de ruta. La consola del navegador registró 0 errores y 0 advertencias durante este recorrido.
+El análisis rápido también se comprobó en los seis tamaños solicitados: 1920×1080, 1440×900, 1366×768, 1024×768, 768×1024 y 390×844. En todos se mantuvo visible la navegación y no hubo overflow horizontal. En escritorio, la barra conserva 248 px de ancho y no muestra control para contraerla. La consola del navegador registró 0 errores y 0 advertencias durante este recorrido.
+
+### Revalidación después de retirar el control de escritorio
+
+La imagen local del frontend se reconstruyó y se reemplazó únicamente el contenedor `frontend`. En navegador, el viewport efectivo de 1367×768 mostró la barra fija de 248 px, etiquetas visibles, 0 controles para contraer y 0 overflow horizontal. En 389×843 la barra compacta conservó 72 px, ocultó las etiquetas como está previsto y también mantuvo 0 controles y 0 overflow. El tamaño temporal del viewport se restauró al finalizar.
 
 ## Smoke de análisis rápido y persistencia
 

@@ -6,7 +6,6 @@
   width: 100%;
   background: var(--canvas);
   color: var(--ink);
-  transition: grid-template-columns 160ms ease;
 }
 
 .app-shell.is-sidebar-collapsed {
@@ -49,7 +48,6 @@
   white-space: nowrap;
 }
 
-.sidebar-collapse-toggle,
 .mobile-drawer-close,
 .mobile-menu-toggle {
   display: inline-grid;
@@ -64,20 +62,11 @@
   cursor: pointer;
 }
 
-.sidebar-collapse-toggle:hover,
 .mobile-drawer-close:hover,
 .mobile-menu-toggle:hover {
   border-color: var(--line);
   color: var(--ink);
   background: #f8fafc;
-}
-
-.sidebar-collapse-toggle svg {
-  transition: transform 160ms ease;
-}
-
-.is-sidebar-collapsed .sidebar-collapse-toggle svg {
-  transform: rotate(180deg);
 }
 
 .mobile-drawer-close,
@@ -179,20 +168,6 @@
 
 .is-sidebar-collapsed .sidebar-brand-row .brand {
   gap: 0;
-}
-
-.is-sidebar-collapsed .sidebar-collapse-toggle {
-  position: absolute;
-  top: 17px;
-  right: 5px;
-  width: 24px;
-  height: 32px;
-  opacity: 0;
-}
-
-.is-sidebar-collapsed .sidebar-brand-row:hover .sidebar-collapse-toggle,
-.is-sidebar-collapsed .sidebar-collapse-toggle:focus-visible {
-  opacity: 1;
 }
 
 .is-sidebar-collapsed .sidebar-navigation {
@@ -491,7 +466,6 @@
 .home-action-card:focus-visible,
 .sidebar-link:focus-visible,
 .sidebar-local-status:focus-visible,
-.sidebar-collapse-toggle:focus-visible,
 .mobile-menu-toggle:focus-visible,
 .mobile-drawer-close:focus-visible {
   outline: 2px solid var(--teal);
@@ -3771,12 +3745,6 @@
   }
 }
 
-@media (min-width: 761px) and (max-width: 1024px) {
-  .sidebar-collapse-toggle {
-    display: none;
-  }
-}
-
 @media (max-width: 760px) {
   .app-shell,
   .app-shell.is-sidebar-collapsed {
@@ -3812,7 +3780,6 @@
     gap: 0;
   }
 
-  .app-sidebar .sidebar-collapse-toggle,
   .app-sidebar .mobile-drawer-close,
   .sidebar-backdrop,
   .mobile-menu-toggle {
@@ -3926,7 +3893,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .app-shell,
-  .sidebar-collapse-toggle svg,
   .app-sidebar,
   .home-action-card {
     scroll-behavior: auto;

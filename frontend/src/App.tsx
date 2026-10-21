@@ -49,7 +49,6 @@ function RouteLoadingFallback() {
 
 export function WorkspaceLayout() {
   const location = useLocation()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [tabletSidebar, setTabletSidebar] = useState(false)
   const docMatch = /^\/documents\/([^/]+)$/.exec(location.pathname)
   const activeDocId = docMatch ? decodeURIComponent(docMatch[1]) : null
@@ -79,7 +78,7 @@ export function WorkspaceLayout() {
   const isReviewRoute = Boolean(activeDocId)
   const isQuickAnalysisRoute = location.pathname === '/analysis/quick'
   const isSettingsRoute = location.pathname.startsWith('/settings')
-  const effectiveSidebarCollapsed = sidebarCollapsed || tabletSidebar
+  const effectiveSidebarCollapsed = tabletSidebar
   const pageTitle = location.pathname === '/'
     ? 'Inicio'
     : location.pathname === '/documents'
@@ -129,17 +128,6 @@ export function WorkspaceLayout() {
             <span className="brand-mark" aria-hidden="true">T</span>
             <span className="brand-name">Turniting</span>
           </Link>
-          <button
-            className="sidebar-collapse-toggle"
-            type="button"
-            aria-label={effectiveSidebarCollapsed ? 'Expandir navegación' : 'Contraer navegación'}
-            aria-controls="primary-navigation"
-            aria-expanded={!effectiveSidebarCollapsed}
-            title={effectiveSidebarCollapsed ? 'Expandir navegación' : 'Contraer navegación'}
-            onClick={() => setSidebarCollapsed((value) => !value)}
-          >
-            <Icon name="chevron-right" size={16} />
-          </button>
         </div>
 
         <nav className="sidebar-navigation" id="primary-navigation" aria-label="Principal">
