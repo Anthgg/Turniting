@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "f00943-manual-aggregate-v1",
+  "manualOnly": true,
+  "privateDocumentUsedInAutomatedTests": false,
+  "scientific": {
+    "allFiveDigestsUnchanged": true,
+    "models": [
+      "ENSEMBLE_V2_V3"
+    ],
+    "globalScore": 0.4342228555892896,
+    "threshold": 0.59
+  },
+  "presentation": {
+    "referenceSegments": 154,
+    "presentationPolicyVersion": "f00943-review-gt20-v1",
+    "scientificFlaggedCount": 4,
+    "reviewHighlightComparator": "GT",
+    "evaluatedSegments": 50,
+    "reviewHighlightThreshold": 0.2,
+    "insufficientSegments": 476,
+    "reviewHighlightedCount": 45,
+    "referenceHighlights": 0
+  },
+  "source": {
+    "preservedSourcePages": 18,
+    "pages": 18,
+    "checksumMatches": true
+  },
+  "reports": {
+    "bothCoversGlobalDetectorAndReviewThresholdsCorrect": true,
+    "allLegacyBytesUnchanged": true,
+    "technicalPages": 37,
+    "originalPages": 19,
+    "legacyReportsCount": 7
+  },
+  "overlay": {
+    "nestedTechnicalStreams": 0,
+    "allExpectedSegmentsHighlighted": true,
+    "actualOverlayRectangles": 266,
+    "expectedReviewCount": 45,
+    "expectedRectangles": 266,
+    "addedTextStreams": 0,
+    "unlocatedReviewSegments": 0,
+    "actualOverlaySegmentCount": 45,
+    "partialSegments": 0
+  },
+  "privacy": "Aggregate QA results only. No private source text, PDFs, images, filenames, source/report IDs or document digests."
+}

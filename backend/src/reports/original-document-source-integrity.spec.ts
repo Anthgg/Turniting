@@ -169,7 +169,7 @@ describe('F009.4.1 renderer source boundary', () => {
 });
 
 describe('F009.4.1 persisted synthetic report sequence', () => {
-  it.skipIf(!hasPoppler())('renders the exact five persisted body scores with only paragraphs 1, 3, and 5 highlighted', async () => {
+  it.skipIf(!hasPoppler())('renders exact persisted body scores with paragraphs 1, 3, 4 and 5 highlighted for review', async () => {
     const fixture = await createSourceIntegrityFixture();
     const input: AIReportInput = {
       ...fixture.input,
@@ -192,7 +192,7 @@ describe('F009.4.1 persisted synthetic report sequence', () => {
     const reviewPdf = await PDFDocument.load(review);
     const highlightedSourcePages = Array.from({ length: 18 }, (_, sourcePage) => sourcePage)
       .filter((sourcePage) => pageContentText(reviewPdf, sourcePage + 1).includes('1 0.84 0.18 rg'));
-    expect(highlightedSourcePages).toEqual([1, 3, 5]);
+    expect(highlightedSourcePages).toEqual([1, 3, 4, 5]);
     const technical = await new ReportRenderer().renderAIParagraphTechnical(input);
     const directory = await mkdtemp(path.join(tmpdir(), 'turniting-f00941-five-body-'));
     try {
@@ -210,7 +210,8 @@ describe('F009.4.1 persisted synthetic report sequence', () => {
       expect(technicalText).toContain('43.4 %');
       expect(reviewText).toContain('59.0 %');
       expect(technicalText).toContain('59.0 %');
-      for (const localPercent of ['80.0 %', '20.0 %', '61.0 %', '40.0 %', '90.0 %']) expect(reviewText).not.toContain(localPercent);
+      const sourcePagesText = reviewText.split('\f').slice(1).join(' ');
+      for (const localPercent of ['80.0 %', '20.0 %', '61.0 %', '40.0 %', '90.0 %']) expect(sourcePagesText).not.toContain(localPercent);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

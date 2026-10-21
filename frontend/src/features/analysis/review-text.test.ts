@@ -3,6 +3,7 @@ import { splitReviewText } from "./review-text";
 
 const evidence = (spans: Array<{ startChar: number; endChar: number }>) => ({
   flagged: true,
+  reviewHighlighted: true,
   presentationExcluded: false,
   granularity: "SPAN" as const,
   paragraphFlagged: true,
@@ -13,6 +14,7 @@ describe("splitReviewText", () => {
   it("falls back to the whole paragraph for paragraph evidence or unavailable spans", () => {
     expect(splitReviewText("target paragraph", {
       flagged: true,
+      reviewHighlighted: true,
       presentationExcluded: false,
       granularity: "PARAGRAPH",
       paragraphFlagged: true,
@@ -67,6 +69,13 @@ describe("splitReviewText", () => {
       ...evidence([{ startChar: 0, endChar: 4 }]),
       presentationExcluded: true,
     })).toEqual([{ text: "reference", highlighted: false }]);
+  });
+
+  it("uses visual review selection independently of scientific paragraph flags", () => {
+    expect(splitReviewText("review only", { ...evidence([]), flagged: false, paragraphFlagged: false }))
+      .toEqual([{ text: "review only", highlighted: true }]);
+    expect(splitReviewText("detector only", { ...evidence([]), reviewHighlighted: false }))
+      .toEqual([{ text: "detector only", highlighted: false }]);
   });
 
   it("rejects NaN and out-of-bounds offsets", () => {

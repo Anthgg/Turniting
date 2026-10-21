@@ -44,7 +44,7 @@ describe('threshold review evidence', () => {
     const context = createReviewDocumentContext(text, [item]);
     const evidence = getReviewEvidence(item, 0.59, context);
     expect(evidence).toMatchObject({ evaluated: true, flagged, threshold: 0.59 });
-    expect(getReviewPresentation(item, context, 0.59).highlight).toBe(flagged);
+    expect(getReviewPresentation(item, context, 0.59).highlight).toBe(true);
   });
 
   it('uses a non-default run threshold without introducing a score band', () => {

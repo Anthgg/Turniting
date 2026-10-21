@@ -11,7 +11,7 @@ const presentation: TechnicalPresentation = {
   actionableParagraphIndices: [0],
   displayUnits: [
     { id: "body-0", type: "EVALUATED_SEGMENT", label: "SEGMENTO 1", sourceSegmentIds: [0], paragraphIndices: [0], positionStart: 0, positionEnd: 30, text: "Cuerpo evaluado real.", presentationExcluded: false,
-      evaluatedSegments: [{ sourceSegmentId: "source-body", paragraphIndex: 0, score: 0.83241, threshold: 0.59, flagged: true, presentationExcluded: false, text: "Cuerpo evaluado real." }] },
+      evaluatedSegments: [{ sourceSegmentId: "source-body", paragraphIndex: 0, score: 0.83241, threshold: 0.59, flagged: true, reviewHighlighted: true, presentationExcluded: false, text: "Cuerpo evaluado real." }] },
     { id: "table-1", type: "TABLE_GROUP", label: "TABLA", sourceSegmentIds: [1, 2], paragraphIndices: [1, 2], positionStart: 31, positionEnd: 60, text: "Indicador\nResultado persistido", presentationExcluded: false,
       evaluatedSegments: [{ sourceSegmentId: 2, paragraphIndex: 2, score: 0.63245, threshold: 0.59, flagged: true, presentationExcluded: true, excludedReason: "CAPTION", text: "Resultado persistido" }] },
     { id: "ref-3", type: "REFERENCE_GROUP", label: "REFERENCIAS", sourceSegmentIds: [3, 4], paragraphIndices: [3, 4], positionStart: 61, positionEnd: 100, text: "References: Smith et al.\n[2] Synthetic publication.", presentationExcluded: true, excludedReason: "REFERENCE_SECTION",
@@ -45,5 +45,24 @@ describe("TechnicalGroupedDetail", () => {
     expect(html).not.toContain("Scores técnicos internos");
     expect(html).toContain("FACULTAD\nESCUELA");
     expect(technicalPercentage(null)).toBe("NO EVALUADO");
+  });
+
+  it("shows detector and visual review decisions separately for every evaluated member", () => {
+    const input: TechnicalPresentation = {
+      ...presentation, reviewHighlightThreshold: 20 / 100, reviewHighlightComparator: "GT",
+      displayUnits: [{ ...presentation.displayUnits[0], evaluatedSegments: [
+        { ...presentation.displayUnits[0].evaluatedSegments[0], score: 0.35, flagged: false, reviewHighlighted: true },
+        { ...presentation.displayUnits[0].evaluatedSegments[0], sourceSegmentId: "excluded", score: 0.95, flagged: true, reviewHighlighted: false, presentationExcluded: true },
+      ] }],
+    };
+    const html = renderToStaticMarkup(createElement(TechnicalGroupedDetail, { presentation: input, onReview: vi.fn() }));
+    expect(html).toContain("35.0 %");
+    expect(html).toContain("Detector: NO SEÑALADO");
+    expect(html).toContain("Revisión: RESALTADO");
+    expect(html).toContain("Detector: SEÑALADO");
+    expect(html).toContain("Revisión: NO RESALTADO");
+    expect(html).toContain("Umbral de revisión visual: &gt;20.0 %");
+    expect(html).toContain("Umbral del detector 59.0 %");
+    expect(input.displayUnits[0].evaluatedSegments[0].flagged).toBe(false);
   });
 });

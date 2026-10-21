@@ -321,7 +321,7 @@ describe('AnalysisService', () => {
     expect(result.items[1]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'METADATA' });
     expect(result.items[2]?.reviewPresentation).toMatchObject({ highlight: true, level: 'HIGH' });
     expect(result.items[2]?.evidence).toMatchObject({ evaluated: true, flagged: true, threshold: 0.59, granularity: 'PARAGRAPH', spans: [] });
-    expect(result.items[3]?.reviewPresentation).toMatchObject({ highlight: false, level: 'MODERATE' });
+    expect(result.items[3]?.reviewPresentation).toMatchObject({ highlight: true, level: 'MODERATE' });
     expect(result.items[3]?.evidence).toMatchObject({ evaluated: true, flagged: false, threshold: 0.59 });
     expect(result.items[4]?.reviewPresentation).toMatchObject({ highlight: false, level: 'LOW' });
     expect(result.items[5]?.reviewPresentation).toMatchObject({ highlight: false, excludedReason: 'HEADING' });

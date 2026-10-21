@@ -1,0 +1,386 @@
+{
+  "syntheticOnly": true,
+  "requests": 63,
+  "unexpectedHttpErrors": 0,
+  "analyzeRequests": 0,
+  "events": [
+    {
+      "time": "21/Oct/2026:03:15:13 +0000",
+      "method": "GET",
+      "path": "/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:15:13 +0000",
+      "method": "GET",
+      "path": "/assets/index-Bhj9r1sQ.js",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:15:13 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:15:13 +0000",
+      "method": "GET",
+      "path": "/api/turnitin/reports?page=1&limit=100",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:15:13 +0000",
+      "method": "GET",
+      "path": "/api/documents?page=1&limit=5",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:15:13 +0000",
+      "method": "GET",
+      "path": "/favicon.svg",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:15:13 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/pages",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:15:13 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/analyses",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:15:13 +0000",
+      "method": "GET",
+      "path": "/api/models",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:15:13 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:15:13 +0000",
+      "method": "GET",
+      "path": "/api/analyses/5e416ea5-3cc3-432b-addd-d2efe7ecdaa0/segments?page=1&pageSize=20&sort=PARAGRAPH&filter=ALL",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:15:13 +0000",
+      "method": "GET",
+      "path": "/api/analyses/5e416ea5-3cc3-432b-addd-d2efe7ecdaa0/technical-presentation",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:15:31 +0000",
+      "method": "GET",
+      "path": "/api/analyses/5e416ea5-3cc3-432b-addd-d2efe7ecdaa0/segments?includeDocumentText=true",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:15:52 +0000",
+      "method": "POST",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports/ai/both",
+      "status": 201
+    },
+    {
+      "time": "21/Oct/2026:03:15:52 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:15:54 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:16:21 +0000",
+      "method": "GET",
+      "path": "/api/reports/fe3f9030-cd79-4765-91db-ee2b5cf144a2",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:16:21 +0000",
+      "method": "GET",
+      "path": "/api/reports/fe3f9030-cd79-4765-91db-ee2b5cf144a2/preview",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:16:36 +0000",
+      "method": "GET",
+      "path": "/api/reports/fe3f9030-cd79-4765-91db-ee2b5cf144a2/download",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:16:37 +0000",
+      "method": "GET",
+      "path": "/api/reports/5618dc2d-ccf8-482b-8fc1-ade06e1b79f1",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:16:37 +0000",
+      "method": "GET",
+      "path": "/api/reports/5618dc2d-ccf8-482b-8fc1-ade06e1b79f1/preview",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:16:49 +0000",
+      "method": "GET",
+      "path": "/api/reports/5618dc2d-ccf8-482b-8fc1-ade06e1b79f1/download",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:16:50 +0000",
+      "method": "POST",
+      "path": "/api/reports/fe3f9030-cd79-4765-91db-ee2b5cf144a2/regenerate",
+      "status": 201
+    },
+    {
+      "time": "21/Oct/2026:03:16:50 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:16:51 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:17:00 +0000",
+      "method": "POST",
+      "path": "/api/reports/5618dc2d-ccf8-482b-8fc1-ade06e1b79f1/regenerate",
+      "status": 201
+    },
+    {
+      "time": "21/Oct/2026:03:17:00 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:17:01 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:18:04 +0000",
+      "method": "GET",
+      "path": "/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:18:04 +0000",
+      "method": "GET",
+      "path": "/assets/index-CiIjHDZm.css",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:18:04 +0000",
+      "method": "GET",
+      "path": "/assets/index-Bhj9r1sQ.js",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:18:05 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:18:05 +0000",
+      "method": "GET",
+      "path": "/api/documents?page=1&limit=5",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:18:05 +0000",
+      "method": "GET",
+      "path": "/api/turnitin/reports?page=1&limit=100",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:18:05 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/analyses",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:18:05 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/pages",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:18:05 +0000",
+      "method": "GET",
+      "path": "/api/models",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:18:05 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:18:05 +0000",
+      "method": "GET",
+      "path": "/api/analyses/5e416ea5-3cc3-432b-addd-d2efe7ecdaa0/segments?page=1&pageSize=20&sort=PARAGRAPH&filter=ALL",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:18:05 +0000",
+      "method": "GET",
+      "path": "/api/analyses/5e416ea5-3cc3-432b-addd-d2efe7ecdaa0/technical-presentation",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:18:16 +0000",
+      "method": "GET",
+      "path": "/api/reports/9e90b66c-6bc8-4693-97d7-d858d10869bf",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:18:16 +0000",
+      "method": "GET",
+      "path": "/api/reports/9e90b66c-6bc8-4693-97d7-d858d10869bf/preview",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:18:40 +0000",
+      "method": "GET",
+      "path": "/api/documents?page=1&limit=5",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:18:40 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:18:40 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/pages",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:18:40 +0000",
+      "method": "GET",
+      "path": "/api/turnitin/reports?page=1&limit=100",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:18:40 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/analyses",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:18:40 +0000",
+      "method": "GET",
+      "path": "/api/analyses/5e416ea5-3cc3-432b-addd-d2efe7ecdaa0/segments?page=1&pageSize=20&sort=PARAGRAPH&filter=ALL",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:18:40 +0000",
+      "method": "GET",
+      "path": "/api/analyses/5e416ea5-3cc3-432b-addd-d2efe7ecdaa0/technical-presentation",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:18:40 +0000",
+      "method": "GET",
+      "path": "/api/reports/9e90b66c-6bc8-4693-97d7-d858d10869bf",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:18:40 +0000",
+      "method": "GET",
+      "path": "/api/models",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:18:40 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:19:06 +0000",
+      "method": "GET",
+      "path": "/api/reports/ab897c41-cc03-44ba-ae29-b93f9698636a",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:19:06 +0000",
+      "method": "GET",
+      "path": "/api/reports/ab897c41-cc03-44ba-ae29-b93f9698636a/preview",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:19:09 +0000",
+      "method": "GET",
+      "path": "/api/documents?page=1&limit=5",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:19:09 +0000",
+      "method": "GET",
+      "path": "/api/turnitin/reports?page=1&limit=100",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:19:09 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/analyses",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:19:09 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/pages",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:19:09 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:19:09 +0000",
+      "method": "GET",
+      "path": "/api/analyses/5e416ea5-3cc3-432b-addd-d2efe7ecdaa0/segments?page=1&pageSize=20&sort=PARAGRAPH&filter=ALL",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:19:09 +0000",
+      "method": "GET",
+      "path": "/api/analyses/5e416ea5-3cc3-432b-addd-d2efe7ecdaa0/technical-presentation",
+      "status": 200
+    },
+    {
+      "time": "21/Oct/2026:03:19:09 +0000",
+      "method": "GET",
+      "path": "/api/models",
+      "status": 304
+    },
+    {
+      "time": "21/Oct/2026:03:19:09 +0000",
+      "method": "GET",
+      "path": "/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+      "status": 304
+    }
+  ]
+}

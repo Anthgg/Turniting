@@ -51,7 +51,7 @@ describe('F009.4.2 compact technical PDF presentation', () => {
     expect(display.units.filter((unit) => unit.type === 'EVALUATED_SEGMENT')).toHaveLength(8);
     expect(display.units.filter((unit) => unit.type.endsWith('_GROUP'))).toHaveLength(3);
     expect(display.audit).toMatchObject({ sourceSegmentsTotal: 68, sourceSegmentsRepresented: 68, sourceSegmentsLost: 0, sourceSegmentsDuplicated: 0, evaluatedDisplayUnits: 10 });
-    expect(display.counts).toMatchObject({ totalSegments: 68, evaluated: 10, insufficient: 58, rawFlaggedCount: 5, actionableHighlightCount: 3, presentationExcludedFlagged: 2 });
+    expect(display.counts).toMatchObject({ totalSegments: 68, evaluated: 10, insufficient: 58, rawFlaggedCount: 5, actionableHighlightCount: 6, presentationExcludedFlagged: 2 });
     for (const unit of display.units.filter((unit) => unit.type.endsWith('_GROUP'))) expect(unit).not.toHaveProperty('score');
     const renderStart = performance.now();
     const pdf = await new ReportRenderer().renderAIParagraphTechnical(fixture.input);
@@ -154,7 +154,7 @@ describe('F009.4.2 compact technical PDF presentation', () => {
     });
     const text = canonicalPdfText(await textFromPdf(pdf));
     expect(text).toMatch(/Señalados por detector\s+6/u);
-    expect(text).toMatch(/Resaltados para revisión\s+4/u);
+    expect(text).toMatch(/Resaltados para revisión\s+6/u);
     expect(text).toMatch(/Señalados excluidos\s+2/u);
     expect((await PDFDocument.load(pdf)).getPageCount()).toBe(19);
     expect(text).toContain('43.4 %');

@@ -27,7 +27,7 @@ import { Icon } from "../../components/Icon";
 import { splitReviewText } from "./review-text";
 import { TechnicalGroupedDetail } from "./TechnicalGroupedDetail";
 import { technicalPercentage } from "./technical-presentation-utils";
-import { actionableReviewSegments, nextReviewNavigationIndex, reviewEvidenceForSegment } from "./review-presentation";
+import { actionableReviewSegments, nextReviewNavigationIndex, reviewEvidenceForSegment, reviewThresholdLabel } from "./review-presentation";
 import {
   ANALYZER_LABEL,
   DEFAULT_PARAGRAPH_MODE,
@@ -269,6 +269,8 @@ export function AnalysisPanel({
     ? technicalPresentation.data
     : undefined;
   const presentationCounts = presentationData?.counts;
+  const visualThresholdLabel = reviewThresholdLabel(reviewDocument.data ?? presentationData);
+  const reviewHighlightCount = presentationData?.reviewHighlightedCount ?? presentationCounts?.reviewHighlightedCount ?? presentationCounts?.actionableHighlightCount;
   const totalParagraphs = segmentsMatchRun
     ? (segments.data?.total ?? paragraphItems.length)
     : 0;
@@ -314,7 +316,6 @@ export function AnalysisPanel({
   );
   const reviewFlaggedSegments = actionableReviewSegments(
     reviewSegments,
-    run?.threshold ?? null,
     presentationData?.actionableParagraphIndices,
   );
   const selectedFlaggedIndex = reviewFlaggedSegments.findIndex(
@@ -347,7 +348,7 @@ export function AnalysisPanel({
       const presentation = segment.reviewPresentation;
       const evidence = reviewEvidenceForSegment(segment, run?.threshold ?? null);
       const selected = reviewSelectedParagraphIndex === segment.paragraphIndex;
-      const actionable = Boolean(evidence?.flagged && !evidence.presentationExcluded);
+      const actionable = evidence.reviewHighlighted;
       const textParts = splitReviewText(exactText, evidence, segment.charStart);
       const renderedText = textParts.map((part, index) => part.highlighted
         ? <mark className="analysis-review-highlight" key={`highlight-${index}`}>{part.text}</mark>
@@ -363,7 +364,7 @@ export function AnalysisPanel({
               className="analysis-review-paragraph-action"
               type="button"
               aria-expanded={selected}
-              aria-label={`Párrafo ${segment.paragraphIndex + 1}, ${formatSignal(segment.calibratedScore)}, umbral ${formatPercent(evidence?.threshold ?? run?.threshold ?? null)}`}
+              aria-label={`Párrafo ${segment.paragraphIndex + 1}, ${formatSignal(segment.calibratedScore)}, resaltado para revisión, umbral visual ${visualThresholdLabel}`}
               onClick={() => {
                 setReviewSelectedParagraphIndex(selected ? null : segment.paragraphIndex);
                 const index = reviewFlaggedSegments.findIndex((item) => item.paragraphIndex === segment.paragraphIndex);
@@ -395,10 +396,12 @@ export function AnalysisPanel({
                 </button>
               </div>
               <dl className="analysis-review-drawer-grid">
-                <div><dt>Score</dt><dd>{formatSignal(segment.calibratedScore)}</dd></div>
+                <div><dt>Señal local</dt><dd>{technicalPercentage(segment.calibratedScore)}</dd></div>
                 <div><dt>Nivel</dt><dd>{presentation?.level ? SIGNAL_LABEL[presentation.level] : "Sin nivel"}</dd></div>
-                <div><dt>Umbral</dt><dd>{formatPercent(evidence?.threshold ?? run?.threshold ?? null)}</dd></div>
-                <div><dt>Estado</dt><dd>{evidence?.presentationExcluded ? evidence.excludedReason ?? "Excluido de la vista de revisión" : evidence?.flagged ? "Señalado por umbral" : "Bajo umbral"}</dd></div>
+                <div><dt>Umbral del detector</dt><dd>{technicalPercentage(evidence.threshold)}</dd></div>
+                <div><dt>Estado del detector</dt><dd>{!evidence.evaluated ? "NO EVALUADO" : evidence.flagged ? "SEÑALADO" : "NO SEÑALADO"}</dd></div>
+                <div><dt>Revisión visual</dt><dd>{evidence.reviewHighlighted ? "RESALTADO" : "NO RESALTADO"}</dd></div>
+                <div><dt>Umbral de revisión visual</dt><dd>{visualThresholdLabel}</dd></div>
                 <div><dt>Tokens</dt><dd>{segment.tokens ?? "—"}</dd></div>
                 <div><dt>Words</dt><dd>{segment.words ?? "—"}</dd></div>
                 <div><dt>Modelo</dt><dd>{segment.modelName}</dd></div>
@@ -488,7 +491,8 @@ export function AnalysisPanel({
             <span className="analysis-paragraph-score">
               {evidence.evaluated ? technicalPercentage(segment.calibratedScore) : "NO EVALUADO"}
             </span>
-            <span className="analysis-threshold-state">{!evidence.evaluated ? "NO EVALUADO" : evidence.flagged ? "SEÑALADO" : "NO SEÑALADO"}</span>
+            <span className="analysis-threshold-state">Detector: {!evidence.evaluated ? "NO EVALUADO" : evidence.flagged ? "SEÑALADO" : "NO SEÑALADO"}</span>
+            <span className="analysis-review-state">Revisión: {evidence.reviewHighlighted ? "RESALTADO" : "NO RESALTADO"}</span>
             {run?.paragraphMode === "CONTEXTUAL_PARAGRAPH" && (
               <span className="analysis-context-badge">
                 {segment.classification === "INSUFFICIENT_TEXT"
@@ -1026,7 +1030,7 @@ export function AnalysisPanel({
               </dd>
             </div>
             <div>
-              <dt>Umbral</dt>
+              <dt>Umbral del detector</dt>
               <dd>{formatPercent(run.threshold)}</dd>
             </div>
             <div>
@@ -1042,15 +1046,16 @@ export function AnalysisPanel({
               <dd>{cacheHitLabel}</dd>
             </div>
             <div>
-              <dt>Revisión por umbral</dt>
+              <dt>Estado del detector</dt>
               <dd>
-                {presentationCounts?.evaluatedSegments ?? run.evaluatedSegments ?? run.scoredSegments} evaluados · {presentationCounts?.rawFlaggedCount ?? run.flaggedSegments ?? "—"} superan el umbral · {run.insufficientSegments} insuficientes
+                {presentationCounts?.evaluatedSegments ?? run.evaluatedSegments ?? run.scoredSegments} evaluados · {presentationCounts?.rawFlaggedCount ?? run.flaggedSegments ?? "—"} señalados por detector · {run.insufficientSegments} insuficientes
               </dd>
             </div>
             {run.status === "COMPLETED" && <div>
-              <dt>Mostrados en revisión</dt>
-              <dd>{presentationCounts?.actionableHighlightCount ?? "—"} resaltados · {presentationCounts?.presentationExcludedFlagged ?? "—"} señalados excluidos de revisión visual</dd>
+              <dt>Resaltados para revisión</dt>
+              <dd>{reviewHighlightCount ?? "—"} resaltados · {presentationCounts?.presentationExcludedFlagged ?? "—"} señalados por detector excluidos de revisión visual</dd>
             </div>}
+            {run.status === "COMPLETED" && <div><dt>Umbral de revisión visual</dt><dd>{visualThresholdLabel}</dd></div>}
             <div>
               <dt>Agregación</dt>
               <dd className="analysis-mono">{run.documentAggregation ?? "—"}</dd>
@@ -1078,17 +1083,17 @@ export function AnalysisPanel({
               <h3>Documento para revisión</h3>
               <p>El texto conserva el orden del documento y muestra la unidad revisada por el análisis.</p>
               <p className="analysis-review-counts" aria-label="Conteos de revisión">
-                Superan el umbral: {presentationCounts?.rawFlaggedCount ?? run.flaggedSegments ?? "—"} · Mostrados en revisión: {presentationCounts?.actionableHighlightCount ?? reviewFlaggedSegments.length} · Señalados excluidos de revisión visual: {presentationCounts?.presentationExcludedFlagged ?? "—"}
+                Señalados por detector: {presentationCounts?.rawFlaggedCount ?? run.flaggedSegments ?? "—"} · Resaltados para revisión: {reviewHighlightCount ?? reviewFlaggedSegments.length} · Señalados por detector excluidos de revisión visual: {presentationCounts?.presentationExcludedFlagged ?? "—"}
               </p>
             </div>
-            <nav className="analysis-review-navigation" aria-label="Navegación por señalados">
+            <nav className="analysis-review-navigation" aria-label="Navegación por resaltados para revisión">
               <button className="button button-quiet" type="button" disabled={!reviewFlaggedSegments.length} onClick={() => navigateFlagged(-1)}>
                 Anterior
               </button>
               <span aria-live="polite">
                 {reviewFlaggedSegments.length
-                  ? `Señalado ${visibleFlaggedIndex + 1} de ${reviewFlaggedSegments.length}`
-                  : "Sin segmentos accionables"}
+                  ? `Resaltado ${visibleFlaggedIndex + 1} de ${reviewFlaggedSegments.length}`
+                  : "Sin resaltados para revisión"}
               </span>
               <button className="button button-quiet" type="button" disabled={!reviewFlaggedSegments.length} onClick={() => navigateFlagged(1)}>
                 Siguiente
@@ -1117,7 +1122,8 @@ export function AnalysisPanel({
           {reviewDocument.data && !reviewDocument.data.stale && (
             <>
               <div className="analysis-review-legend" aria-label="Leyenda de resaltados">
-                <span><i className="review-legend-high" /> Score igual o superior al umbral guardado de esta corrida</span>
+                <span><i className="review-legend-high" /> Señal local {visualThresholdLabel}: resaltado para revisión</span>
+                <span>El criterio visual es independiente del umbral de clasificación del modelo.</span>
               </div>
               <div className="analysis-review-document" aria-label="Texto completo en orden documental">
                 {reviewBlocks}

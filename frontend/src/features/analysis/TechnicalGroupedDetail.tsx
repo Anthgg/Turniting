@@ -1,5 +1,6 @@
 import type { TechnicalPresentation } from "../../api/analysis";
 import { technicalPercentage } from "./technical-presentation-utils";
+import { isReviewHighlightedDecision, reviewThresholdLabel } from "./review-presentation";
 
 function sourceRange(indices: number[]) {
   if (!indices.length) return "Sin índices";
@@ -21,6 +22,7 @@ export function TechnicalGroupedDetail({
         {presentation.counts.totalSegments} segmentos detectados · {presentation.counts.evaluatedSegments} evaluados · {presentation.counts.insufficientSegments} insuficientes · {presentation.counts.structuralGroups} grupos estructurales.
         Los porcentajes pertenecen a cada segmento evaluado; los grupos no tienen un score agregado.
       </p>
+      <p className="analysis-notice">Umbral de revisión visual: {reviewThresholdLabel(presentation)}. El estado del detector conserva el umbral científico de cada segmento.</p>
       <ol className="analysis-technical-units">
         {presentation.displayUnits.map((unit) => {
           const evaluatedBody = unit.type === "EVALUATED_SEGMENT";
@@ -37,7 +39,7 @@ export function TechnicalGroupedDetail({
                   {!evaluatedBody && <strong>Scores técnicos internos</strong>}
                   {unit.evaluatedSegments.map((member) => (
                     <div key={String(member.sourceSegmentId)} data-source-segment-id={member.sourceSegmentId}>
-                      <span>SEGMENTO {member.paragraphIndex + 1} · <b>{technicalPercentage(member.score)}</b> · {member.flagged ? "SEÑALADO" : "NO SEÑALADO"}{member.threshold !== null ? ` · Umbral ${technicalPercentage(member.threshold)}` : ""}</span>
+                      <span>SEGMENTO {member.paragraphIndex + 1} · <b>{technicalPercentage(member.score)}</b> · Detector: {member.flagged ? "SEÑALADO" : "NO SEÑALADO"}{member.threshold !== null ? ` · Umbral del detector ${technicalPercentage(member.threshold)}` : ""} · Revisión: {isReviewHighlightedDecision({ ...member, evaluated: true }) ? "RESALTADO" : "NO RESALTADO"}</span>
                       {member.presentationExcluded && <small>EXCLUIDO DE REVISIÓN VISUAL{member.excludedReason ? ` · ${member.excludedReason}` : ""}</small>}
                       {!member.presentationExcluded && <button className="analysis-text-toggle" type="button" onClick={() => onReview(member.paragraphIndex)}>Ver en Revisión</button>}
                     </div>

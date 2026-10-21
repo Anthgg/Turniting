@@ -192,7 +192,7 @@ export function ReportExportPanel({
       variant: "AI_ORIGINAL_REVIEW" as const,
       title: "Revisión sobre documento original",
       action: "revisión original",
-      description: "Conserva la maquetación del archivo y señala los párrafos que alcanzan el umbral aplicado.",
+      description: "Conserva la maquetación del archivo y resalta los segmentos evaluados que cumplen el criterio de revisión visual, independiente del umbral del detector.",
       report: selectedOriginalReport,
     },
     {

@@ -1,0 +1,130 @@
+{
+  "status": "PASS",
+  "phase": "F009_4_3_VISUAL_REVIEW_THRESHOLD",
+  "syntheticFixture": "F00943_SYNTHETIC_BROWSER_QA",
+  "privateDocumentUsed": false,
+  "inferenceExecuted": false,
+  "documentId": "3c806bdb-b4d4-4d59-bd1b-ece0dda302b7",
+  "documentVersionId": "ad18f824-e2c8-4e44-82c0-48fc348efc44",
+  "analysisRunId": "5e416ea5-3cc3-432b-addd-d2efe7ecdaa0",
+  "sourceChecksum": "da5872c773d38400377a7cbce378f8729aa1e9201b03cac4351af72050de8f6b",
+  "scientific": {
+    "globalScore": 0.434,
+    "threshold": 0.59,
+    "modelNames": [
+      "SYNTHETIC_F00943_PERSISTED_SCORES"
+    ],
+    "flaggedCount": 2,
+    "flaggedSegmentIds": [
+      5,
+      6
+    ]
+  },
+  "presentation": {
+    "reviewHighlightThreshold": 0.2,
+    "reviewHighlightComparator": "GT",
+    "presentationPolicyVersion": "f00943-review-gt20-v1",
+    "reviewHighlightedCount": 5,
+    "reviewHighlightedSegmentIds": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "actualOriginalOverlaySegmentIds": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "actualOverlayRectangles": 15
+  },
+  "reports": [
+    {
+      "id": "9e90b66c-6bc8-4693-97d7-d858d10869bf",
+      "type": "AI_ORIGINAL_REVIEW",
+      "generationVersion": "f00943-original-review-gt20-v1",
+      "sha256": "71e04b4bf7b6f96db038a917f5576146437329e24673e790097fe1451d8061ce",
+      "pages": 2,
+      "snapshotPolicy": {
+        "reviewHighlightedCount": 5,
+        "scientificFlaggedCount": 2,
+        "reviewHighlightThreshold": 0.2,
+        "presentationPolicyVersion": "f00943-review-gt20-v1",
+        "reviewHighlightComparator": "GT",
+        "reviewHighlightedSegmentIds": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "scientificSnapshotDigest": "25ac3ca765b644f66865f535eaf46af3b597029feeda873daf82dfda3e372f86"
+    },
+    {
+      "id": "ab897c41-cc03-44ba-ae29-b93f9698636a",
+      "type": "AI_PARAGRAPH_TECHNICAL",
+      "generationVersion": "f00943-paragraph-technical-review-gt20-v1",
+      "sha256": "671dcc4dc0ad7c71915012bb2a5c55b9e6a20b5c66803c7e7f10a8dae6321bff",
+      "pages": 3,
+      "snapshotPolicy": {
+        "reviewHighlightedCount": 5,
+        "scientificFlaggedCount": 2,
+        "reviewHighlightThreshold": 0.2,
+        "presentationPolicyVersion": "f00943-review-gt20-v1",
+        "reviewHighlightComparator": "GT",
+        "reviewHighlightedSegmentIds": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "scientificSnapshotDigest": "25ac3ca765b644f66865f535eaf46af3b597029feeda873daf82dfda3e372f86"
+    }
+  ],
+  "integrity": {
+    "readOnlyDatabaseQueries": true,
+    "sourceStreamsPreserved": 1,
+    "sourcePages": 1,
+    "noNestedReports": true,
+    "originalSourcePageLocalPercentages": false,
+    "technicalScoresAndStatesExact": true,
+    "webPdfActualOverlayParity": true,
+    "scientificAndSourceDigestsUnchanged": true,
+    "before": {
+      "run": "2b325f1f2a987dad140f71f6a6d390efadc41ee22ae4972790da3e7e12781edf",
+      "sourceVersion": "d930fad43154142d4bbb96ee3c325463c43195e27fac1b46d9479f1b06d847d9",
+      "segments": "25b36b168a5ef420efec2e404926a1f713ca83bb547d8e8013fe228dd26097e8",
+      "models": "44f767038d890049b4cd12986c794d910135520da2b4bad0a7f07a4b8110db31"
+    },
+    "after": {
+      "run": "2b325f1f2a987dad140f71f6a6d390efadc41ee22ae4972790da3e7e12781edf",
+      "sourceVersion": "d930fad43154142d4bbb96ee3c325463c43195e27fac1b46d9479f1b06d847d9",
+      "segments": "25b36b168a5ef420efec2e404926a1f713ca83bb547d8e8013fe228dd26097e8",
+      "models": "44f767038d890049b4cd12986c794d910135520da2b4bad0a7f07a4b8110db31"
+    }
+  },
+  "visualInspection": {
+    "renderer": "Poppler pdftoppm",
+    "resolutionDpi": 96,
+    "originalPagesInspected": 2,
+    "technicalPagesInspected": 3,
+    "clippingOrOverlapObserved": false,
+    "sourceHighlightsVisible": [
+      "P3",
+      "P4",
+      "P5",
+      "P6",
+      "P7"
+    ],
+    "exact20NotHighlighted": true,
+    "originalSourcePageLocalPercentagesVisible": false,
+    "technicalLocalScoresAndSeparateStatesVisible": true,
+    "localArtifacts": "debug/f00943-browser/audited-pdfs"
+  }
+}

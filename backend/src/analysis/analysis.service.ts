@@ -22,6 +22,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { buildTechnicalDisplayUnits, isTechnicalEvaluated, isTechnicalFlagged, isPresentationExcluded, TECHNICAL_UNIT_LABELS } from '../reports/technical-display.js';
 import type { AIReportParagraph } from '../reports/report.contracts.js';
 import { presentationStructureHint } from './presentation-structure.js';
+import { REVIEW_PRESENTATION_POLICY } from './review-highlight-policy.js';
+import { isReviewHighlighted } from '../reports/technical-display.js';
 import type { AnalysisSegmentsQueryDto, AnalyzeDocumentDto, CompareAnalysesDto } from './dto/analysis.dto.js';
 
 export const ANALYZER_VERSION = 'f005-local-analyzer-v1';
@@ -509,8 +511,13 @@ export class AnalysisService {
     const pageSize = query?.pageSize ?? 20;
     const total = segments.length;
     if (paginated) segments = segments.slice((page - 1) * pageSize, page * pageSize);
+    const reviewEvidence = !stale && reviewContext
+      ? reviewSegments.map(segment => getReviewEvidence(segment, run.threshold, reviewContext!)) : [];
     return {
       analysisId: run.id,
+      ...REVIEW_PRESENTATION_POLICY,
+      scientificFlaggedCount: reviewEvidence.filter(segment => segment.flagged).length,
+      reviewHighlightedCount: reviewEvidence.filter(segment => segment.reviewHighlighted).length,
       stale,
       spanEvidenceSupported: false,
       spanEvidenceGranularity: 'PARAGRAPH',
@@ -528,6 +535,7 @@ export class AnalysisService {
           ? {
               evaluated: false,
               flagged: false,
+              reviewHighlighted: false,
               score: s.calibratedScore,
               threshold: run.threshold,
               presentationExcluded: true,
@@ -577,14 +585,15 @@ export class AnalysisService {
       structuralGroups: presentation.counts.structuralGroups, groupingMs: Math.round(groupingMs * 100) / 100 }));
     return {
       analysisRunId: id,
+      ...REVIEW_PRESENTATION_POLICY,
       counts: { ...presentation.counts, evaluatedSegments: presentation.counts.evaluated,
         insufficientSegments: presentation.counts.insufficient },
       audit: presentation.audit,
-      actionableParagraphIndices: paragraphs.filter(segment => isTechnicalFlagged(segment, threshold) && !isPresentationExcluded(segment)).map(segment => segment.paragraphIndex),
+      actionableParagraphIndices: paragraphs.filter(isReviewHighlighted).map(segment => segment.paragraphIndex),
       referenceAudit: { referenceSectionStartSegment: references[0]?.paragraphIndex ?? null,
         referenceSegmentsCount: references.length,
         referenceRawFlagged: references.filter(segment => isTechnicalFlagged(segment, threshold)).length,
-        referenceActionableHighlights: references.filter(segment => isTechnicalFlagged(segment, threshold) && !isPresentationExcluded(segment)).length },
+        referenceActionableHighlights: references.filter(isReviewHighlighted).length },
       metrics: { groupingMs, heapDeltaBytes },
       displayUnits: presentation.units.map(unit => ({
         id: unit.id, type: unit.type, label: unit.type === 'EVALUATED_SEGMENT' && unit.sourceSegments[0]?.kind === 'PARAGRAPH' ? 'PÁRRAFO' : TECHNICAL_UNIT_LABELS[unit.type],
@@ -595,6 +604,7 @@ export class AnalysisService {
           sourceSegmentId: segment.sourceSegmentId ?? segment.paragraphIndex,
           paragraphIndex: segment.paragraphIndex, score: segment.score!, threshold,
           flagged: isTechnicalFlagged(segment, threshold), presentationExcluded: isPresentationExcluded(segment),
+          reviewHighlighted: isReviewHighlighted(segment),
           excludedReason: segment.excludedReason, text: segment.textPreview,
         })),
       })),

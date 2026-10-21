@@ -102,6 +102,7 @@ function layoutSegment(
     charEnd: text.length,
     text,
     flagged: true,
+    reviewHighlighted: true,
     presentationExcluded: false,
     ...overrides,
   };
@@ -390,7 +391,7 @@ describe('original document layout mapping', () => {
       pageIndexes: [2],
     });
     expect(result.segments[2]).toMatchObject({
-      mappingStatus: 'FLAGGED_NOT_VISUALLY_LOCATED',
+      mappingStatus: 'REVIEW_HIGHLIGHT_NOT_VISUALLY_LOCATED',
       rectangles: [],
       mappingConfidence: 0,
     });
@@ -447,7 +448,7 @@ describe('original document layout mapping', () => {
     });
     expect(result.segments[0]!.rectangles).toHaveLength(2);
     expect(result.segments[1]).toMatchObject({
-      mappingStatus: 'FLAGGED_NOT_VISUALLY_LOCATED',
+      mappingStatus: 'REVIEW_HIGHLIGHT_NOT_VISUALLY_LOCATED',
       rectangles: [],
     });
   });
@@ -602,8 +603,8 @@ describe('OriginalDocumentRenderer PDF integration', () => {
         ).toBeGreaterThan(0);
         expect(
           yellowPixelCount(rasterPages[1]!, ensured.layoutMap.segments[2]!.rectangles),
-          'a score below the exact threshold should not highlight the first column on source page 3',
-        ).toBe(0);
+          'a score above the visual threshold highlights even below the scientific threshold',
+        ).toBeGreaterThan(0);
         expect(
           yellowPixelCount(rasterPages[1]!, ensured.layoutMap.segments[3]!.rectangles),
           'a score equal to the exact threshold should highlight the second column on source page 3',

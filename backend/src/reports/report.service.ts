@@ -36,6 +36,8 @@ import { OriginalDocumentRenderer } from './original-document-renderer.js';
 import { resolveAnalysisSource, type ResolvedAnalysisSource } from './analysis-source.js';
 import { stampTurnitingReport } from './report-pdf-metadata.js';
 import { presentationStructureHint } from '../analysis/presentation-structure.js';
+import { REVIEW_PRESENTATION_POLICY } from '../analysis/review-highlight-policy.js';
+import { isReviewHighlighted, isTechnicalFlagged } from './technical-display.js';
 import {
   AI_ORIGINAL_REVIEW_RENDERER_VERSION,
   AI_PARAGRAPH_TECHNICAL_RENDERER_VERSION,
@@ -1003,10 +1005,8 @@ export class ReportService {
             charStart: paragraph.charStart,
             charEnd: paragraph.charEnd,
             text: paragraph.textPreview,
-            flagged:
-              input.run.threshold !== null &&
-              paragraph.score !== null &&
-              paragraph.score >= input.run.threshold,
+            flagged: isTechnicalFlagged(paragraph, input.run.threshold),
+            reviewHighlighted: isReviewHighlighted(paragraph),
             presentationExcluded: Boolean(
               paragraph.presentationExcluded ||
                 paragraph.reviewPresentation.excludedReason,
@@ -1243,6 +1243,12 @@ function sha256(value: string | Buffer): string {
 function reportSnapshot(input: Omit<AIReportInput, 'reportId'>, run: AnalysisRunForReport): Prisma.InputJsonValue {
   return {
     version: 'f00941-analysis-source-v1',
+    presentation: {
+      ...REVIEW_PRESENTATION_POLICY,
+      scientificFlaggedCount: input.paragraphs.filter(p => isTechnicalFlagged(p, input.run.threshold)).length,
+      reviewHighlightedCount: input.paragraphs.filter(isReviewHighlighted).length,
+      reviewHighlightedSegmentIds: input.paragraphs.filter(isReviewHighlighted).map(p => p.paragraphIndex),
+    },
     source: {
       sourceArtifactType: 'DOCUMENT_VERSION',
       documentId: input.document.id,

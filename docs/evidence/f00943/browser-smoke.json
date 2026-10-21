@@ -1,0 +1,192 @@
+{
+  "phase": "F009_4_3",
+  "capturedAt": "2026-10-21T03:19:56.113Z",
+  "syntheticDocumentId": "3c806bdb-b4d4-4d59-bd1b-ece0dda302b7",
+  "analysisRunId": "5e416ea5-3cc3-432b-addd-d2efe7ecdaa0",
+  "webReviewIds": [
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "scientificFlagIds": [
+    5,
+    6
+  ],
+  "reviewCount": 5,
+  "scientificCount": 2,
+  "navigation": [
+    [
+      "        - generic: Resaltado 1 de 5",
+      "            - heading \"Párrafo 3\" [level=4]",
+      "            - term: Estado del detector"
+    ],
+    [
+      "        - generic: Resaltado 2 de 5",
+      "            - heading \"Párrafo 4\" [level=4]",
+      "            - term: Estado del detector"
+    ],
+    [
+      "        - generic: Resaltado 3 de 5",
+      "            - heading \"Párrafo 5\" [level=4]",
+      "            - term: Estado del detector"
+    ],
+    [
+      "        - generic: Resaltado 4 de 5",
+      "            - heading \"Párrafo 6\" [level=4]",
+      "            - term: Estado del detector"
+    ],
+    [
+      "        - generic: Resaltado 5 de 5",
+      "            - heading \"Párrafo 7\" [level=4]",
+      "            - term: Estado del detector"
+    ]
+  ],
+  "generateBoth": true,
+  "previewOriginal": true,
+  "previewTechnical": true,
+  "downloads": {
+    "original": "turniting_original-review_visual-review-threshold-fixture_3c806bdb_2026-10-21.pdf",
+    "technical": "turniting_paragraph-technical_visual-review-threshold-fixture_3c806bdb_2026-10-21.pdf"
+  },
+  "regenerateOriginal": true,
+  "regenerateTechnical": true,
+  "consoleErrors": 0,
+  "iab": {
+    "responses": [
+      {
+        "url": "http://127.0.0.1:8080/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/assets/index-CiIjHDZm.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/assets/index-Bhj9r1sQ.js",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/turnitin/reports?page=1&limit=100",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/documents?page=1&limit=5",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/favicon.svg",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/pages",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/analyses",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/models",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/analyses/5e416ea5-3cc3-432b-addd-d2efe7ecdaa0/segments?page=1&pageSize=20&sort=PARAGRAPH&filter=ALL",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/analyses/5e416ea5-3cc3-432b-addd-d2efe7ecdaa0/technical-presentation",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/analyses/5e416ea5-3cc3-432b-addd-d2efe7ecdaa0/segments?includeDocumentText=true",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports/ai/both",
+        "status": 201
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/reports/fe3f9030-cd79-4765-91db-ee2b5cf144a2",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/reports/fe3f9030-cd79-4765-91db-ee2b5cf144a2/preview",
+        "status": 200
+      },
+      {
+        "url": "chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/pdf_embedder.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/reports/fe3f9030-cd79-4765-91db-ee2b5cf144a2/download",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/reports/5618dc2d-ccf8-482b-8fc1-ade06e1b79f1",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/reports/5618dc2d-ccf8-482b-8fc1-ade06e1b79f1/preview",
+        "status": 200
+      },
+      {
+        "url": "chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/pdf_embedder.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/reports/5618dc2d-ccf8-482b-8fc1-ade06e1b79f1/download",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/reports/fe3f9030-cd79-4765-91db-ee2b5cf144a2/regenerate",
+        "status": 201
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/reports/5618dc2d-ccf8-482b-8fc1-ade06e1b79f1/regenerate",
+        "status": 201
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:8080/api/documents/3c806bdb-b4d4-4d59-bd1b-ece0dda302b7/reports",
+        "status": 200
+      }
+    ],
+    "httpErrors": 0,
+    "previewClientBlocks": 2
+  },
+  "chrome": {
+    "nativePdfPreviewsVisuallyVerified": true,
+    "consoleErrors": 0,
+    "cdpNetworkTruncated": true
+  },
+  "privateDocumentUsed": false
+}

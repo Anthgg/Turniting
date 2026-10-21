@@ -31,9 +31,10 @@ import {
 } from 'pdf-lib';
 import { StorageService } from '../documents/storage.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { REVIEW_HIGHLIGHT_THRESHOLD } from '../analysis/review-highlight-policy.js';
+import { isPresentationExcluded, isReviewHighlighted, isTechnicalEvaluated, isTechnicalFlagged } from './technical-display.js';
 import type {
   AIReportInput,
-  AIReportParagraph,
 } from './report.contracts.js';
 import {
   LAYOUT_EXTRACTION_ENGINE,
@@ -48,7 +49,7 @@ import {
 } from './report-storage.js';
 
 const MAPPING_ENGINE = 'sequential-exact-token-matching';
-const MAPPING_VERSION = 'f00941-source-bound-sequential-mapping-v1';
+const MAPPING_VERSION = 'f00943-source-bound-sequential-mapping-v2';
 const MAPPING_MIN_COVERAGE = 0.95;
 const MAPPING_MIN_CONFIDENCE = 0.98;
 const execFileAsync = promisify(execFile);
@@ -60,6 +61,7 @@ export interface LayoutSegmentInput {
   charEnd: number;
   text: string;
   flagged: boolean;
+  reviewHighlighted?: boolean;
   presentationExcluded: boolean;
 }
 
@@ -84,6 +86,7 @@ export interface DocumentLayoutSegment {
     | 'LOCATED'
     | 'UNLOCATED'
     | 'FLAGGED_NOT_VISUALLY_LOCATED'
+    | 'REVIEW_HIGHLIGHT_NOT_VISUALLY_LOCATED'
     | 'PRESENTATION_EXCLUDED';
 }
 
@@ -235,7 +238,7 @@ export class OriginalDocumentRenderer {
     );
     for (const mapped of layoutMap.segments) {
       const paragraph = paragraphs.get(mapped.segmentId);
-      if (!paragraph || !isActionablyFlagged(paragraph, input.run.threshold)) {
+      if (!paragraph || !isReviewHighlighted(paragraph)) {
         continue;
       }
       if (
@@ -384,6 +387,7 @@ export class OriginalDocumentRenderer {
       segment.charStart,
       segment.charEnd,
       segment.flagged,
+      segment.reviewHighlighted === true,
       segment.presentationExcluded,
     ]);
     const cacheKey = digest(
@@ -651,24 +655,25 @@ export class OriginalDocumentRenderer {
       color: ink,
     });
 
-    const evaluated = input.paragraphs.filter(
-      (paragraph) => paragraph.score !== null,
-    ).length;
-    const flagged = input.paragraphs.filter((paragraph) =>
-      isActionablyFlagged(paragraph, input.run.threshold),
-    ).length;
+    const evaluated = input.paragraphs.filter(isTechnicalEvaluated).length;
+    const highlighted = input.paragraphs.filter(isReviewHighlighted).length;
     const rawFlagged = input.paragraphs.filter((paragraph) =>
-      isFlaggedByThreshold(paragraph, input.run.threshold),
+      isTechnicalFlagged(paragraph, input.run.threshold),
+    ).length;
+    const excludedFlagged = input.paragraphs.filter((paragraph) =>
+      isTechnicalFlagged(paragraph, input.run.threshold) && isPresentationExcluded(paragraph),
     ).length;
     const summary = [
       ['Documento', input.document.filename],
       ['Señal global estimada', formatPercent(input.run.documentScore)],
-      ['Umbral aplicado', formatPercent(input.run.threshold)],
+      ['Umbral detector', formatPercent(input.run.threshold)],
+      ['Umbral revisión visual', `>${formatPercent(REVIEW_HIGHLIGHT_THRESHOLD)}`],
+      ['Modelo', input.run.modelNames.join(' + ') || input.run.analyzerMode],
       ['Segmentos totales', String(input.paragraphs.length)],
       ['Segmentos evaluados', String(evaluated)],
       ['Señalados por detector', String(rawFlagged)],
-      ['Resaltados para revisión', String(flagged)],
-      ['Señalados excluidos', String(rawFlagged - flagged)],
+      ['Resaltados para revisión', String(highlighted)],
+      ['Señalados excluidos', String(excludedFlagged)],
       [
         'Fecha',
         input.generatedAt.toLocaleString('es-PE', {
@@ -686,18 +691,20 @@ export class OriginalDocumentRenderer {
         color: muted,
       });
       page.drawText(value, {
-        x: 205,
+        x: 220,
         y,
         size: 10,
         font: regular,
         color: ink,
-        maxWidth: 345,
+        maxWidth: 330,
       });
       y -= 32;
     }
     const notice =
       'Turniting proporciona una estimación probabilística independiente. No constituye un reporte oficial de Turnitin ni prueba por sí solo la autoría o el uso de inteligencia artificial.';
-    drawWrappedText(page, notice, regular, 56, 340, 500, 10, 15, muted);
+    drawWrappedText(page, notice, regular, 56, 288, 500, 10, 15, muted);
+    const reviewNotice = `El resaltado visual se aplica a segmentos evaluados con una señal local superior al ${formatPercent(REVIEW_HIGHLIGHT_THRESHOLD)}. Este criterio de revisión es independiente del umbral de clasificación del modelo.`;
+    drawWrappedText(page, reviewNotice, regular, 56, 220, 500, 10, 15, muted);
   }
 }
 
@@ -756,8 +763,8 @@ export function mapSegments(
         ? segment.presentationExcluded
           ? 'PRESENTATION_EXCLUDED'
           : 'LOCATED'
-        : segment.flagged && !segment.presentationExcluded
-          ? 'FLAGGED_NOT_VISUALLY_LOCATED'
+        : segment.reviewHighlighted === true && !segment.presentationExcluded
+          ? 'REVIEW_HIGHLIGHT_NOT_VISUALLY_LOCATED'
           : 'UNLOCATED',
     });
     if (located && matchedIndexes) {
@@ -1015,28 +1022,6 @@ function toPdfRectangle(
     width,
     height,
   };
-}
-
-function isActionablyFlagged(
-  paragraph: AIReportParagraph,
-  threshold: number | null,
-): boolean {
-  return (
-    !paragraph.presentationExcluded &&
-    !paragraph.reviewPresentation.excludedReason &&
-    isFlaggedByThreshold(paragraph, threshold)
-  );
-}
-
-function isFlaggedByThreshold(
-  paragraph: AIReportParagraph,
-  threshold: number | null,
-): boolean {
-  return (
-    threshold !== null &&
-    paragraph.score !== null &&
-    paragraph.score >= threshold
-  );
 }
 
 function drawWrappedText(

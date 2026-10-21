@@ -5,6 +5,7 @@ export interface ReviewTextSpan {
 
 export interface ReviewTextEvidence {
   flagged: boolean;
+  reviewHighlighted?: boolean;
   presentationExcluded: boolean;
   granularity: "PARAGRAPH" | "SPAN";
   paragraphFlagged: boolean;
@@ -29,7 +30,7 @@ export function splitReviewText(
   evidence?: ReviewTextEvidence,
   paragraphCharStart = 0,
 ): ReviewTextPart[] {
-  if (!evidence || !evidence.flagged || evidence.presentationExcluded) {
+  if (!evidence || evidence.reviewHighlighted !== true || evidence.presentationExcluded) {
     return [{ text, highlighted: false }];
   }
 
@@ -66,9 +67,7 @@ export function splitReviewText(
 
   const ranges = usableSpans.length > 0
     ? usableSpans
-    : evidence.paragraphFlagged
-      ? [{ startChar: 0, endChar: text.length }]
-      : [];
+    : [{ startChar: 0, endChar: text.length }];
   const ordered = [...ranges]
     .map((span) => ({ ...span }))
     .sort((left, right) => left.startChar - right.startChar || left.endChar - right.endChar);

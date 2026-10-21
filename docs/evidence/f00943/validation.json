@@ -1,0 +1,53 @@
+{
+  "phase": "F009_4_3_VISUAL_REVIEW_THRESHOLD",
+  "baseCommit": "d3da82f9025f65144b71c49e69b2d3a4204468e2",
+  "backend": {
+    "passed": 278,
+    "files": 25
+  },
+  "backendE2e": {
+    "passed": 33,
+    "files": 4
+  },
+  "pdfSubset": {
+    "passed": 29,
+    "skipped": 0
+  },
+  "frontend": {
+    "passed": 78,
+    "files": 14
+  },
+  "aiRegression": {
+    "inferenceCodeChanged": false,
+    "skipped": 1,
+    "passed": 73
+  },
+  "build": {
+    "backend": "PASS",
+    "frontend": "PASS",
+    "docker": "PASS"
+  },
+  "lint": {
+    "backend": "PASS_WITH_EXISTING_WARNING",
+    "newWarnings": 0,
+    "frontend": "PASS_WITH_EXISTING_WARNING",
+    "aiRuff": "PASS"
+  },
+  "scientificThresholdChanged": false,
+  "scientificFlagLogicChanged": false,
+  "analysisRunUpdated": false,
+  "training": false,
+  "datasetsChanged": false,
+  "weightsChanged": false,
+  "privateDocumentUsedInAutomatedTests": false,
+  "reviewHighlightThreshold": 0.2,
+  "reviewHighlightComparator": "GT",
+  "presentationPolicyVersion": "f00943-review-gt20-v1",
+  "independentCodeReview": "NO_ACTIONABLE_FINDINGS",
+  "testIsolation": "backend and e2e in --network none temporary container with read-only source and manifest mounts; synthetic fixtures and mocks",
+  "syntheticPresentationMetrics": {
+    "heapDeltaBytes": 7968,
+    "groupingMs": 0.12453399994410574,
+    "sourceSegments": 7
+  }
+}

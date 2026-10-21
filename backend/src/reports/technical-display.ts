@@ -1,4 +1,5 @@
 import type { AIReportParagraph } from './report.contracts.js';
+import { shouldHighlightForReview } from '../analysis/review-highlight-policy.js';
 
 export type TechnicalDisplayUnitType = 'EVALUATED_SEGMENT' | 'INSUFFICIENT_SEGMENT' |
   'STRUCTURAL_GROUP' | 'REFERENCE_GROUP' | 'TABLE_GROUP' | 'METADATA_GROUP' | 'CAPTION_GROUP' | 'HEADING_GROUP';
@@ -32,6 +33,11 @@ export function isTechnicalFlagged(segment: AIReportParagraph, threshold: number
 
 export function isPresentationExcluded(segment: AIReportParagraph): boolean {
   return segment.reviewEvidence?.presentationExcluded ?? segment.presentationExcluded ?? Boolean(segment.reviewPresentation.excludedReason);
+}
+
+export function isReviewHighlighted(segment: AIReportParagraph): boolean {
+  return shouldHighlightForReview({ evaluated: isTechnicalEvaluated(segment), score: segment.score,
+    presentationExcluded: isPresentationExcluded(segment) });
 }
 
 function category(segment: AIReportParagraph): TechnicalDisplayUnitType {
@@ -106,8 +112,10 @@ export function buildTechnicalDisplayUnits(
   const rawFlaggedCount = ordered.filter(segment => isTechnicalFlagged(segment, options.threshold)).length;
   const presentationExcludedFlagged = ordered.filter(segment => isTechnicalFlagged(segment, options.threshold) && isPresentationExcluded(segment)).length;
   const structuralGroups = units.filter(unit => unit.type.endsWith('_GROUP')).length;
+  const reviewHighlightedCount = ordered.filter(isReviewHighlighted).length;
   const counts = { totalSegments: ordered.length, evaluated, insufficient: ordered.length - evaluated,
-    rawFlaggedCount, presentationExcludedFlagged, actionableHighlightCount: rawFlaggedCount - presentationExcludedFlagged,
+    rawFlaggedCount, scientificFlaggedCount: rawFlaggedCount, presentationExcludedFlagged,
+    actionableHighlightCount: reviewHighlightedCount, reviewHighlightedCount,
     structuralGroups, evaluatedDisplayUnits: evaluated };
   const audit = { sourceSegmentsTotal: ordered.length, sourceSegmentsRepresented: unique.size,
     sourceSegmentsLost: ordered.filter(segment => !unique.has(segment.paragraphIndex)).length,

@@ -71,7 +71,7 @@ describe('F009.4.2 technical display transform', () => {
     expect(buildTechnicalDisplayUnits(tables.paragraphs, tables.options).units).toHaveLength(2);
   });
 
-  it('distinguishes six detector flags from four actionable highlights, preserving every exact value', () => {
+  it('distinguishes six detector flags from six visual highlights, preserving every exact value', () => {
     const input = fixture([
       ...[.80, .20, .61, .40, .90, .10, .58, .59].map((score, index) => ({ textPreview: `Synthetic evaluated body ${index}`, score })),
       { textPreview: 'Autor: Example Test', score: .95, presentationExcluded: true, excludedReason: 'METADATA' },
@@ -79,7 +79,7 @@ describe('F009.4.2 technical display transform', () => {
     ]);
     const before = JSON.stringify(input);
     const output = buildTechnicalDisplayUnits(input.paragraphs, input.options);
-    expect(output.counts).toMatchObject({ totalSegments: 10, evaluated: 10, rawFlaggedCount: 6, presentationExcludedFlagged: 2, actionableHighlightCount: 4 });
+    expect(output.counts).toMatchObject({ totalSegments: 10, evaluated: 10, rawFlaggedCount: 6, presentationExcludedFlagged: 2, actionableHighlightCount: 6, reviewHighlightedCount: 6 });
     expect(output.units.flatMap(unit => unit.sourceSegmentIds)).toEqual(input.paragraphs.map(segment => segment.paragraphIndex));
     expect(output.units.filter(unit => unit.type === 'EVALUATED_SEGMENT')).toHaveLength(8);
     expect(JSON.stringify(input)).toBe(before);

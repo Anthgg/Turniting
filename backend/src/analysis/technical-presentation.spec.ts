@@ -186,6 +186,29 @@ describe('read-only technical presentation endpoint', () => {
     expect(capturedLogs.join('\n')).not.toContain('Smith');
   });
 
+  it.each(['ENSEMBLE_V2_V3', 'F006.1', 'F006.1.1', 'FUTURE_MOCK_MODEL'])('returns identical five visual highlights for model %s with two scientific flags', async model => {
+    const scores = [.10, .20, .21, .35, .58, .59, .83];
+    const run = { ...fixture(scores.map((score, index) => ({
+      text: `El segmento sintético ${index + 1} contiene un párrafo completo para comprobar la política visual.`,
+      score, kind: 'PARAGRAPH',
+    }))), analyzerVersion: model };
+    const before = structuredClone(run);
+    prisma.analysisRun.findUnique.mockResolvedValue(run);
+    const web = await service.getSegments(RUN, { includeDocumentText: true });
+    const pdfPresentation = await service.getTechnicalPresentation(RUN);
+    expect(web).toMatchObject({ reviewHighlightComparator: 'GT', presentationPolicyVersion: 'f00943-review-gt20-v1',
+      scientificFlaggedCount: 2, reviewHighlightedCount: 5 });
+    expect(web.items.filter(item => item.evidence.flagged).map(item => item.paragraphIndex)).toEqual([5, 6]);
+    expect(web.items.filter(item => item.reviewPresentation.highlight).map(item => item.paragraphIndex)).toEqual([2, 3, 4, 5, 6]);
+    expect(pdfPresentation.actionableParagraphIndices).toEqual([2, 3, 4, 5, 6]);
+    expect(pdfPresentation.counts).toMatchObject({ scientificFlaggedCount: 2, reviewHighlightedCount: 5 });
+    expect(pdfPresentation.displayUnits.flatMap(unit => unit.evaluatedSegments).map(item => item.reviewHighlighted))
+      .toEqual([false, false, true, true, true, true, true]);
+    expect(run).toEqual(before);
+    expect(ai.analyzeParagraphs).not.toHaveBeenCalled();
+    expect(prisma.analysisRun.update).not.toHaveBeenCalled();
+  });
+
   it('propagates the existing stale-source guard without producing grouped output or invoking AI', async () => {
     const run = standardFixture();
     prisma.analysisRun.findUnique.mockResolvedValue({ ...run, textHash: sha256('different synthetic source') });

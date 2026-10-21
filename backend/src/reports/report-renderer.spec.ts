@@ -409,7 +409,7 @@ describe('ReportRenderer', () => {
     expect(content).toContain('noevaluado');
     expect(content).toContain('reference_section');
     expect(content).toContain('sin calcular un score agregado'.replace(/\s+/gu, ''));
-    expect(content).not.toContain('0.0%');
+    expect(content).not.toContain('senallocalestimada:0.0%');
   });
 
   it('renders compact reports for one-page source documents with five paragraphs and longer documents with thirty', async () => {
@@ -525,7 +525,7 @@ describe('ReportRenderer', () => {
       expect(position, phrase).toBeLessThan(text.length);
       previous = position;
     }
-    expect(reviewText).toContain('resaltado:segmentoigualosuperioralumbralaplicado');
+    expect(reviewText).toContain('resaltado:senallocal>20.0%,independientedelumbraldeldetector');
     expect(text).not.toContain('91.9%');
     expect(text).not.toContain('49.1%');
     expect(text).not.toContain('24.1%');

@@ -63,7 +63,7 @@ export function ReportDetailPanel({
           <div><dt>Profile</dt><dd>{detail.data.run?.thresholdProfile ?? "No disponible"}</dd></div>
           <div><dt>Paragraph mode</dt><dd>{detail.data.run?.paragraphMode ?? "No disponible"}</dd></div>
           <div><dt>Señal global estimada</dt><dd>{reportScoreLabel(detail.data.run?.globalScore)}</dd></div>
-          <div><dt>Umbral aplicado</dt><dd>{reportScoreLabel(detail.data.run?.threshold)}</dd></div>
+          <div><dt>Umbral del detector</dt><dd>{reportScoreLabel(detail.data.run?.threshold)}</dd></div>
           <div><dt>Generado</dt><dd>{dateLabel(detail.data.generatedAt)}</dd></div>
           <div><dt>Expira</dt><dd>{dateLabel(detail.data.expiresAt)}</dd></div>
           <div><dt>Estado</dt><dd>{detail.data.status === "ERROR" ? "Error" : detail.data.status}</dd></div>

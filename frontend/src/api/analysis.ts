@@ -83,6 +83,7 @@ export const reviewPresentationSchema = z.object({
 export const reviewEvidenceSchema = z.object({
   evaluated: z.boolean(),
   flagged: z.boolean(),
+  reviewHighlighted: z.boolean().optional(),
   score: nullableNumber,
   threshold: nullableNumber,
   presentationExcluded: z.boolean(),
@@ -145,6 +146,11 @@ export const analysisSegmentContextSchema = z.object({
 
 export const segmentListSchema = z.object({
   analysisId: z.string().uuid(),
+  reviewHighlightThreshold: z.number().finite().optional(),
+  reviewHighlightComparator: z.literal('GT').optional(),
+  presentationPolicyVersion: z.string().optional(),
+  reviewHighlightedCount: z.number().int().nonnegative().optional(),
+  scientificFlaggedCount: z.number().int().nonnegative().optional(),
   stale: z.boolean(),
   spanEvidenceSupported: z.boolean().optional(),
   spanEvidenceGranularity: z.enum(['PARAGRAPH', 'SPAN']).optional(),
@@ -162,6 +168,11 @@ export const segmentListSchema = z.object({
 
 export const technicalPresentationSchema = z.object({
   analysisRunId: z.string().uuid(),
+  reviewHighlightThreshold: z.number().finite().optional(),
+  reviewHighlightComparator: z.literal('GT').optional(),
+  presentationPolicyVersion: z.string().optional(),
+  reviewHighlightedCount: z.number().int().nonnegative().optional(),
+  scientificFlaggedCount: z.number().int().nonnegative().optional(),
   counts: z.object({
     totalSegments: z.number().int().nonnegative(),
     evaluatedSegments: z.number().int().nonnegative(),
@@ -169,6 +180,8 @@ export const technicalPresentationSchema = z.object({
     rawFlaggedCount: z.number().int().nonnegative(),
     presentationExcludedFlagged: z.number().int().nonnegative(),
     actionableHighlightCount: z.number().int().nonnegative(),
+    reviewHighlightedCount: z.number().int().nonnegative().optional(),
+    scientificFlaggedCount: z.number().int().nonnegative().optional(),
     structuralGroups: z.number().int().nonnegative(),
   }),
   actionableParagraphIndices: z.array(z.number().int().nonnegative()),
@@ -189,6 +202,7 @@ export const technicalPresentationSchema = z.object({
       score: z.number(),
       threshold: z.number().nullable(),
       flagged: z.boolean(),
+      reviewHighlighted: z.boolean().optional(),
       presentationExcluded: z.boolean(),
       excludedReason: z.string().nullable().optional(),
       text: z.string(),

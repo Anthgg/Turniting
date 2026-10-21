@@ -299,6 +299,11 @@ describe('ReportService', () => {
     expect(pair.originalReview.id).not.toBe(pair.paragraphTechnical.id);
     expect(h.rows).toHaveLength(2);
     expect(h.rows[0].analysisSnapshot).toEqual(h.rows[1].analysisSnapshot);
+    expect(h.rows[0].analysisSnapshot.presentation).toMatchObject({
+      reviewHighlightThreshold: .20, reviewHighlightComparator: 'GT',
+      presentationPolicyVersion: 'f00943-review-gt20-v1', scientificFlaggedCount: 0,
+      reviewHighlightedCount: 1, reviewHighlightedSegmentIds: [0],
+    });
     for (const row of h.rows) {
       expect(row).toMatchObject({ generatedBy: 'TURNITING', analysisRunId: RUN_ID, sourceDocumentId: DOCUMENT_ID, sourceDocumentVersionId: VERSION_ID, sourceChecksum: sha256(SOURCE), analysisSnapshot: { run: { id: RUN_ID, globalScore: .42, threshold: .58, modelNames: ['CANDIDATE_MODEL_V3'], segmentCount: 2 } } });
     }
@@ -376,7 +381,7 @@ describe('ReportService', () => {
     expect(input.paragraphs[0]).toMatchObject({
       score: 0.42,
       signalLevel: 'MODERATE',
-      reviewPresentation: { highlight: false, level: 'MODERATE' },
+      reviewPresentation: { highlight: true, level: 'MODERATE' },
       reviewEvidence: { evaluated: true, flagged: false, threshold: 0.58, granularity: 'PARAGRAPH', spans: [] },
     });
     expect(input.paragraphs[1]).toMatchObject({

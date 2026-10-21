@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { existsSync } from 'node:fs';
 import PDFDocument from 'pdfkit';
+import { REVIEW_HIGHLIGHT_THRESHOLD, shouldHighlightForReview } from '../analysis/review-highlight-policy.js';
 import {
   createReviewDocumentContext,
   getReviewEvidence,
@@ -20,9 +21,9 @@ import type {
   SimilarityMatch,
   SimilarityReportInput,
 } from './report.contracts.js';
-import { buildTechnicalDisplayUnits, isPresentationExcluded, isTechnicalEvaluated, isTechnicalFlagged } from './technical-display.js';
+import { buildTechnicalDisplayUnits, isPresentationExcluded, isReviewHighlighted, isTechnicalEvaluated, isTechnicalFlagged } from './technical-display.js';
 
-export const REPORT_RENDERER_VERSION = 'f0093-threshold-span-ready-renderer-v4';
+export const REPORT_RENDERER_VERSION = 'f00943-review-gt20-renderer-v5';
 export const SIMILARITY_RENDERER_VERSION = 'f0092-report-renderer-v3.1';
 
 const PAGE = { width: 595.28, height: 841.89 };
@@ -307,6 +308,7 @@ export class ReportRenderer {
     const reviewCounts = {
       evaluated: reviewSegments.filter(({ evidence }) => evidence.evaluated).length,
       flagged: reviewSegments.filter(({ evidence }) => evidence.flagged).length,
+      reviewHighlighted: reviewSegments.filter(({ evidence }) => shouldHighlightForReview(evidence)).length,
     };
 
     return this.renderPdf(
@@ -345,12 +347,13 @@ export class ReportRenderer {
           ['Señalados excluidos', display.counts.presentationExcludedFlagged],
           ['Unidades visuales', display.units.length],
           ['Grupos estructurales', display.counts.structuralGroups],
-          ['Umbral aplicado', percentage(input.run.threshold)],
+          ['Umbral detector', percentage(input.run.threshold)],
+          ['Umbral revisión visual', `>${percentage(REVIEW_HIGHLIGHT_THRESHOLD)}`],
         ] as const;
         summary.forEach(([label, value], index) => {
           this.keyValue(doc, label, String(value), 48 + (index % 3) * 170, summaryY + Math.floor(index / 3) * 42, 156);
         });
-        doc.y = summaryY + 132;
+        doc.y = summaryY + 174;
         doc
           .font('Helvetica-Oblique')
           .fontSize(8.5)
@@ -409,7 +412,7 @@ export class ReportRenderer {
       });
     this.keyValue(
       doc,
-      'Umbral aplicado',
+      'Umbral detector',
       input.run.threshold === null
         ? 'No disponible'
         : percentage(input.run.threshold),
@@ -417,6 +420,7 @@ export class ReportRenderer {
       cardY + 25,
       210,
     );
+    this.keyValue(doc, 'Umbral revisión visual', `>${percentage(REVIEW_HIGHLIGHT_THRESHOLD)}`, 66, cardY + 106, 210);
     this.keyValue(
       doc,
       'Modelo',
@@ -487,7 +491,7 @@ export class ReportRenderer {
       .font('Helvetica-Bold')
       .fontSize(8.5)
       .fillColor(COLOR.muted)
-      .text(state, 355, y + 10, { width: 178, align: 'right' });
+      .text(`Detector: ${state}`, 315, y + 10, { width: 218, align: 'right' });
     doc.y = y + 39;
 
     const localSignal =
@@ -498,7 +502,8 @@ export class ReportRenderer {
       threshold === null ? 'No disponible' : percentage(threshold);
     const stats = [
       'Señal local estimada: ' + localSignal,
-      'Umbral: ' + thresholdLabel,
+      'Umbral detector: ' + thresholdLabel,
+      'Revisión visual: ' + (isReviewHighlighted(paragraph) ? 'RESALTADO' : 'NO RESALTADO'),
       paragraph.words === null ? '' : 'Palabras: ' + paragraph.words,
       paragraph.tokens === null ? '' : 'Tokens: ' + paragraph.tokens,
     ].filter(Boolean);
@@ -603,7 +608,7 @@ export class ReportRenderer {
         const status = flagged ? 'SEÑALADO' : 'NO SEÑALADO';
         this.ensureSpace(doc, excluded ? 30 : 16);
         doc.font('Helvetica-Bold').fontSize(8).fillColor(COLOR.ink)
-          .text(`SEGMENTO ${segment.paragraphIndex + 1} | ${percentage(segment.score)} | ${status}`, 60, doc.y + 2, { width: 475 });
+          .text(`SEGMENTO ${segment.paragraphIndex + 1} | ${percentage(segment.score)} | ${status} | Revisión: ${isReviewHighlighted(segment) ? 'RESALTADO' : 'NO RESALTADO'}`, 60, doc.y + 2, { width: 475 });
         if (excluded) {
           doc.font('Helvetica').fontSize(7.5).fillColor(COLOR.muted)
             .text(`EXCLUIDO DE REVISIÓN VISUAL${reason ? ` | ${reason}` : ''}`, 60, doc.y + 1, { width: 475 });
@@ -745,7 +750,7 @@ export class ReportRenderer {
   private aiCoverAndSummary(
     doc: PDFDoc,
     input: AIReportInput,
-    counts: { evaluated: number; flagged: number },
+    counts: { evaluated: number; flagged: number; reviewHighlighted: number },
   ): void {
     this.brand(doc, 'Reporte independiente de señal de IA');
     doc.moveDown(1.1);
@@ -754,19 +759,21 @@ export class ReportRenderer {
     doc.moveDown(1.2);
 
     const cardY = doc.y;
-    doc.save().roundedRect(48, cardY, 499, 155, 8).fill(COLOR.panel).restore();
+    doc.save().roundedRect(48, cardY, 499, 200, 8).fill(COLOR.panel).restore();
     doc.font('Helvetica').fontSize(8).fillColor(COLOR.muted)
       .text('SEÑAL GLOBAL ESTIMADA', 66, cardY + 18);
     doc.font('Helvetica-Bold').fontSize(34).fillColor(COLOR.ink)
       .text(percentage(input.run.documentScore), 66, cardY + 39, { width: 210 });
 
-    this.keyValue(doc, 'Umbral aplicado', input.run.threshold === null
+    this.keyValue(doc, 'Umbral detector', input.run.threshold === null
       ? 'No disponible'
       : percentage(input.run.threshold), 315, cardY + 25, 210);
     this.keyValue(doc, 'Fecha de generación', dateLabel(input.generatedAt), 315, cardY + 78, 210);
     this.keyValue(doc, 'Párrafos señalados', String(counts.flagged), 66, cardY + 105, 210);
     this.keyValue(doc, 'Párrafos evaluados', String(counts.evaluated), 315, cardY + 105, 210);
-    doc.y = cardY + 178;
+    this.keyValue(doc, 'Resaltados para revisión', String(counts.reviewHighlighted), 66, cardY + 151, 210);
+    this.keyValue(doc, 'Umbral revisión visual', `>${percentage(REVIEW_HIGHLIGHT_THRESHOLD)}`, 315, cardY + 151, 210);
+    doc.y = cardY + 223;
 
     doc.save().roundedRect(48, doc.y, 499, 64, 6).fill('#f6f8fa').restore();
     doc.font('Helvetica').fontSize(9).fillColor(COLOR.ink)
@@ -846,7 +853,7 @@ export class ReportRenderer {
     this.ensureSpace(doc, 24);
     doc.rect(49, doc.y + 1, 11, 9).fill(REVIEW_COLOR.high);
     doc.font('Helvetica').fontSize(8.5).fillColor(COLOR.ink)
-      .text('Resaltado: segmento igual o superior al umbral aplicado.', 67, doc.y, {
+      .text(`Resaltado: señal local >${percentage(REVIEW_HIGHLIGHT_THRESHOLD)}, independiente del umbral del detector.`, 67, doc.y, {
         width: 480,
         lineBreak: false,
       });
@@ -900,8 +907,7 @@ export class ReportRenderer {
     const lines = wrapReviewLines(displayText, REVIEW_LAYOUT.textWidth, (value) =>
       doc.widthOfString(value),
     );
-    const shouldHighlight = segment.evidence.flagged &&
-      !segment.evidence.presentationExcluded;
+    const shouldHighlight = shouldHighlightForReview(segment.evidence);
     const ranges = shouldHighlight
       ? segment.evidence.granularity === 'SPAN' && segment.evidence.spans.length > 0
         ? mergeReviewSpansForDisplay(segment.evidence.spans).map((span) => ({

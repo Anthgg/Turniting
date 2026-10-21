@@ -106,7 +106,7 @@ function reviewDocumentQuery() {
     { text: 'Autor: Ana Ejemplo', level: 'HIGH', highlight: false, excludedReason: 'METADATA' },
     { text: '1.1 Identificación del problema', level: null, highlight: false, excludedReason: 'HEADING' },
     { text: 'Párrafo sintético con señal alta.', level: 'HIGH', highlight: true },
-    { text: 'Párrafo sintético con señal moderada.', level: 'MODERATE', highlight: false },
+    { text: 'Párrafo sintético con señal moderada.', level: 'MODERATE', highlight: true },
     { text: 'Párrafo sintético con señal baja.', level: 'LOW', highlight: false },
     { text: 'Figura 1. Diagrama sintético.', level: 'HIGH', highlight: false, excludedReason: 'CAPTION' },
     { text: 'Referencias', level: null, highlight: false, excludedReason: 'REFERENCE_SECTION' },
@@ -152,7 +152,8 @@ function reviewDocumentQuery() {
     };
   });
   return {
-    data: { analysisId: RUN_ID, stale: false, documentText, items },
+    data: { analysisId: RUN_ID, stale: false, documentText, items,
+      reviewHighlightThreshold: 20 / 100, reviewHighlightComparator: 'GT', reviewHighlightedCount: 2 },
     isError: false,
     isPending: false,
     refetch: vi.fn(),
@@ -172,13 +173,14 @@ function technicalPresentationQuery() {
     ...(excludedReason ? { excludedReason } : {}),
     evaluatedSegments: indices.flatMap((index) => {
       const segment = items[index];
-      return segment.calibratedScore === null ? [] : [{ sourceSegmentId: segment.id, paragraphIndex: index, score: segment.calibratedScore, threshold: 0.8, flagged: segment.calibratedScore >= 0.8, presentationExcluded: Boolean(excludedReason), ...(excludedReason ? { excludedReason } : {}), text: segment.text }];
+      return segment.calibratedScore === null ? [] : [{ sourceSegmentId: segment.id, paragraphIndex: index, score: segment.calibratedScore, threshold: 0.8, flagged: segment.calibratedScore >= 0.8, reviewHighlighted: segment.reviewPresentation.highlight, presentationExcluded: Boolean(excludedReason), ...(excludedReason ? { excludedReason } : {}), text: segment.text }];
     }),
   });
   const data: TechnicalPresentation = {
     analysisRunId: RUN_ID,
-    counts: { totalSegments: 9, evaluatedSegments: 7, insufficientSegments: 2, rawFlaggedCount: 5, presentationExcludedFlagged: 4, actionableHighlightCount: 1, structuralGroups: 3 },
-    actionableParagraphIndices: [3],
+    reviewHighlightThreshold: 20 / 100, reviewHighlightComparator: 'GT',
+    counts: { totalSegments: 9, evaluatedSegments: 7, insufficientSegments: 2, rawFlaggedCount: 5, presentationExcludedFlagged: 4, actionableHighlightCount: 2, reviewHighlightedCount: 2, structuralGroups: 3 },
+    actionableParagraphIndices: [3, 4],
     displayUnits: [unit([0, 1, 2], 'METADATA_GROUP', 'DATOS DE PORTADA', 'METADATA'), unit([3], 'EVALUATED_SEGMENT', 'SEGMENTO 4'), unit([4], 'EVALUATED_SEGMENT', 'SEGMENTO 5'), unit([5], 'EVALUATED_SEGMENT', 'SEGMENTO 6'), unit([6], 'CAPTION_GROUP', 'CAPTION', 'CAPTION'), unit([7, 8], 'REFERENCE_GROUP', 'REFERENCIAS', 'REFERENCE_SECTION')],
   };
   return { data, isPending: false, isError: false, refetch: vi.fn() };
@@ -332,13 +334,15 @@ describe('AnalysisPanel run provenance and operation errors', () => {
     expect(html).toContain('analysis-review-highlight');
     expect(html).not.toContain('is-highlight-moderate');
     expect(html).not.toContain('is-highlight-high');
-    expect(html).toContain('Señalado 1 de 1');
+    expect(html).toContain('Resaltado 1 de 2');
     expect(html).toContain('Referencia bibliográfica');
     expect(html).toContain('analysis-review-paragraph-action');
     expect(html).not.toContain('analysis-review-drawer');
-    expect(html).toContain('Superan el umbral: 5');
-    expect(html).toContain('Mostrados en revisión: 1');
-    expect(html).toContain('Señalados excluidos de revisión visual: 4');
+    expect(html).toContain('Señalados por detector: 5');
+    expect(html).toContain('Resaltados para revisión: 2');
+    expect(html).toContain('Señalados por detector excluidos de revisión visual: 4');
+    expect(html).toContain('Señal local &gt;20.0 %');
+    expect(html.match(/<mark class="analysis-review-highlight"/g)).toHaveLength(2);
     for (let index = 1; index < positions.length; index += 1) {
       expect(positions[index]).toBeGreaterThan(positions[index - 1]!);
     }
@@ -359,8 +363,8 @@ describe('AnalysisPanel run provenance and operation errors', () => {
 
   it('uses full-run presentation counts instead of the raw segment page counts', () => {
     const html = renderPanel({ initialView: 'SUMMARY' });
-    expect(html).toContain('7 evaluados · 5 superan el umbral');
-    expect(html).toContain('1 resaltados · 4 señalados excluidos de revisión visual');
+    expect(html).toContain('7 evaluados · 5 señalados por detector');
+    expect(html).toContain('2 resaltados · 4 señalados por detector excluidos de revisión visual');
     expect(segmentsQuery().data.items).toHaveLength(1);
   })
 

@@ -133,6 +133,9 @@ describe("ReportExportPanel", () => {
     expect(html).toContain("Generar revisión original");
     expect(html).toContain("Generar detalle por párrafos");
     expect(html).toContain("Generar ambos reportes");
+    expect(html).toContain("resalta los segmentos evaluados que cumplen el criterio de revisión visual");
+    expect(html).toContain("independiente del umbral del detector");
+    expect(html).not.toContain("alcanzan el umbral aplicado");
     expect(html).toContain(
       "Aún no existe un análisis de similitud para esta versión.",
     );

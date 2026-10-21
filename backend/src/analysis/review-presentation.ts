@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { shouldHighlightForReview } from './review-highlight-policy.js';
 
 export interface ReviewRange {
   paragraphIndex: number;
@@ -43,6 +44,7 @@ export interface PythonCodePointSpan {
 export interface ReviewEvidence {
   evaluated: boolean;
   flagged: boolean;
+  reviewHighlighted?: boolean;
   score: number | null;
   threshold: number | null;
   presentationExcluded: boolean;
@@ -519,13 +521,13 @@ export function getReviewPresentation(
     ? (segment.signalLevel!.toUpperCase() as ReviewLevel)
     : null;
   return {
-    highlight: evidence.flagged && !evidence.presentationExcluded,
+    highlight: shouldHighlightForReview(evidence),
     level,
     ...(evidence.excludedReason ? { excludedReason: evidence.excludedReason } : {}),
   };
 }
 
-/** Authoritative actionability: persisted run threshold plus presentation exclusions. */
+/** Scientific evidence and derived visual policy; persisted scientific data is untouched. */
 export function getReviewEvidence(
   segment: ReviewSegment,
   threshold: number | null,
@@ -541,6 +543,7 @@ export function getReviewEvidence(
     return {
       evaluated: false,
       flagged: false,
+      reviewHighlighted: false,
       score: segment.calibratedScore ?? null,
       threshold,
       presentationExcluded: true,
@@ -624,6 +627,7 @@ export function getReviewEvidence(
   return {
     evaluated,
     flagged,
+    reviewHighlighted: shouldHighlightForReview({ evaluated, score, presentationExcluded }),
     score,
     threshold,
     presentationExcluded,
