@@ -61,7 +61,7 @@ This section is updated after integrated verification. Test text and result fixt
 | AI service tests | Not rerun in F009.5 because no AI-service code changed. The recorded F009.4.3 result is 73 passed / 1 skipped and Ruff passes; a separate F009.5 attempt stalled at `tests/test_analyze.py::test_analyze_test_returns_text_metrics` and was interrupted. |
 | Runtime quick-analysis smoke | PASS earlier with two synthetic paragraphs only: global score 94.7%, AI signal, review suggested above 20%, paragraph scores 99.3% and 86.7%; model `F006.1 Experimental`, version `F006_1_SPANISH_GENERALIZATION_EXPERIMENTAL`, language `OTHER`. Nest to local AI service returned a response and did not create Documents, AnalysisRuns, or ReportArtifacts; database counts were unchanged at 88 / 119 / 173. Cold request: 58,723 ms; warm request: 1,259 ms. The submitted phrase was absent from inspected AI-service logs; this does not cover external infrastructure/proxy telemetry. |
 | Responsive browser review | PARTIAL: the earlier six viewport and mobile-drawer review predates the final Review context-panel adjustment. Post-adjustment visual verification is blocked because Docker Desktop's Linux engine is unavailable (`dockerDesktopLinuxEngine` pipe not found), and local app URLs refuse connections. No post-adjustment browser PASS is claimed. |
-| Git / branch / push | Final review and publication of `feat/f009-5-quick-analyzer-frontend-redesign` are pending. No PR or merge is part of this phase. |
+| Git / branch / push | PASS: implementation commit `7e58c5f` pushed to `origin/feat/f009-5-quick-analyzer-frontend-redesign`. No PR or merge. |
 
 ## Final Review-context presentation
 
