@@ -104,7 +104,7 @@ describe('AnalysisService.quickAnalyze', () => {
       analyzer: 'V3_ONLY',
       thresholdProfile: 'BALANCED',
       paragraphMode: 'STRICT_PARAGRAPH',
-      languageCode: 'other',
+      languageCode: undefined,
     });
     expect(response).toMatchObject({
       evaluated: true,
@@ -161,7 +161,7 @@ describe('AnalysisService.quickAnalyze', () => {
 
     expect(ai.analyzeParagraphs).toHaveBeenCalledWith(expect.objectContaining({
       analyzer: 'ENSEMBLE',
-      languageCode: 'es',
+      languageCode: undefined,
     }));
     expect(response).toMatchObject({
       evaluated: false,
@@ -170,9 +170,25 @@ describe('AnalysisService.quickAnalyze', () => {
       reviewHighlighted: false,
       scoredParagraphs: 0,
       insufficientParagraphs: 1,
-      languageCode: 'es',
+      languageCode: 'other',
       paragraphs: [{ index: 0, status: 'INSUFFICIENT_TEXT', score: null, scientificFlag: null, reviewHighlighted: false }],
     });
+  });
+
+  it('forwards the selected language only to calibration analyzers', async () => {
+    const result = makeResult([makeSegment(0, 'LOW_SIGNAL', 0.2)], 'EXPERIMENTAL_F006_1_1_MODEL');
+    const { ai, service } = makeService('EXPERIMENTAL_F006_1_1_MODEL', result);
+
+    await service.quickAnalyze({
+      text: PRIVATE_SYNTHETIC_TEXT,
+      analyzer: 'F006_1_1_ONLY',
+      languageCode: 'es',
+    });
+
+    expect(ai.analyzeParagraphs).toHaveBeenCalledWith(expect.objectContaining({
+      analyzer: 'F006_1_1_ONLY',
+      languageCode: 'es',
+    }));
   });
 
   it.each([

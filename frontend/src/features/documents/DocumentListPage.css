@@ -465,3 +465,128 @@
     transform: none;
   }
 }
+
+/* F009.5.2: compact rows surface real, latest analysis metadata when present. */
+.documents-library-item {
+  min-width: 0;
+}
+
+.documents-library-card {
+  display: grid;
+  grid-template-columns: 42px minmax(220px, 1.2fr) minmax(280px, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 15px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card, 16px);
+  background: var(--surface, #fff);
+  box-shadow: var(--shadow-card, 0 8px 24px rgba(15, 23, 42, .04));
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.documents-library-card:hover {
+  border-color: rgba(13, 148, 136, .32);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, .07);
+  transform: translateY(-1px);
+}
+
+.documents-library-document {
+  min-width: 0;
+}
+
+.documents-library-document-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.documents-library-document-heading h3 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.documents-library-analysis {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-width: 0;
+  color: var(--muted, #64748b);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.documents-analysis-score {
+  color: var(--ink, #0f172a);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -.025em;
+}
+
+.documents-analysis-model,
+.documents-analysis-muted {
+  color: var(--muted, #64748b);
+}
+
+.documents-library-card-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 980px) {
+  .documents-library-card {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .documents-library-document {
+    grid-column: 2;
+  }
+
+  .documents-library-card-action {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+
+  .documents-library-analysis {
+    grid-column: 2 / 4;
+  }
+}
+
+@media (max-width: 600px) {
+  .documents-library-card {
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: start;
+    gap: 9px 11px;
+    padding: 13px;
+  }
+
+  .documents-library-card-action {
+    grid-column: 2;
+    grid-row: auto;
+    justify-content: flex-start;
+  }
+
+  .documents-library-card-action .documents-library-open-link {
+    min-height: 36px;
+  }
+
+  .documents-library-analysis {
+    grid-column: 2;
+    gap: 3px 9px;
+  }
+
+  .documents-library-document-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .documents-library-document-heading h3 {
+    white-space: normal;
+  }
+}

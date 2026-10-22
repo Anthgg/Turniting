@@ -450,6 +450,9 @@ export const quickAnalysisResponseSchema = z.object({
   reviewHighlighted: z.boolean(),
   scoredParagraphs: z.number().int().nonnegative(),
   insufficientParagraphs: z.number().int().nonnegative(),
+  analyzer: z.enum(ANALYZERS).optional(),
+  thresholdProfile: z.enum(THRESHOLD_PROFILES).optional(),
+  paragraphMode: z.enum(PARAGRAPH_MODES).optional(),
   scientificThreshold: z.number().min(0).max(1),
   reviewThreshold: z.number().min(0).max(1),
   model: z.object({
@@ -518,8 +521,15 @@ export function listAnalyzerModels() {
   return getJson('/models', analyzerModelListSchema)
 }
 
-export function analyzeQuickText(text: string) {
-  return postJson('/analysis/quick', quickAnalysisResponseSchema, { text })
+export type QuickAnalysisOptions = Partial<{
+  analyzer: AnalyzerName
+  thresholdProfile: ThresholdProfileName
+  paragraphMode: ParagraphModeName
+  languageCode: LanguageCode
+}>
+
+export function analyzeQuickText(text: string, options: QuickAnalysisOptions = {}, signal?: AbortSignal) {
+  return postJson('/analysis/quick', quickAnalysisResponseSchema, { text, ...options }, { signal })
 }
 
 export function listDocumentAnalyses(documentId: string) {

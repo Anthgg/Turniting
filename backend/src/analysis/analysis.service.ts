@@ -429,18 +429,24 @@ export class AnalysisService {
     const started = Date.now();
     const { policy } = await this.ai.listAnalyzerModels();
     const localModel = policy.resolvedLocalPreferredAnalyzer;
-    if (typeof localModel !== 'string' || !ANALYZER_MODE_FOR_LOCAL_MODEL[localModel]) {
+    const preferredAnalyzer = typeof localModel === 'string'
+      ? ANALYZER_MODE_FOR_LOCAL_MODEL[localModel]
+      : undefined;
+    const analyzer = dto.analyzer ?? preferredAnalyzer;
+    if (!analyzer) {
       throw new ServiceUnavailableException('No supported local analyzer is currently available');
     }
 
-    const analyzer = ANALYZER_MODE_FOR_LOCAL_MODEL[localModel];
-    const languageCode = dto.languageCode ?? 'other';
+    const thresholdProfile = dto.thresholdProfile ?? 'BALANCED';
+    const paragraphMode = dto.paragraphMode ?? 'STRICT_PARAGRAPH';
+    const usesExplicitLanguage = analyzer === 'F006_1_ONLY' || analyzer === 'F006_1_1_ONLY';
+    const languageCode = usesExplicitLanguage ? (dto.languageCode ?? 'other') : 'other';
     const analysis = await this.ai.analyzeParagraphs({
       text: dto.text,
       analyzer,
-      thresholdProfile: 'BALANCED',
-      paragraphMode: 'STRICT_PARAGRAPH',
-      languageCode,
+      thresholdProfile,
+      paragraphMode,
+      languageCode: usesExplicitLanguage ? languageCode : undefined,
     });
 
     const paragraphs = analysis.segments.map((segment) => {
@@ -472,6 +478,9 @@ export class AnalysisService {
       reviewHighlighted: evaluated && typeof score === 'number' && score > REVIEW_HIGHLIGHT_THRESHOLD,
       scoredParagraphs,
       insufficientParagraphs,
+      analyzer,
+      thresholdProfile,
+      paragraphMode,
       scientificThreshold: analysis.threshold,
       reviewThreshold: REVIEW_HIGHLIGHT_THRESHOLD,
       model: {

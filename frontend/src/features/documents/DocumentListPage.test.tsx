@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const queryMocks = vi.hoisted(() => ({ useQuery: vi.fn() }))
+const queryMocks = vi.hoisted(() => ({ useQuery: vi.fn(), useQueries: vi.fn() }))
 
 vi.mock('@tanstack/react-query', () => queryMocks)
 vi.mock('./DocumentUpload', async () => {
@@ -40,7 +40,10 @@ function renderPage(queryState: Record<string, unknown>) {
 }
 
 describe('DocumentListPage', () => {
-  beforeEach(() => queryMocks.useQuery.mockReset())
+  beforeEach(() => {
+    queryMocks.useQuery.mockReset()
+    queryMocks.useQueries.mockReset().mockReturnValue([])
+  })
 
   it('keeps the uploader slot and exposes its selected-file status accessibly', () => {
     const html = renderPage({ isPending: true, isFetching: true, refetch: vi.fn() })
@@ -81,6 +84,57 @@ describe('DocumentListPage', () => {
     expect(html).toContain('OCR requerido')
     expect(html).toContain('Error')
     expect(html).toContain('aria-label="Paginación de documentos"')
+  })
+
+  it('surfaces real latest analysis values without adding scores when no result exists', () => {
+    queryMocks.useQueries.mockReturnValue([
+      {
+        data: {
+          items: [{
+            status: 'COMPLETED',
+            createdAt: '2026-10-21T12:10:00.000Z',
+            documentScore: 0.434,
+            documentScorePercent: 43,
+            scoredSegments: 4,
+            evaluatedSegments: 4,
+            flaggedSegments: 2,
+            analyzerMode: 'F006_1_1_ONLY',
+          }],
+        },
+        isPending: false,
+        isError: false,
+      },
+      { data: { items: [] }, isPending: false, isError: false },
+      { data: { items: [] }, isPending: false, isError: false },
+      { data: { items: [] }, isPending: false, isError: false },
+      { data: { items: [] }, isPending: false, isError: false },
+    ])
+    const html = renderPage({
+      data: {
+        items: [
+          summary('EXTRACTED', 'doc-ready', 'ensayo-final.pdf'),
+          summary('EXTRACTED', 'doc-empty', 'sin-analisis.pdf'),
+          summary('PROCESSING', 'doc-processing', 'capitulo.pdf'),
+          summary('OCR_REQUIRED', 'doc-ocr', 'escaneo.pdf'),
+          summary('FAILED', 'doc-failed', 'fallido.pdf'),
+        ],
+        page: 1,
+        limit: 10,
+        total: 4,
+        totalPages: 1,
+      },
+      isPending: false,
+      isFetching: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+
+    expect(html).toMatch(/43[,.]4 %/)
+    expect(html).toContain('4 evaluados')
+    expect(html).toContain('2 señalados')
+    expect(html).toContain('F006.1.1 · Experimental')
+    expect(html).toContain('Aún no hay análisis')
+    expect(html).not.toContain('0 %')
   })
 
   it('announces an empty library accessibly', () => {

@@ -1,9 +1,10 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
 import { documentQueryKeys, getDocument, listDocuments } from './api/documents'
 import { Icon } from './components/Icon'
+import turnitingMark from './assets/brand/turniting-mark.png'
 import { HomeRecentActivity } from './features/analysis/HomeRecentActivity'
 import { formatDate, statusClass, statusLabel } from './features/documents/document-utils'
 const ComparePage = lazy(() =>
@@ -49,16 +50,11 @@ function RouteLoadingFallback() {
 
 export function WorkspaceLayout() {
   const location = useLocation()
-  const [tabletSidebar, setTabletSidebar] = useState(false)
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false)
+  const mobileMoreTriggerRef = useRef<HTMLButtonElement>(null)
+  const mobileMorePanelRef = useRef<HTMLDivElement>(null)
   const docMatch = /^\/documents\/([^/]+)$/.exec(location.pathname)
   const activeDocId = docMatch ? decodeURIComponent(docMatch[1]) : null
-
-  const recentDocs = useQuery({
-    queryKey: documentQueryKeys.list(1, 5),
-    queryFn: () => listDocuments(1, 5),
-    staleTime: 15_000,
-    retry: 1,
-  })
 
   const activeDoc = useQuery({
     queryKey: activeDocId ? documentQueryKeys.detail(activeDocId) : ['documents', 'detail', 'none'],
@@ -68,17 +64,14 @@ export function WorkspaceLayout() {
     retry: 1,
   })
 
-  const firstDocId = recentDocs.data?.items[0]?.id ?? null
-  const analysisTargetHref = activeDocId
-    ? `/documents/${activeDocId}`
-    : firstDocId
-      ? `/documents/${firstDocId}`
-      : '/documents'
-
   const isReviewRoute = Boolean(activeDocId)
   const isQuickAnalysisRoute = location.pathname === '/analysis/quick'
+  const analysisTargetHref = activeDocId ? `/documents/${activeDocId}` : '/documents'
+
   const isSettingsRoute = location.pathname.startsWith('/settings')
-  const effectiveSidebarCollapsed = tabletSidebar
+  const isMobileMoreActive = ['/analysis/compare', '/reports', '/turnitin-reports', '/history', '/models', '/datasets', '/settings'].some(
+    (path) => location.pathname === path || location.pathname.startsWith(`${path}/`),
+  )
   const pageTitle = location.pathname === '/'
     ? 'Inicio'
     : location.pathname === '/documents'
@@ -104,93 +97,60 @@ export function WorkspaceLayout() {
                       : 'Turniting'
 
   useEffect(() => {
-    const media = window.matchMedia('(min-width: 761px) and (max-width: 1024px)')
-    const updateTablet = () => setTabletSidebar(media.matches)
-    updateTablet()
-    media.addEventListener('change', updateTablet)
-    return () => media.removeEventListener('change', updateTablet)
-  }, [])
+    if (!mobileMoreOpen) return
+    const frame = window.requestAnimationFrame(() => {
+      mobileMorePanelRef.current?.querySelector<HTMLElement>('.dock-sheet-close')?.focus()
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [mobileMoreOpen])
 
-  const sidebarLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `sidebar-link${isActive ? ' is-active' : ''}`
+  function closeMobileMore(returnFocus = false) {
+    setMobileMoreOpen(false)
+    if (returnFocus) {
+      window.requestAnimationFrame(() => mobileMoreTriggerRef.current?.focus())
+    }
+  }
+
+  function handleMobileMoreKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeMobileMore(true)
+      return
+    }
+
+    const panel = mobileMorePanelRef.current
+    if (!panel) return
+    const focusable = Array.from(panel.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]'))
+    if (focusable.length === 0) return
+    const currentIndex = focusable.indexOf(document.activeElement as HTMLElement)
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      const step = event.key === 'ArrowDown' ? 1 : -1
+      focusable[(currentIndex + step + focusable.length) % focusable.length]?.focus()
+    } else if (event.key === 'Tab') {
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && (document.activeElement === first || currentIndex < 0)) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && (document.activeElement === last || currentIndex < 0)) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+  }
 
   return (
-    <div className={`app-shell${effectiveSidebarCollapsed ? ' is-sidebar-collapsed' : ''}`}>
+    <div className="app-shell">
       <a className="skip-link" href="#main-content">Saltar al contenido principal</a>
-
-      <aside
-        id="primary-navigation-panel"
-        className={`app-sidebar${effectiveSidebarCollapsed ? ' is-collapsed' : ''}`}
-        aria-label="Navegación principal"
-      >
-        <div className="sidebar-brand-row">
-          <Link className="brand" to="/" aria-label="Turniting, inicio">
-            <span className="brand-mark" aria-hidden="true">T</span>
-            <span className="brand-name">Turniting</span>
-          </Link>
-        </div>
-
-        <nav className="sidebar-navigation" id="primary-navigation" aria-label="Principal">
-          <div className="sidebar-group">
-            <span className="sidebar-group-label">Inicio</span>
-            <NavLink to="/" end className={sidebarLinkClass} aria-label="Inicio" title="Inicio">
-              <Icon name="grid" size={18} /><span className="sidebar-link-label">Inicio</span>
-            </NavLink>
-          </div>
-
-          <div className="sidebar-group">
-            <span className="sidebar-group-label">Analizar</span>
-            <NavLink to="/documents" end className={sidebarLinkClass} aria-label="Analizar documento" title="Analizar documento">
-              <Icon name="file-plus" size={18} /><span className="sidebar-link-label">Documento</span>
-            </NavLink>
-            <NavLink to="/analysis/quick" end className={sidebarLinkClass} aria-label="Análisis rápido" title="Análisis rápido">
-              <Icon name="spark" size={18} /><span className="sidebar-link-label">Análisis rápido</span>
-            </NavLink>
-          </div>
-
-          <div className="sidebar-group">
-            <span className="sidebar-group-label">Resultados</span>
-            <Link to={analysisTargetHref} className={`sidebar-link${isReviewRoute ? ' is-active' : ''}`} aria-label="Revisión" aria-current={isReviewRoute ? 'page' : undefined} title="Revisión">
-              <Icon name="file" size={18} /><span className="sidebar-link-label">Revisión</span>
-            </Link>
-            <NavLink to="/reports" className={sidebarLinkClass} aria-label="Reportes" title="Reportes">
-              <Icon name="layers" size={18} /><span className="sidebar-link-label">Reportes</span>
-            </NavLink>
-            <NavLink to="/history" className={sidebarLinkClass} aria-label="Historial de análisis" title="Historial de análisis">
-              <Icon name="clock" size={18} /><span className="sidebar-link-label">Historial</span>
-            </NavLink>
-            <NavLink to="/turnitin-reports" className={sidebarLinkClass} aria-label="Reportes de Turnitin" title="Reportes de Turnitin">
-              <Icon name="file" size={18} /><span className="sidebar-link-label">Reportes de Turnitin</span>
-            </NavLink>
-            <NavLink to="/analysis/compare" className={sidebarLinkClass} aria-label="Comparar versiones" title="Comparar versiones">
-              <Icon name="diff" size={18} /><span className="sidebar-link-label">Comparar versiones</span>
-            </NavLink>
-          </div>
-
-          <div className="sidebar-group">
-            <span className="sidebar-group-label">Configuración</span>
-            <NavLink to="/models" className={sidebarLinkClass} aria-label="Modelos" title="Modelos">
-              <Icon name="brain" size={18} /><span className="sidebar-link-label">Modelos</span>
-            </NavLink>
-            <NavLink to="/datasets" className={sidebarLinkClass} aria-label="Datasets" title="Datasets">
-              <Icon name="database" size={18} /><span className="sidebar-link-label">Datasets</span>
-            </NavLink>
-            <NavLink to="/settings" className={sidebarLinkClass} aria-label="Estado técnico" title="Estado técnico">
-              <Icon name="server" size={18} /><span className="sidebar-link-label">Estado técnico</span>
-            </NavLink>
-          </div>
-        </nav>
-
-        <div className="sidebar-footer">
-          <Link className="sidebar-local-status" to="/settings" aria-label="Estado local: ver estado técnico" title="Estado local">
-            <span className="environment-dot" aria-hidden="true" />
-            <span className="sidebar-link-label">Estado local</span>
-          </Link>
-        </div>
-      </aside>
 
       <div className="app-frame">
         <header className="topbar">
+          <Link className="topbar-brand" to="/" aria-label="Turniting, ir al inicio">
+            <img src={turnitingMark} alt="" />
+            <span>Turniting</span>
+          </Link>
           <nav className="breadcrumbs" aria-label="Ubicación actual">
             {location.pathname !== '/' && <><Link to="/">Inicio</Link><Icon name="chevron-right" size={13} /></>}
             <span className="breadcrumb-current" aria-current="page" title={pageTitle}>{pageTitle}</span>
@@ -205,6 +165,134 @@ export function WorkspaceLayout() {
           </main>
         </div>
       </div>
+
+      <nav className="bottom-dock" aria-label="Navegación principal">
+        <div className="bottom-dock-inner">
+          <NavLink to="/" end className={({ isActive }) => `dock-item dock-core-item${isActive ? ' is-active' : ''}`} aria-label="Inicio" data-tooltip="Inicio">
+            <span className="dock-icon"><Icon name="grid" size={18} /></span>
+            <span className="dock-label">Inicio</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <NavLink to="/documents" end className={({ isActive }) => `dock-item dock-core-item${isActive ? ' is-active' : ''}`} aria-label="Documentos" data-tooltip="Documentos">
+            <span className="dock-icon"><Icon name="file" size={18} /></span>
+            <span className="dock-label">Documentos</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <Link to={analysisTargetHref} className={`dock-item dock-core-item${isReviewRoute ? ' is-active' : ''}`} aria-label="Revisión IA" aria-current={isReviewRoute ? 'page' : undefined} data-tooltip="Revisión IA">
+            <span className="dock-icon"><Icon name="file-check" size={18} /></span>
+            <span className="dock-label">Revisión</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </Link>
+
+          <NavLink to="/analysis/quick" end className={({ isActive }) => `dock-item dock-core-item${isActive ? ' is-active' : ''}`} aria-label="Análisis rápido" data-tooltip="Análisis rápido">
+            <span className="dock-icon"><Icon name="spark" size={18} /></span>
+            <span className="dock-label">Rápido</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <NavLink to="/analysis/compare" className={({ isActive }) => `dock-item dock-secondary-item${isActive ? ' is-active' : ''}`} aria-label="Comparar versiones" data-tooltip="Comparar versiones">
+            <span className="dock-icon"><Icon name="diff" size={18} /></span>
+            <span className="dock-label">Comparar</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <NavLink to="/reports" className={({ isActive }) => `dock-item dock-secondary-item${isActive ? ' is-active' : ''}`} aria-label="Reportes Turniting" data-tooltip="Reportes Turniting">
+            <span className="dock-icon"><Icon name="layers" size={18} /></span>
+            <span className="dock-label">Reportes</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <NavLink to="/turnitin-reports" className={({ isActive }) => `dock-item dock-secondary-item${isActive ? ' is-active' : ''}`} aria-label="Reportes de Turnitin" data-tooltip="Reportes de Turnitin">
+            <span className="dock-icon"><Icon name="shield-check" size={18} /></span>
+            <span className="dock-label">Turnitin</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <NavLink to="/history" className={({ isActive }) => `dock-item dock-secondary-item${isActive ? ' is-active' : ''}`} aria-label="Historial de análisis" data-tooltip="Historial de análisis">
+            <span className="dock-icon"><Icon name="clock" size={18} /></span>
+            <span className="dock-label">Historial</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <NavLink to="/models" className={({ isActive }) => `dock-item dock-secondary-item${isActive ? ' is-active' : ''}`} aria-label="Modelos" data-tooltip="Modelos">
+            <span className="dock-icon"><Icon name="brain" size={18} /></span>
+            <span className="dock-label">Modelos</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <NavLink to="/datasets" className={({ isActive }) => `dock-item dock-secondary-item${isActive ? ' is-active' : ''}`} aria-label="Datasets" data-tooltip="Datasets">
+            <span className="dock-icon"><Icon name="database" size={18} /></span>
+            <span className="dock-label">Datasets</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <NavLink to="/settings" className={({ isActive }) => `dock-item dock-secondary-item${isActive ? ' is-active' : ''}`} aria-label="Estado técnico" data-tooltip="Estado técnico">
+            <span className="dock-icon"><Icon name="server" size={18} /></span>
+            <span className="dock-label">Estado</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </NavLink>
+
+          <span className="dock-divider" aria-hidden="true" />
+
+          <Link to="/documents" className="dock-item dock-secondary-item dock-item-upload" aria-label="Subir nuevo documento" data-tooltip="Subir documento">
+            <span className="dock-icon"><Icon name="plus" size={18} /></span>
+            <span className="dock-label">Subir</span>
+          </Link>
+
+          <button
+            ref={mobileMoreTriggerRef}
+            className={`dock-item dock-mobile-more${isMobileMoreActive ? ' is-active' : ''}`}
+            type="button"
+            aria-label="Más herramientas"
+            aria-expanded={mobileMoreOpen}
+            aria-haspopup="dialog"
+            aria-controls="mobile-more-sheet"
+            onClick={() => setMobileMoreOpen(true)}
+          >
+            <span className="dock-icon"><Icon name="more" size={19} /></span>
+            <span className="dock-label">Más</span>
+            <span className="dock-active-dot" aria-hidden="true" />
+          </button>
+        </div>
+      </nav>
+
+      {mobileMoreOpen && (
+        <>
+          <button className="dock-sheet-backdrop" type="button" aria-label="Cerrar menú Más" onClick={() => closeMobileMore(true)} />
+          <div
+            id="mobile-more-sheet"
+            className="dock-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dock-sheet-title"
+            ref={mobileMorePanelRef}
+            onKeyDown={handleMobileMoreKeyDown}
+          >
+            <div className="dock-sheet-handle" aria-hidden="true" />
+            <div className="dock-sheet-heading">
+              <div>
+                <p className="eyebrow">HERRAMIENTAS</p>
+                <h2 id="dock-sheet-title">Más opciones</h2>
+              </div>
+              <button className="dock-sheet-close" type="button" aria-label="Cerrar menú Más" onClick={() => closeMobileMore(true)}>
+                <Icon name="close" size={18} />
+              </button>
+            </div>
+            <div className="dock-sheet-grid">
+              <NavLink to="/analysis/compare" onClick={() => closeMobileMore(true)}><Icon name="diff" size={18} /><span>Comparar</span></NavLink>
+              <NavLink to="/reports" onClick={() => closeMobileMore(true)}><Icon name="layers" size={18} /><span>Reportes</span></NavLink>
+              <NavLink to="/turnitin-reports" onClick={() => closeMobileMore(true)}><Icon name="shield-check" size={18} /><span>Turnitin</span></NavLink>
+              <NavLink to="/history" onClick={() => closeMobileMore(true)}><Icon name="clock" size={18} /><span>Historial</span></NavLink>
+              <NavLink to="/models" onClick={() => closeMobileMore(true)}><Icon name="brain" size={18} /><span>Modelos</span></NavLink>
+              <NavLink to="/datasets" onClick={() => closeMobileMore(true)}><Icon name="database" size={18} /><span>Datasets</span></NavLink>
+              <NavLink to="/settings" onClick={() => closeMobileMore(true)}><Icon name="server" size={18} /><span>Estado</span></NavLink>
+              <NavLink to="/documents" onClick={() => closeMobileMore(true)}><Icon name="plus" size={18} /><span>Subir documento</span></NavLink>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

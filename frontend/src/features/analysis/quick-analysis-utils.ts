@@ -118,6 +118,108 @@ export function splitQuickTextParagraphs(text: string) {
   return spans.map(([start, end]) => text.slice(start, end).trim()).filter(Boolean)
 }
 
+export type QuickResultFilter = 'all' | 'review' | 'flagged' | 'unevaluated'
+
+export function filterQuickResultParagraphs(
+  paragraphs: QuickAnalysisResponse['paragraphs'],
+  filter: QuickResultFilter,
+) {
+  if (filter === 'review') return paragraphs.filter((paragraph) => paragraph.reviewHighlighted)
+  if (filter === 'flagged') return paragraphs.filter((paragraph) => paragraph.scientificFlag === true)
+  if (filter === 'unevaluated') {
+    return paragraphs.filter((paragraph) => paragraph.status === 'INSUFFICIENT_TEXT' || paragraph.score === null)
+  }
+  return paragraphs
+}
+
+function copyPercent(value: number | null) {
+  if (value === null || !Number.isFinite(value)) return 'No evaluado'
+  return `${(Math.round(value * 1000) / 10).toLocaleString('es-PE', { maximumFractionDigits: 1 })}%`
+}
+
+function copyParagraphLine(paragraph: QuickAnalysisResponse['paragraphs'][number], text: string | undefined) {
+  const score = paragraph.status === 'INSUFFICIENT_TEXT' || paragraph.score === null
+    ? 'No evaluado'
+    : copyPercent(paragraph.score)
+  return [`Párrafo ${paragraph.index + 1} — ${score}`, text ?? 'Texto no disponible'].join('\n')
+}
+
+export function formatQuickParagraphCopy(
+  paragraph: QuickAnalysisResponse['paragraphs'][number],
+  paragraphText: string | undefined,
+) {
+  return copyParagraphLine(paragraph, paragraphText)
+}
+
+export type QuickResultCopySettings = {
+  analyzer: string
+  profile: string
+  mode: string
+  language: string
+}
+
+export function formatQuickResultCopy(
+  result: QuickAnalysisResponse,
+  paragraphTexts: string[],
+  settings?: QuickResultCopySettings,
+) {
+  const overallScore = result.evaluated && result.score !== null ? copyPercent(result.score) : 'No evaluado'
+  const paragraphs = result.paragraphs.map((paragraph) =>
+    copyParagraphLine(paragraph, paragraphTexts[paragraph.index]),
+  )
+  return [
+    'TURNITING — Análisis rápido',
+    `Señal global estimada: ${overallScore}`,
+    `Párrafos evaluados: ${result.scoredParagraphs} de ${result.paragraphs.length}`,
+    ...paragraphs,
+    `Analizador: ${settings?.analyzer ?? result.analyzer ?? 'No indicado'}`,
+    `Perfil: ${settings?.profile ?? result.thresholdProfile ?? 'No indicado'}`,
+    `Modo: ${settings?.mode ?? result.paragraphMode ?? 'No indicado'}`,
+    `Idioma: ${settings?.language ?? result.languageCode.toUpperCase()}`,
+  ].join('\n\n')
+}
+
+function copyWithExecCommand(value: string) {
+  if (typeof document === 'undefined' || !document.body) return false
+  const textarea = document.createElement('textarea')
+  textarea.value = value
+  textarea.setAttribute('aria-hidden', 'true')
+  textarea.setAttribute('readonly', '')
+  textarea.style.position = 'fixed'
+  textarea.style.left = '-9999px'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.select()
+  let copied = false
+  try {
+    copied = document.execCommand('copy')
+  } finally {
+    document.body.removeChild(textarea)
+  }
+  return copied
+}
+
+export async function copyPlainText(
+  value: string,
+  clipboardWrite: ((text: string) => Promise<void>) | undefined = typeof navigator !== 'undefined' && navigator.clipboard
+    ? navigator.clipboard.writeText.bind(navigator.clipboard)
+    : undefined,
+  fallbackCopy: (text: string) => boolean = copyWithExecCommand,
+) {
+  try {
+    if (!clipboardWrite) throw new Error('Clipboard API is unavailable')
+    await clipboardWrite(value)
+    return 'clipboard' as const
+  } catch {
+    if (fallbackCopy(value)) return 'fallback' as const
+    throw new Error('No se pudo copiar el resultado. Revisa los permisos del navegador.')
+  }
+}
+
+export function isQuickResultStale(currentText: string, analyzedTextSnapshot: string) {
+  return currentText !== analyzedTextSnapshot
+}
+
 export async function runQuickAnalysis(
   text: string,
   request: (input: string) => Promise<QuickAnalysisResponse> = analyzeQuickText,

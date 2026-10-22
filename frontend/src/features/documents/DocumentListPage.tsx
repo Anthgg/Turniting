@@ -1,7 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { analysisQueryKeys, listDocumentAnalyses } from '../../api/analysis'
 import { documentQueryKeys, listDocuments, type DocumentSummary } from '../../api/documents'
+import { ANALYZER_LABEL } from '../analysis/analysis-utils'
 import { Icon } from '../../components/Icon'
 import { ApiErrorNotice } from './ApiErrorNotice'
 import { DocumentUpload } from './DocumentUpload'
@@ -29,6 +31,15 @@ export function DocumentListPage() {
   const totalPages = pageData?.totalPages ?? 0
   const canGoBack = page > 1
   const canGoForward = pageData ? page < pageData.totalPages : false
+  const analysisQueries = useQueries({
+    queries: (pageData?.items ?? []).map((document) => ({
+      queryKey: analysisQueryKeys.documentAnalyses(document.id),
+      queryFn: () => listDocumentAnalyses(document.id),
+      enabled: document.status === 'EXTRACTED',
+      staleTime: 30_000,
+      retry: 0,
+    })),
+  })
 
   return (
     <div className="dashboard-main documents-main documents-library">
@@ -107,10 +118,16 @@ export function DocumentListPage() {
         {pageData && pageData.items.length > 0 && (
           <>
             <ul className="documents-library-list" aria-label="Lista de documentos">
-              {pageData.items.map((document) => {
+              {pageData.items.map((document, index) => {
                 const action = documentAction(document.status)
                 const detailHref = `/documents/${document.id}`
                 const fileType = document.extension?.toUpperCase() || 'ARCHIVO'
+                const analysisQuery = analysisQueries[index]
+                const latestRun = [...(analysisQuery?.data?.items ?? [])]
+                  .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))[0]
+                const runScore = latestRun?.documentScore !== null && latestRun?.documentScore !== undefined
+                  ? latestRun.documentScore * 100
+                  : latestRun?.documentScorePercent
 
                 return (
                   <li className="documents-library-item" key={document.id}>
@@ -136,6 +153,32 @@ export function DocumentListPage() {
                             <time dateTime={document.createdAt}>{formatDate(document.createdAt)}</time>
                           </span>
                         </div>
+                      </div>
+                      <div className="documents-library-analysis" aria-label="Último análisis">
+                        {document.status !== 'EXTRACTED' ? (
+                          <span className="documents-analysis-muted">El análisis estará disponible al terminar la extracción</span>
+                        ) : analysisQuery?.isPending ? (
+                          <span className="documents-analysis-muted" role="status">Consultando análisis…</span>
+                        ) : analysisQuery?.isError ? (
+                          <span className="documents-analysis-muted">No se pudo consultar el análisis</span>
+                        ) : !latestRun ? (
+                          <span className="documents-analysis-muted">Aún no hay análisis</span>
+                        ) : latestRun.status !== 'COMPLETED' ? (
+                          <span className="documents-analysis-muted">
+                            {latestRun.status === 'PENDING' || latestRun.status === 'RUNNING' ? 'Análisis en curso' : 'El último análisis no se completó'}
+                          </span>
+                        ) : (
+                          <>
+                            <span className="documents-analysis-score">
+                              {runScore === null || runScore === undefined
+                                ? 'Sin puntaje'
+                                : `${runScore.toLocaleString('es-PE', { maximumFractionDigits: 1 })} %`}
+                            </span>
+                            <span>{latestRun.evaluatedSegments ?? latestRun.scoredSegments} evaluados</span>
+                            {latestRun.flaggedSegments !== undefined && <span>{latestRun.flaggedSegments} señalados</span>}
+                            <span className="documents-analysis-model">{ANALYZER_LABEL[latestRun.analyzerMode] ?? 'Analizador registrado'}</span>
+                          </>
+                        )}
                       </div>
                       <div className="documents-library-card-action">
                         <Link

@@ -115,6 +115,7 @@ export function postJson<T>(
   path: string,
   schema: z.ZodType<T>,
   body?: unknown,
+  options: { signal?: AbortSignal } = {},
 ): Promise<T> {
   return requestJson(
     path,
@@ -123,6 +124,7 @@ export function postJson<T>(
       headers:
         body === undefined ? undefined : { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: options.signal,
     },
     schema,
   );

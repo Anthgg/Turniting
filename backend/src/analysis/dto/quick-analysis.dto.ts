@@ -1,6 +1,6 @@
 import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import type { AnalyzerClassification } from '../../ai/ai.service.js';
-import { LANGUAGE_CODES } from './analysis.dto.js';
+import { ANALYZER_MODES, LANGUAGE_CODES, PARAGRAPH_MODES, THRESHOLD_PROFILES } from './analysis.dto.js';
 
 export const QUICK_ANALYSIS_MAX_CHARS = 20_000;
 
@@ -9,6 +9,18 @@ export class QuickAnalysisDto {
   @MinLength(1)
   @MaxLength(QUICK_ANALYSIS_MAX_CHARS)
   text!: string;
+
+  @IsOptional()
+  @IsIn(ANALYZER_MODES)
+  analyzer?: (typeof ANALYZER_MODES)[number];
+
+  @IsOptional()
+  @IsIn(THRESHOLD_PROFILES.filter((profile) => profile !== 'CUSTOM'))
+  thresholdProfile?: Exclude<(typeof THRESHOLD_PROFILES)[number], 'CUSTOM'>;
+
+  @IsOptional()
+  @IsIn(PARAGRAPH_MODES)
+  paragraphMode?: (typeof PARAGRAPH_MODES)[number];
 
   @IsOptional()
   @IsIn(LANGUAGE_CODES)
@@ -24,6 +36,9 @@ export type QuickAnalysisResponse = {
   reviewHighlighted: boolean;
   scoredParagraphs: number;
   insufficientParagraphs: number;
+  analyzer: (typeof ANALYZER_MODES)[number];
+  thresholdProfile: Exclude<(typeof THRESHOLD_PROFILES)[number], 'CUSTOM'>;
+  paragraphMode: (typeof PARAGRAPH_MODES)[number];
   scientificThreshold: number;
   reviewThreshold: number;
   model: {

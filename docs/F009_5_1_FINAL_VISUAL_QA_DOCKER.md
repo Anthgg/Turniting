@@ -1,31 +1,19 @@
 # F009.5.1 — QA visual final y Docker Compose
 
-**Fecha:** 2026-10-21, 12:10 America/Lima<br>
+**Fecha:** 2026-10-21, 13:14 America/Lima<br>
 **Rama:** `feat/f009-5-1-final-visual-qa-docker`<br>
-**Estado:** QA de navegación responsiva aprobada; QA de resaltado del PDF original parcial.<br>
+**Estado:** Dock inferior restaurado con los destinos actuales y sus iconos; QA de resaltado del PDF original parcial.<br>
 **PR/merge:** no realizados.
 
 ## Alcance y cambio aplicado
 
-Se corrigió la navegación compacta para conservar la misma barra lateral persistente del escritorio. En anchos compactos se muestra un rail fijo de iconos de 72 px; en escritorio la barra permanece expandida a 248 px y ya no tiene un control para contraerla. Se eliminaron el botón de menú móvil, el drawer deslizable, el fondo superpuesto y su comportamiento modal. Las rutas permanecen accesibles desde la barra.
+Se restauró el Dock inferior flotante estilo Mac que existía antes de F009.5. El Dock mantiene sus iconos en escritorio y muestra etiquetas al reducir el ancho. Ahora incluye Inicio, Documentos, Revisión IA, Análisis rápido, Comparar versiones, Reportes Turniting, Reportes de Turnitin, Historial de análisis, Modelos, Datasets, Estado técnico y Subir. Cada destino tiene su icono y nombre accesible; en pantallas estrechas los 12 accesos se acomodan en dos filas.
 
 Los cambios de interfaz están en `frontend/src/App.tsx` y `frontend/src/App.css`. No se modificaron backend, puntuación, inferencia, modelos, pesos, entrenamiento, datasets, holdout ni umbrales científicos o visuales.
 
-## Revisión responsiva
+## Revisión de navegación
 
-Se recorrieron Inicio, Documentos, Análisis rápido, Comparación, Reportes, Historial, Modelos y Estado técnico en tres tamaños. Las dimensiones son las medidas efectivas del viewport del navegador.
-
-| Viewport efectivo | Ancho del rail | Overflow horizontal en documento/main | Navegación |
-| --- | ---: | ---: | --- |
-| 389 × 843 (móvil solicitado: 390 × 844) | 72 px | 0 / 0 en las 8 rutas | `sticky`, transformación `none`, sin control de drawer |
-| 768 × 1023 (tablet solicitado: 768 × 1024) | 72 px | 0 / 0 en las 8 rutas | `sticky`, transformación `none`, sin control de drawer |
-| 1367 × 764 (escritorio solicitado: 1366 × 768) | 248 px | 0 / 0 en las 8 rutas | `sticky`, transformación `none` |
-
-El análisis rápido también se comprobó en los seis tamaños solicitados: 1920×1080, 1440×900, 1366×768, 1024×768, 768×1024 y 390×844. En todos se mantuvo visible la navegación y no hubo overflow horizontal. En escritorio, la barra conserva 248 px de ancho y no muestra control para contraerla. La consola del navegador registró 0 errores y 0 advertencias durante este recorrido.
-
-### Revalidación después de retirar el control de escritorio
-
-La imagen local del frontend se reconstruyó y se reemplazó únicamente el contenedor `frontend`. En navegador, el viewport efectivo de 1367×768 mostró la barra fija de 248 px, etiquetas visibles, 0 controles para contraer y 0 overflow horizontal. En 389×843 la barra compacta conservó 72 px, ocultó las etiquetas como está previsto y también mantuvo 0 controles y 0 overflow. El tamaño temporal del viewport se restauró al finalizar.
+La vista de escritorio se comprobó en navegador después de reconstruir el frontend. El Dock está fijo en el borde inferior, centrado y sin barra lateral. El árbol de accesibilidad confirma los 12 destinos: `/`, `/documents`, revisión del documento activo, `/analysis/quick`, `/analysis/compare`, `/reports`, `/turnitin-reports`, `/history`, `/models`, `/datasets`, `/settings` y la acción de subir documentos. No se recorrieron todas las rutas ni se hizo una captura móvil en esta corrección; el layout móvil de dos filas está implementado, pero requiere verificación visual específica.
 
 ## Smoke de análisis rápido y persistencia
 
@@ -52,7 +40,7 @@ La QA del menú y del layout pasa; la cobertura visual universal del PDF origina
 
 ## Docker Compose local
 
-Docker ya estaba corriendo; no se inició ni reinició el motor. Se reconstruyó `frontend` con `--no-cache` después del cambio de navegación y se actualizó únicamente ese servicio. La compilación completa sin caché de las imágenes locales AI/backend/frontend se había ejecutado antes en esta misma fase; backend y AI no recibieron cambios de código en esta corrección. No se publicó ninguna imagen externamente.
+Docker ya estaba corriendo; no se inició ni reinició el motor. Para restaurar el Dock y añadir sus destinos e iconos se reconstruyó y reemplazó únicamente `frontend`. Backend y AI no recibieron cambios de código. No se publicó ninguna imagen externamente.
 
 Estado observado al finalizar: `ai-service`, `backend`, `db` y `frontend` en ejecución y `healthy`. Respuestas HTTP: frontend `/` 200; backend `/api/health` 200; base de datos `/api/health/db` 200; proxy AI del backend `/api/health/ai` 200; servicio AI `/health` 200. Compose 2.40.3. No se ejecutó `docker compose down`, no se eliminaron volúmenes y no se reinició la base de datos.
 

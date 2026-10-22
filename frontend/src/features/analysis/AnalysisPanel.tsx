@@ -127,6 +127,8 @@ export function AnalysisPanel({
   const [mode, setMode] = useState<ParagraphModeName>(DEFAULT_PARAGRAPH_MODE);
   const [languageCode, setLanguageCode] = useState<LanguageCode>("es");
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
+  const [collapsedSettingsRunId, setCollapsedSettingsRunId] = useState<string | null>(null);
+  const [settingsExpanded, setSettingsExpanded] = useState(false);
   const [sort, setSort] = useState<AnalysisSegmentSort>("PARAGRAPH");
   const [filter, setFilter] = useState<AnalysisSegmentFilter>("ALL");
   const [page, setPage] = useState(1);
@@ -193,6 +195,8 @@ export function AnalysisPanel({
       }),
     onSuccess: async (result) => {
       setSelectedRun(result.id);
+      setCollapsedSettingsRunId(result.id);
+      setSettingsExpanded(false);
       setPage(1);
       setFilter("ALL");
       setExpandedParagraphs({});
@@ -278,6 +282,21 @@ export function AnalysisPanel({
     : 0;
   const pageCount = segmentsMatchRun ? (segments.data?.pages ?? 1) : 1;
   const runMetadata = run && isRecord(run.metadata) ? run.metadata : {};
+  const settingsCollapsed = run?.status === "COMPLETED"
+    && run.id === collapsedSettingsRunId
+    && !settingsExpanded;
+  const appliedLanguageCode = typeof runMetadata.languageCode === "string"
+    ? runMetadata.languageCode
+    : null;
+  const appliedLanguageLabel = appliedLanguageCode === "es"
+    ? "Español · calibración española"
+    : appliedLanguageCode === "en"
+      ? "Inglés · calibración global"
+      : appliedLanguageCode === "other"
+        ? "Otro o desconocido · calibración global"
+        : "No registrado";
+  const analyzerUsesLanguage = run?.analyzerMode === "F006_1_ONLY"
+    || run?.analyzerMode === "F006_1_1_ONLY";
   const cacheHitLabel =
     typeof runMetadata.cacheHit === "boolean"
       ? runMetadata.cacheHit
@@ -633,7 +652,16 @@ export function AnalysisPanel({
         </Link>
       </div>
 
-      <div className="analysis-toolbar" role="group" aria-label="Configuración del análisis">
+      <div className={`analysis-toolbar${settingsCollapsed ? " is-collapsed" : ""}`} role="group" aria-label="Configuración del análisis">
+        {settingsCollapsed && run && (
+          <dl className="analysis-applied-settings" aria-label="Parámetros aplicados">
+            <div><dt>Analizador</dt><dd>{ANALYZER_LABEL[run.analyzerMode] ?? run.analyzerMode}</dd></div>
+            <div><dt>Perfil</dt><dd>{PROFILE_LABEL[run.thresholdProfile] ?? run.thresholdProfile}</dd></div>
+            <div><dt>Modo</dt><dd>{run.paragraphMode === "STRICT_PARAGRAPH" ? "Solo el párrafo" : run.paragraphMode === "CONTEXTUAL_PARAGRAPH" ? "Con contexto breve" : run.paragraphMode ?? "No disponible"}</dd></div>
+            <div><dt>Idioma</dt><dd>{analyzerUsesLanguage ? appliedLanguageLabel : "No aplica"}</dd></div>
+          </dl>
+        )}
+        {!settingsCollapsed && <>
         <label className="analysis-toolbar-field">
           <span>Analizador</span>
           <select
@@ -765,6 +793,7 @@ export function AnalysisPanel({
               onChange={(event) => {
                 analyze.reset();
                 setSelectedRun(event.currentTarget.value);
+              setSettingsExpanded(false);
                 setPage(1);
                 setExpandedParagraphs({});
                 setExpandedInsufficientGroups({});
@@ -791,17 +820,18 @@ export function AnalysisPanel({
             </select>
           </label>
         )}
+        </>}
 
         <div className="analysis-toolbar-action">
           <button
-            className="button button-primary"
+            className={`button ${settingsCollapsed ? "button-quiet" : "button-primary"}`}
             type="button"
-            disabled={!hasText || analyze.isPending || !usable}
-            onClick={() => analyze.mutate()}
+            disabled={!settingsCollapsed && (!hasText || analyze.isPending || !usable)}
+            onClick={() => settingsCollapsed ? setSettingsExpanded(true) : analyze.mutate()}
             aria-busy={analyze.isPending}
           >
-            <Icon name="spark" size={15} />
-            <span>{analyze.isPending ? "Analizando…" : "Analizar IA"}</span>
+            {!settingsCollapsed && <Icon name="spark" size={15} />}
+            <span>{settingsCollapsed ? "Cambiar parámetros" : analyze.isPending ? "Analizando…" : run?.status === "COMPLETED" ? "Reanalizar" : "Analizar IA"}</span>
           </button>
         </div>
       </div>
