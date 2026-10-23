@@ -1,0 +1,8 @@
+{
+  "name": "F008_2_CLAUDE_PAIRS",
+  "sha256": "78481f2873e3823361e1cae9b04dd2aa60e572fb4d64056254f11e99e44dbb12",
+  "generator": "Claude Code subagents (opus/sonnet/haiku), no API key",
+  "pairs": 10999,
+  "rule": "TRAINING DATA ONLY",
+  "seeds": 1000
+}

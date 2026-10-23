@@ -1,0 +1,132 @@
+[
+ {
+  "job": "pairs_haiku_000",
+  "family": "haiku",
+  "items": 40
+ },
+ {
+  "job": "pairs_haiku_001",
+  "family": "haiku",
+  "items": 40
+ },
+ {
+  "job": "pairs_haiku_002",
+  "family": "haiku",
+  "items": 40
+ },
+ {
+  "job": "pairs_haiku_003",
+  "family": "haiku",
+  "items": 40
+ },
+ {
+  "job": "pairs_haiku_004",
+  "family": "haiku",
+  "items": 40
+ },
+ {
+  "job": "pairs_haiku_005",
+  "family": "haiku",
+  "items": 40
+ },
+ {
+  "job": "pairs_haiku_006",
+  "family": "haiku",
+  "items": 40
+ },
+ {
+  "job": "pairs_haiku_007",
+  "family": "haiku",
+  "items": 40
+ },
+ {
+  "job": "pairs_haiku_008",
+  "family": "haiku",
+  "items": 38
+ },
+ {
+  "job": "pairs_opus_000",
+  "family": "opus",
+  "items": 40
+ },
+ {
+  "job": "pairs_opus_001",
+  "family": "opus",
+  "items": 40
+ },
+ {
+  "job": "pairs_opus_002",
+  "family": "opus",
+  "items": 25
+ },
+ {
+  "job": "pairs_sonnet_000",
+  "family": "sonnet",
+  "items": 40
+ },
+ {
+  "job": "pairs_sonnet_001",
+  "family": "sonnet",
+  "items": 40
+ },
+ {
+  "job": "pairs_sonnet_002",
+  "family": "sonnet",
+  "items": 40
+ },
+ {
+  "job": "pairs_sonnet_003",
+  "family": "sonnet",
+  "items": 40
+ },
+ {
+  "job": "pairs_sonnet_004",
+  "family": "sonnet",
+  "items": 40
+ },
+ {
+  "job": "pairs_sonnet_005",
+  "family": "sonnet",
+  "items": 40
+ },
+ {
+  "job": "pairs_sonnet_006",
+  "family": "sonnet",
+  "items": 40
+ },
+ {
+  "job": "pairs_sonnet_007",
+  "family": "sonnet",
+  "items": 40
+ },
+ {
+  "job": "pairs_sonnet_008",
+  "family": "sonnet",
+  "items": 40
+ },
+ {
+  "job": "pairs_sonnet_009",
+  "family": "sonnet",
+  "items": 40
+ },
+ {
+  "job": "pairs_sonnet_010",
+  "family": "sonnet",
+  "items": 40
+ },
+ {
+  "job": "pairs_sonnet_011",
+  "family": "sonnet",
+  "items": 40
+ },
+ {
+  "job": "pairs_sonnet_012",
+  "family": "sonnet",
+  "items": 40
+ },
+ {
+  "job": "pairs_sonnet_013",
+  "family": "sonnet",
+  "items": 17
+ }
+]
