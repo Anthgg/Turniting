@@ -3,13 +3,16 @@
   grid-template-columns: minmax(220px, 1.6fr) repeat(3, minmax(150px, 1fr));
   gap: 12px;
   margin: 20px 0 16px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
+  padding: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
 }
 
-.history-filter-panel label {
+.history-filter-panel label,
+.history-filter-panel .history-filter-field {
   display: grid;
   gap: 6px;
   min-width: 0;
@@ -30,18 +33,24 @@
   font: inherit;
 }
 
+.history-filter-panel .custom-select {
+  width: 100%;
+}
+
 .analysis-history-list {
   display: grid;
-  gap: 10px;
+  gap: 0;
+  border-top: 1px solid var(--line);
 }
 
 .analysis-history-card {
   display: grid;
   gap: 12px;
-  padding: 18px 20px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
+  padding: 18px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
 }
 
 .analysis-history-main {

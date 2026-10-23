@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { listTurnitinReports, turnitinQueryKeys, uploadTurnitinReport } from '../../api/turnitin'
+import { TurnitingFeedback } from '../../components/TurnitingFeedback'
 import { ApiErrorNotice } from '../documents/ApiErrorNotice'
 import { MAX_TURNITIN_REPORT_MB } from '../documents/upload-limits'
 
@@ -91,7 +92,9 @@ export function TurnitinReportsPage() {
         </div>
         <p className="turnitin-privacy-copy">El PDF se procesa en este entorno local. Máximo {MAX_TURNITIN_REPORT_MB} MB. No se busca ni abre ninguna fuente citada.</p>
         {file && <p className="turnitin-selected-file">{file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB</p>}
-        {localError && <p className="turnitin-inline-error" role="alert">{localError}</p>}
+        {localError && <TurnitingFeedback state="file-error" description={localError} className="turnitin-inline-error" layout="inline" />}
+        {file && !localError && !upload.isPending && <TurnitingFeedback state="ready" description={`${file.name} está listo para lectura local.`} className="turnitin-selected-file-status" layout="inline" />}
+        {upload.isPending && <TurnitingFeedback state="reading" title="Leyendo reporte PDF" description="La lectura se ejecuta en este entorno local; el estado se actualizará al terminar." className="turnitin-upload-status" layout="inline" />}
         {upload.isError && <ApiErrorNotice error={upload.error} title="No se pudo procesar el reporte" />}
       </section>
 
@@ -105,12 +108,9 @@ export function TurnitinReportsPage() {
         </div>
 
         {reports.isError && <ApiErrorNotice error={reports.error} title="No se pudieron cargar los reportes" />}
-        {reports.isPending && <div className="documents-empty-state" role="status"><span className="state-indicator is-animated" /><span>Cargando reportes…</span></div>}
+        {reports.isPending && <TurnitingFeedback state="reading" title="Leyendo la biblioteca" description="Cargando reportes recientes…" className="documents-empty-state" layout="inline" />}
         {reports.data?.items.length === 0 && (
-          <div className="documents-empty-state">
-            <strong>Aún no hay reportes</strong>
-            <span>Los PDFs que importes aparecerán aquí con sus resultados y advertencias.</span>
-          </div>
+          <TurnitingFeedback state="empty" title="Aún no hay reportes" description="Los PDFs que importes aparecerán aquí con sus resultados y advertencias." className="documents-empty-state" layout="inline" />
         )}
         {reports.data && reports.data.items.length > 0 && (
           <ul className="turnitin-report-list">

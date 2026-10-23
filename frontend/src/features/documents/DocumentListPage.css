@@ -1,6 +1,6 @@
 .documents-library {
   width: 100%;
-  max-width: 1480px;
+  max-width: none;
   margin-inline: auto;
 }
 
@@ -194,6 +194,37 @@
   transform: translateY(-1px);
   border-color: #b7d9d4;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+}
+
+/* Open library rows use the full workspace surface instead of nested cards. */
+.documents-upload-panel {
+  padding: 18px 0 16px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.documents-library-list {
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+
+.documents-library-card {
+  padding: 13px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.documents-library-card:hover {
+  transform: none;
+  border-color: var(--line);
+  background: rgba(239, 250, 248, .58);
+  box-shadow: none;
 }
 
 .documents-library-file-icon {

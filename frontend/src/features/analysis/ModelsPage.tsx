@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { analysisQueryKeys, listAnalyzerModels } from '../../api/analysis'
+import { TurnitingFeedback } from '../../components/TurnitingFeedback'
 import { ApiErrorNotice } from '../documents/ApiErrorNotice'
 import { availabilityLabel, isAnalyzerUsable } from './analysis-utils'
 import './ModelsPage.css'
@@ -302,7 +303,7 @@ export function ModelsOverview({ modelList }: { modelList: ModelListData }) {
             {modelList.items.map((model) => <ModelCard key={model.name} model={model} resolvedPreference={resolved} />)}
           </div>
         ) : (
-          <div className="models-empty-state">No hay modelos registrados para mostrar.</div>
+          <TurnitingFeedback state="empty" title="No hay modelos registrados para mostrar" className="models-empty-state" layout="inline" />
         )}
       </section>
 
@@ -317,7 +318,7 @@ export function ModelsPage() {
   return (
     <>
       {models.isError && <div className="dashboard-main models-page"><ApiErrorNotice error={models.error} title="No se pudo cargar el registro de modelos" /></div>}
-      {models.isLoading && <div className="dashboard-main models-page"><p className="models-loading" role="status">Cargando disponibilidad de modelos…</p></div>}
+      {models.isLoading && <div className="dashboard-main models-page"><TurnitingFeedback state="thinking" title="Comprobando modelos disponibles" description="Leyendo el catálogo local y la disponibilidad del servicio…" className="models-loading" layout="inline" /></div>}
       {models.data && <ModelsOverview modelList={models.data} />}
     </>
   )

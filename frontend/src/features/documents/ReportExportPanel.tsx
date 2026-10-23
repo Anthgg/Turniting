@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiRequestError } from "../../api/client";
 import { analysisQueryKeys, listDocumentAnalyses } from "../../api/analysis";
+import { CustomSelect } from "../../components/CustomSelect";
+import { TurnitingFeedback } from "../../components/TurnitingFeedback";
 import {
   downloadReport,
   deleteReport,
@@ -163,6 +165,7 @@ export function ReportExportPanel({
   const currentReports = (reports.data?.items ?? []).filter(
     (report) => report.documentId === documentId,
   );
+  const reportsGenerating = currentReports.some((report) => report.status === "GENERATING");
   const aiReports = currentReports.filter(
     (report) => report.type !== "SIMILARITY_REPORT",
   );
@@ -216,22 +219,19 @@ export function ReportExportPanel({
         </div>
       </div>
       {completedRuns.length > 1 && (
-        <label className="report-run-select">
+        <div className="report-run-select">
           <span>Corrida para ambos reportes</span>
-          <select
+          <CustomSelect
+            id="report-export-run"
+            label="Corrida para ambos reportes"
             value={selectedRun?.id ?? ""}
-            onChange={(event) => setSelectedRunId(event.currentTarget.value)}
-          >
-            {completedRuns.map((run) => (
-              <option value={run.id} key={run.id}>
-                {new Date(run.completedAt ?? run.createdAt).toLocaleString(
-                  "es-PE",
-                )}{" "}
-                · {run.analyzerMode} · {run.paragraphMode ?? "sin modo"}
-              </option>
-            ))}
-          </select>
-        </label>
+            options={completedRuns.map((run) => ({
+              value: run.id,
+              label: `${new Date(run.completedAt ?? run.createdAt).toLocaleString("es-PE")} · ${run.analyzerMode} · ${run.paragraphMode ?? "sin modo"}`,
+            }))}
+            onChange={setSelectedRunId}
+          />
+        </div>
       )}
       {selectedRun && (
         <p className="report-export-note" data-analysis-run-id={selectedRun.id}>
@@ -317,11 +317,9 @@ export function ReportExportPanel({
         </p>
       )}
       {message && <p className="report-export-note" role="status">{message}</p>}
-      {canExport && analyses.isPending && (
-        <p className="report-export-note" role="status">
-          Buscando análisis completados…
-        </p>
-      )}
+      {(reports.isPending || (canExport && analyses.isPending)) && <TurnitingFeedback state="reading" title={reports.isPending && canExport && analyses.isPending ? 'Consultando análisis y reportes' : reports.isPending ? 'Consultando reportes' : 'Buscando análisis completados'} description="Leyendo corridas disponibles y el estado de los PDFs…" className="report-export-feedback" layout="inline" />}
+      {!reports.isPending && !analyses.isPending && !download.isPending && (generationPending || reportsGenerating) && <TurnitingFeedback state="analyzing" title="Generando reporte PDF" description="El servicio aún está procesando el documento. No se muestra un progreso inventado." className="report-export-feedback" layout="inline" />}
+      {download.isPending && <TurnitingFeedback state="reading" title="Descargando reporte" description="Preparando el archivo PDF…" className="report-export-feedback" layout="inline" />}
       {analyses.isError && (
         <p className="report-export-error" role="alert">
           No se pudieron cargar los análisis: {errorMessage(analyses.error)}
@@ -331,9 +329,7 @@ export function ReportExportPanel({
         !analyses.isPending &&
         !analyses.isError &&
         completedRuns.length === 0 && (
-          <p className="report-export-note">
-            Completa un análisis de IA para habilitar su reporte.
-          </p>
+          <TurnitingFeedback state="empty" title="Todavía no hay análisis para exportar" description="Completa un análisis de IA para habilitar su reporte." className="report-export-note" layout="inline" />
         )}
       {reports.isError && (
         <p className="report-export-error" role="alert">

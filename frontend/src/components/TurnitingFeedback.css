@@ -1,0 +1,96 @@
+.turniting-feedback {
+  --feedback-border: color-mix(in srgb, var(--border, #dce8e7) 84%, transparent);
+  --feedback-surface: color-mix(in srgb, var(--surface, #fff) 92%, #e8f8f5);
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2vw, 24px);
+  min-width: 0;
+  color: var(--text, #183436);
+}
+
+.turniting-feedback--panel {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-height: 136px;
+  padding: clamp(14px, 2vw, 24px);
+  border: 1px solid var(--feedback-border);
+  border-radius: 18px;
+  background: var(--feedback-surface);
+}
+
+.turniting-feedback.turniting-feedback--panel {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.turniting-feedback--inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  min-height: 64px;
+}
+
+.turniting-feedback.turniting-feedback--inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.turniting-feedback__mascot {
+  flex: 0 0 auto;
+  width: clamp(76px, 12vw, 136px);
+  height: auto;
+}
+
+.turniting-feedback--inline .turniting-feedback__mascot {
+  width: 72px;
+}
+
+.turniting-feedback__content {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.turniting-feedback__title {
+  color: inherit;
+  font-size: 0.96rem;
+  line-height: 1.35;
+}
+
+.turniting-feedback__description {
+  margin: 0;
+  color: var(--muted, #5f7778);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.turniting-feedback__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.turniting-feedback--empty .turniting-feedback__mascot { opacity: 0.9; }
+.turniting-feedback.turniting-feedback--panel.documents-library-empty {
+  display: flex;
+  flex-direction: row;
+  justify-items: unset;
+  align-content: unset;
+}
+.turniting-feedback--warning { border-color: color-mix(in srgb, #cf9d4c 32%, var(--feedback-border)); }
+.turniting-feedback--error,
+.turniting-feedback--network-error,
+.turniting-feedback--file-error { border-color: color-mix(in srgb, #c56e72 34%, var(--feedback-border)); }
+
+@media (max-width: 560px) {
+  .turniting-feedback--panel { gap: 10px; padding: 12px; }
+  .turniting-feedback__mascot { width: 72px; }
+  .turniting-feedback--inline .turniting-feedback__mascot { width: 60px; }
+}

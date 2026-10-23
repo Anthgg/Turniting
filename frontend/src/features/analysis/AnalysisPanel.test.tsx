@@ -242,8 +242,11 @@ describe('AnalysisPanel run provenance and operation errors', () => {
   it('defaults research analysis to the available local F006.1 model', () => {
     const html = renderPanel()
 
-    expect(html).toContain('<option value="F006_1_ONLY" selected="">F006.1 · Experimental</option>')
-    expect(html).not.toContain('<option value="F006_1_1_ONLY"')
+    expect(html).toContain('id="analysis-analyzer"')
+    expect(html).toContain('aria-label="Analizador: F006.1 · Experimental"')
+    expect(html).toContain('<span class="custom-select-value">F006.1 · Experimental</span>')
+    expect(html).not.toContain('<select')
+    expect(html).not.toContain('F006.1.1 · Experimental')
     expect(html).toContain('F006 base no disponible para inferencia')
   })
 

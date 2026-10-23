@@ -5,6 +5,7 @@ import { getDocument, documentQueryKeys, uploadDocument } from '../../api/docume
 import type { DocumentRecord } from '../../api/documents'
 import { Icon } from '../../components/Icon'
 import { ApiErrorNotice } from './ApiErrorNotice'
+import { TurnitingFeedback } from '../../components/TurnitingFeedback'
 import { formatBytes } from './document-utils'
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from './upload-limits'
 import { operationErrorMessage } from '../analysis/analysis-utils'
@@ -152,48 +153,40 @@ export function DocumentUpload() {
       </div>
 
       {clientIssue && (
-        <div className="api-error" role="alert">
-          <div><strong>Revisa el archivo</strong><p>{clientIssue.message}</p><code>{clientIssue.code}</code></div>
-        </div>
+        <TurnitingFeedback state="file-error" title="Revisa el archivo" description={clientIssue.message} className="api-error" layout="inline">
+          <code>{clientIssue.code}</code>
+        </TurnitingFeedback>
       )}
       {uploadError && <ApiErrorNotice error={uploadError} title={operationErrorMessage('uploadError')} />}
 
+      {selectedFile && !clientIssue && !trackedDocument && !upload.isPending && (
+        <TurnitingFeedback state="ready" title="Archivo listo para analizar" description={selectedFile.name} className="upload-state" layout="inline" />
+      )}
+
       {upload.isPending && (
-        <div className="upload-state upload-state-processing" role="status" aria-live="polite">
-          <span className="state-indicator is-animated" />
-          <span><strong>UPLOADING · Subiendo archivo</strong><small>Estamos enviando el documento al backend.</small></span>
-        </div>
+        <TurnitingFeedback state="running" title="UPLOADING · Subiendo archivo" description="Estamos enviando el documento al backend." className="upload-state upload-state-processing" layout="inline" />
       )}
 
       {isProcessing && !uploadStatus.isError && (
-        <div className="upload-state upload-state-processing" role="status" aria-live="polite">
-          <span className="state-indicator is-animated" />
-          <span><strong>PROCESSING · Procesando documento</strong><small>El estado se actualizará automáticamente.</small></span>
-        </div>
+        <TurnitingFeedback state="reading" title="PROCESSING · Procesando documento" description="El estado se actualizará automáticamente mientras se extrae el texto." className="upload-state upload-state-processing" layout="inline" />
       )}
 
       {isCompleted && trackedDocument && (
-        <div className="upload-state upload-state-complete" role="status" aria-live="polite">
-          <span className="state-indicator"><Icon name="check" size={13} /></span>
-          <span><strong>READY · Documento completado</strong><small>El texto está listo para consultarse.</small></span>
+        <TurnitingFeedback state="success" title="READY · Documento completado" description="El texto está listo para consultarse." className="upload-state upload-state-complete" layout="inline">
           <Link className="button button-quiet upload-result-link" to={`/documents/${trackedDocument.id}`}>Ver documento</Link>
-        </div>
+        </TurnitingFeedback>
       )}
 
       {isOcrRequired && trackedDocument && (
-        <div className="upload-state upload-state-warning" role="status" aria-live="polite">
-          <span className="state-indicator">!</span>
-          <span><strong>OCR_REQUIRED · OCR requerido</strong><small>El documento está listo para procesar sus páginas escaneadas.</small></span>
+        <TurnitingFeedback state="warning" title="OCR_REQUIRED · OCR requerido" description="El documento está listo para procesar sus páginas escaneadas." className="upload-state upload-state-warning" layout="inline">
           <Link className="button button-quiet upload-result-link" to={`/documents/${trackedDocument.id}`}>Ver detalle</Link>
-        </div>
+        </TurnitingFeedback>
       )}
 
       {isProcessingFailed && trackedDocument && (
-        <div className="upload-state upload-state-error" role="alert">
-          <span className="state-indicator">!</span>
-          <span><strong>ERROR · Falló el procesamiento</strong><small>{trackedDocument.extractionError || 'Puedes revisar el detalle y volver a intentarlo.'}</small></span>
+        <TurnitingFeedback state="file-error" title="ERROR · Falló el procesamiento" description={trackedDocument.extractionError || 'Puedes revisar el detalle y volver a intentarlo.'} className="upload-state upload-state-error" layout="inline">
           <Link className="button button-quiet upload-result-link" to={`/documents/${trackedDocument.id}`}>Ver detalle</Link>
-        </div>
+        </TurnitingFeedback>
       )}
 
       {uploadStatusError && (

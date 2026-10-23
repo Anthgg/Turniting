@@ -4,6 +4,7 @@ import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation } from 'rea
 import './App.css'
 import { documentQueryKeys, getDocument, listDocuments } from './api/documents'
 import { Icon } from './components/Icon'
+import { TurnitingFeedback } from './components/TurnitingFeedback'
 import turnitingMark from './assets/brand/turniting-mark.png'
 import { HomeRecentActivity } from './features/analysis/HomeRecentActivity'
 import { formatDate, statusClass, statusLabel } from './features/documents/document-utils'
@@ -45,7 +46,15 @@ const SettingsPage = lazy(() =>
 )
 
 function RouteLoadingFallback() {
-  return <div className="route-loading" role="status" aria-live="polite">Cargando vista…</div>
+  return (
+    <TurnitingFeedback
+      state="thinking"
+      title="Preparando esta sección"
+      description="Cargando la vista solicitada…"
+      className="route-loading"
+      layout="inline"
+    />
+  )
 }
 
 export function WorkspaceLayout() {
@@ -145,7 +154,7 @@ export function WorkspaceLayout() {
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Saltar al contenido principal</a>
 
-      <div className="app-frame">
+      <div className={`app-frame${isQuickAnalysisRoute ? ' app-frame--quick' : ''}`}>
         <header className="topbar">
           <Link className="topbar-brand" to="/" aria-label="Turniting, ir al inicio">
             <img src={turnitingMark} alt="" />
@@ -158,7 +167,7 @@ export function WorkspaceLayout() {
         </header>
 
         <div className="main-shell">
-          <main id="main-content" className="main-content" tabIndex={-1}>
+          <main id="main-content" className={`main-content${isQuickAnalysisRoute ? ' main-content--quick' : ''}`} tabIndex={-1}>
             <Suspense fallback={<RouteLoadingFallback />}>
               <Outlet />
             </Suspense>
@@ -349,27 +358,21 @@ function DashboardPage() {
         </div>
 
         {recentDocuments.isPending && (
-          <div className="documents-empty-state" role="status" aria-live="polite">
-            <span className="state-indicator is-animated" />
-            <span>Cargando actividad reciente…</span>
-          </div>
+          <TurnitingFeedback state="reading" title="Leyendo actividad reciente" description="Cargando tus documentos más recientes…" className="documents-empty-state" layout="inline" />
         )}
 
         {recentDocuments.isError && (
-          <div className="documents-empty-state" role="alert">
-            <strong>No se pudo cargar la actividad reciente.</strong>
+          <TurnitingFeedback state="network-error" title="No se pudo cargar la actividad reciente" className="documents-empty-state" layout="inline">
             <button className="button button-quiet" type="button" onClick={() => void recentDocuments.refetch()} disabled={recentDocuments.isFetching}>
               Reintentar
             </button>
-          </div>
+          </TurnitingFeedback>
         )}
 
         {recentDocuments.data && recentItems.length === 0 ? (
-          <div className="documents-empty-state">
-            <strong>Aún no hay documentos</strong>
-            <span>Sube un archivo para empezar una revisión completa.</span>
+          <TurnitingFeedback state="empty" title="Aún no hay documentos" description="Sube un archivo para empezar una revisión completa." className="documents-empty-state" layout="inline">
             <Link className="button button-quiet" to="/documents">Analizar documento</Link>
-          </div>
+          </TurnitingFeedback>
         ) : recentItems.length > 0 ? (
           <div className="home-recent-list" role="list" aria-label="Documentos recientes">
             {recentItems.map((doc) => (

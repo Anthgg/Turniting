@@ -96,8 +96,8 @@ describe("ReportsPage", () => {
     expect(html).toContain("Turnitin importados");
     expect(html).toContain('class="reports-history-list"');
     expect(html).toContain('class="reports-history-row"');
-    expect(html).toContain('aria-label="Tipo de reporte"');
-    expect(html).toContain('aria-label="Estado del reporte"');
+    expect(html).toContain('aria-label="Tipo de reporte: Todos los tipos"');
+    expect(html).toContain('aria-label="Estado del reporte: Todos"');
     expect(html).toContain("muestra_sintetica.docx");
     expect(html).toContain("31ec6f6f · V3_ONLY");
     expect(html).toContain("Disponible");
@@ -110,9 +110,11 @@ describe("ReportsPage", () => {
     expect(html).toContain("43.4 %");
     expect(html).toContain("SYNTHETIC");
     expect(html).toContain("Revisión original");
-    expect(html).toContain("Detalle por párrafos");
-    expect(html).toContain("IA anterior");
-    expect(html).toContain("Expirados");
+    expect(html).toContain('aria-label="Tipo de reporte: Todos los tipos"');
+    expect(html).toContain('aria-label="Estado del reporte: Todos"');
+    expect(html).toContain("Todos los tipos");
+    expect(html).toContain('role="combobox"');
+    expect(html).not.toContain("<select");
   });
 
   it("offers regeneration for expired reports and does not render a dead download link", () => {
@@ -144,7 +146,9 @@ describe("ReportsPage", () => {
     const html = renderToStaticMarkup(createElement(ReportsPage));
 
     expect(html).toContain("Revisión original");
-    expect(html).toContain("Detalle por párrafos");
+    expect(html).toContain('aria-label="Tipo de reporte: Todos los tipos"');
+    expect(html).toContain('role="combobox"');
+    expect(html).not.toContain("<select");
     expect(html.match(/Ver PDF/g)).toHaveLength(2);
     expect(html.match(/Descargar/g)).toHaveLength(2);
     expect(html.match(/43\.4 %/g)).toHaveLength(2);

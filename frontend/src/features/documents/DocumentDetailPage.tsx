@@ -16,6 +16,8 @@ import {
   reprocessDocument,
 } from "../../api/documents";
 import { Icon } from "../../components/Icon";
+import { CustomSelect } from "../../components/CustomSelect";
+import { TurnitingFeedback } from "../../components/TurnitingFeedback";
 import { AnalysisPanel } from "../analysis/AnalysisPanel";
 import { ReportExportPanel } from "./ReportExportPanel";
 import { ApiErrorNotice } from "./ApiErrorNotice";
@@ -332,10 +334,7 @@ export function DocumentDetailPage() {
       )}
 
       {document.isPending && (
-        <div className="documents-empty-state" role="status" aria-live="polite">
-          <span className="state-indicator is-animated" />
-          <span>Cargando los metadatos…</span>
-        </div>
+        <TurnitingFeedback state="reading" title="Leyendo el documento" description="Cargando metadatos y estado de extracción…" className="documents-empty-state" layout="inline" />
       )}
 
       {record && activeTab === "document" && (
@@ -351,34 +350,19 @@ export function DocumentDetailPage() {
               aria-label="Estado del procesamiento"
             >
               {isProcessing && (
-                <p className="processing-inline" role="status">
-                  <span className="state-indicator is-animated" /> El backend
-                  está procesando el archivo. Esta vista se actualizará
-                  automáticamente.
-                </p>
+                <TurnitingFeedback state="reading" title="Extrayendo el documento" description="El estado se actualizará automáticamente." className="document-processing-feedback" layout="inline" />
               )}
               {record.status === "OCR_REQUIRED" && (
-                <p className="document-warning-note">
-                  Este documento necesita OCR local para recuperar texto de las
-                  páginas escaneadas.
-                </p>
+                <TurnitingFeedback state="warning" title="OCR requerido" description="Este documento necesita OCR local para recuperar texto de las páginas escaneadas." className="document-processing-feedback" layout="inline" />
               )}
               {record.status === "FAILED" && record.extractionError && (
-                <p className="document-error-note">
-                  <strong>Error de extracción:</strong> {record.extractionError}
-                </p>
+                <TurnitingFeedback state="file-error" title="Error de extracción" description={record.extractionError} className="document-processing-feedback" layout="inline" />
               )}
               {processOcr.isPending && (
-                <p className="processing-inline" role="status">
-                  <span className="state-indicator is-animated" /> Procesando
-                  OCR página por página, sin porcentaje estimado.
-                </p>
+                <TurnitingFeedback state="reading" title="Procesando OCR local" description="Leyendo página por página, sin porcentaje estimado." className="document-processing-feedback" layout="inline" />
               )}
               {record.ocrStatus === "PARTIAL" && (
-                <p className="document-warning-note">
-                  El OCR quedó parcial. Revisa los avisos y las páginas que aún
-                  requieren procesamiento.
-                </p>
+                <TurnitingFeedback state="warning" title="OCR parcial" description="Revisa los avisos y las páginas que aún requieren procesamiento." className="document-processing-feedback" layout="inline" />
               )}
               {record.averageOcrConfidence !== null && (
                 <p className="document-success-note">
@@ -647,22 +631,22 @@ export function DocumentDetailPage() {
               record.status === "EXTRACTED" &&
               attachableTurnitinReports.length > 0 && (
                 <div className="turnitin-attach-row">
-                  <label>
+                  <div className="turnitin-attach-field">
                     <span>Selecciona un reporte para comparar</span>
-                    <select
+                    <CustomSelect
+                      id="document-turnitin-report"
+                      label="Selecciona un reporte para comparar"
                       value={selectedTurnitinReportId}
-                      onChange={(event) =>
-                        setSelectedTurnitinReportId(event.currentTarget.value)
-                      }
-                    >
-                      <option value="">Seleccionar reporte</option>
-                      {attachableTurnitinReports.map((item) => (
-                        <option value={item.id} key={item.id}>
-                          {item.originalName} · {item.reportType}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      options={[
+                        { value: "", label: "Seleccionar reporte" },
+                        ...attachableTurnitinReports.map((item) => ({
+                          value: item.id,
+                          label: `${item.originalName} · ${item.reportType}`,
+                        })),
+                      ]}
+                      onChange={setSelectedTurnitinReportId}
+                    />
+                  </div>
                   <button
                     className="button button-primary"
                     type="button"

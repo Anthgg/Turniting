@@ -1,5 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { CustomSelect } from '../../components/CustomSelect'
+import { TurnitingFeedback } from '../../components/TurnitingFeedback'
 import { compareAnalyses, listDocumentAnalyses } from '../../api/analysis'
 import { ApiRequestError } from '../../api/client'
 import { documentQueryKeys, listDocuments } from '../../api/documents'
@@ -23,34 +25,42 @@ function AnalysisPicker({ label, value, onChange }: { label: string; value: stri
   return (
     <fieldset className="compare-picker">
       <legend>{label}</legend>
-      <label>
+      <div className="compare-picker-field">
         <span>Documento</span>
-        <select value={documentId} onChange={(e) => { setDocumentId(e.currentTarget.value); onChange('', null) }}>
-          <option value="">Selecciona…</option>
-          {docs.data?.items.map((d) => <option key={d.id} value={d.id}>{d.originalName}</option>)}
-        </select>
-      </label>
-      {docs.isError && <p className="analysis-notice analysis-error" role="alert">No se pudo cargar la lista de documentos.</p>}
+        <CustomSelect
+          id={`compare-${label.toLocaleLowerCase('es-PE').replace(/\s+/gu, '-')}-document`}
+          label={`${label} · documento`}
+          value={documentId}
+          options={[
+            { value: '', label: 'Selecciona…' },
+            ...(docs.data?.items.map((d) => ({ value: d.id, label: d.originalName })) ?? []),
+          ]}
+          onChange={(value) => { setDocumentId(value); onChange('', null) }}
+        />
+      </div>
+      {docs.isError && <TurnitingFeedback state="network-error" title="No se pudo cargar la lista de documentos" className="analysis-notice analysis-error" layout="inline" />}
       {historyError && (
-        <p className="analysis-notice analysis-error" role="alert">
-          {operationErrorMessage('historyError')}
+        <TurnitingFeedback state="network-error" title="No se pudo cargar el historial de análisis" description={operationErrorMessage('historyError')} className="analysis-notice analysis-error" layout="inline">
           <button className="button button-quiet" type="button" onClick={() => void runs.refetch()}>Reintentar historial</button>
-        </p>
+        </TurnitingFeedback>
       )}
-      <label>
+      <div className="compare-picker-field">
         <span>Análisis</span>
-        <select value={value} onChange={(e) => {
-          const id = e.currentTarget.value
-          onChange(id, runs.data?.items.find((run) => run.id === id)?.paragraphMode ?? null)
-        }} disabled={!documentId}>
-          <option value="">Selecciona…</option>
-          {runs.data?.items.filter((r) => r.status === 'COMPLETED').map((r) => (
-            <option key={r.id} value={r.id}>
-              {ANALYZER_LABEL[r.analyzerMode]} · {r.paragraphMode === 'CONTEXTUAL_PARAGRAPH' ? 'Con contexto breve' : 'Solo el párrafo'} · {PROFILE_LABEL[r.thresholdProfile] ?? r.thresholdProfile} · {r.documentScorePercent === undefined ? formatSignal(r.documentScore) : formatPercentPoints(r.documentScorePercent)} · {new Date(r.createdAt).toLocaleString()}
-            </option>
-          ))}
-        </select>
-      </label>
+        <CustomSelect
+          id={`compare-${label.toLocaleLowerCase('es-PE').replace(/\s+/gu, '-')}-analysis`}
+          label={`${label} · análisis`}
+          value={value}
+          disabled={!documentId}
+          options={[
+            { value: '', label: 'Selecciona…' },
+            ...(runs.data?.items.filter((r) => r.status === 'COMPLETED').map((r) => ({
+              value: r.id,
+              label: `${ANALYZER_LABEL[r.analyzerMode]} · ${r.paragraphMode === 'CONTEXTUAL_PARAGRAPH' ? 'Con contexto breve' : 'Solo el párrafo'} · ${PROFILE_LABEL[r.thresholdProfile] ?? r.thresholdProfile} · ${r.documentScorePercent === undefined ? formatSignal(r.documentScore) : formatPercentPoints(r.documentScorePercent)} · ${new Date(r.createdAt).toLocaleString()}`,
+            })) ?? []),
+          ]}
+          onChange={(id) => onChange(id, runs.data?.items.find((run) => run.id === id)?.paragraphMode ?? null)}
+        />
+      </div>
     </fieldset>
   )
 }
@@ -101,14 +111,18 @@ export function ComparePage() {
         <button className="button button-primary" type="button" disabled={!base || !target || compare.isPending} onClick={() => { compare.reset(); compare.mutate() }}>
           {compare.isPending ? 'Comparando…' : 'Comparar'}
         </button>
+        {compare.isPending && <TurnitingFeedback state="analyzing" title="Comparando las versiones" description="Alineando párrafos y contrastando sus señales. No se usa un porcentaje de progreso estimado." className="compare-feedback" layout="inline" />}
         {comparisonError instanceof ApiRequestError && <ApiErrorNotice error={comparisonError} title={operationErrorMessage('comparisonError')} />}
         {comparisonError && !(comparisonError instanceof ApiRequestError) && (
-          <p className="analysis-notice analysis-error" role="alert">
-            {operationErrorMessage('comparisonError')}
+          <TurnitingFeedback state="network-error" title="No se pudo comparar las versiones" description={operationErrorMessage('comparisonError')} className="analysis-notice analysis-error" layout="inline">
             <button className="button button-quiet" type="button" onClick={() => { compare.reset(); compare.mutate() }}>Reintentar comparación</button>
-          </p>
+          </TurnitingFeedback>
         )}
       </section>
+
+      {data && (
+        <TurnitingFeedback state="result-reveal" title="Comparación completada" description="Los resultados de ambas versiones están listos para revisar." className="compare-feedback" layout="inline" />
+      )}
 
       {data && (
         <section className="document-panel" aria-label="Resultado de la comparación">

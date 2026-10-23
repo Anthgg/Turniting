@@ -52,7 +52,8 @@ describe('DocumentListPage', () => {
     expect(html).toContain('aria-label="Carga de archivos"')
     expect(html).toContain('role="status" aria-live="polite"')
     expect(html).toContain('Archivo seleccionado: borrador.pdf')
-    expect(html).toContain('Cargando documentos…')
+    expect(html).toContain('Leyendo documentos')
+    expect(html).toContain('Cargando tu biblioteca…')
   })
 
   it('shows analysis as the primary action only when extraction is complete and preserves document routes', () => {

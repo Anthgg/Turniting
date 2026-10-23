@@ -33,8 +33,51 @@
   flex: 1;
   width: 100%;
   min-width: 0;
-  max-width: 1680px;
+  max-width: none;
   padding-bottom: 76px;
+}
+
+/* F009.5.3: let Quick Analysis use the workspace viewport beneath the top bar. */
+.app-frame--quick {
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.app-frame--quick .main-shell {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.main-content--quick {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  max-width: none;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.main-content--quick .quick-page {
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .app-frame--quick {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .app-frame--quick .main-shell {
+    overflow: visible;
+  }
+
+  .main-content--quick {
+    display: block;
+    overflow: visible;
+    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  }
 }
 
 .route-loading {
@@ -372,8 +415,9 @@
 }
 
 .home-main {
-  max-width: 1120px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .home-action-grid {
@@ -558,8 +602,9 @@
 }
 
 .settings-main {
-  max-width: 1240px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .settings-health-actions {
@@ -986,6 +1031,10 @@
   color: var(--ink);
   background: var(--surface);
   font: inherit;
+}
+
+.report-run-select .custom-select {
+  width: min(100%, 300px);
 }
 
 .report-artifact-list {
@@ -2839,13 +2888,18 @@
   gap: 14px;
 }
 
-.analysis-segment-controls label {
+.analysis-segment-controls label,
+.analysis-segment-control {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   color: var(--muted);
   font-size: 12px;
   font-weight: 550;
+}
+
+.analysis-segment-control .custom-select {
+  min-width: 190px;
 }
 
 .analysis-segment-controls select {
@@ -3238,10 +3292,11 @@
   flex-direction: column;
   gap: 10px;
   margin: 0;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
+  padding: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
 }
 
 .compare-picker legend {
@@ -3251,13 +3306,19 @@
   font-weight: 650;
 }
 
-.compare-picker label {
+.compare-picker label,
+.compare-picker-field {
   display: flex;
   flex-direction: column;
   gap: 5px;
   color: var(--muted);
   font-size: 11px;
   font-weight: 600;
+}
+
+.analysis-toolbar-field .custom-select,
+.compare-picker .custom-select {
+  width: 100%;
 }
 
 .analysis-summary {
@@ -3438,11 +3499,16 @@
   margin-bottom: 14px;
 }
 
-.dataset-filters label {
+.dataset-filters label,
+.dataset-filter-field {
   display: grid;
   gap: 4px;
   color: var(--muted);
   font-size: 11px;
+}
+
+.dataset-filters .custom-select {
+  width: 100%;
 }
 
 .dataset-filters select {
@@ -3463,7 +3529,8 @@
 }
 
 .turnitin-file-input,
-.turnitin-attach-row label {
+.turnitin-attach-row label,
+.turnitin-attach-field {
   display: flex;
   min-width: 0;
   flex: 1;
@@ -3485,6 +3552,10 @@
   background: var(--surface);
   font: inherit;
   font-size: 12px;
+}
+
+.turnitin-attach-row .custom-select {
+  width: 100%;
 }
 
 .turnitin-privacy-copy,

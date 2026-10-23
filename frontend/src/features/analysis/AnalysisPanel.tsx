@@ -23,7 +23,9 @@ import {
   type ThresholdProfileName,
 } from "../../api/analysis";
 import { ApiRequestError } from "../../api/client";
+import { CustomSelect } from "../../components/CustomSelect";
 import { Icon } from "../../components/Icon";
+import { TurnitingFeedback } from "../../components/TurnitingFeedback";
 import { splitReviewText } from "./review-text";
 import { TechnicalGroupedDetail } from "./TechnicalGroupedDetail";
 import { technicalPercentage } from "./technical-presentation-utils";
@@ -662,62 +664,62 @@ export function AnalysisPanel({
           </dl>
         )}
         {!settingsCollapsed && <>
-        <label className="analysis-toolbar-field">
+        <div className="analysis-toolbar-field">
           <span>Analizador</span>
-          <select
+          <CustomSelect
+            id="analysis-analyzer"
+            label="Analizador"
             value={analyzer}
-            onChange={(event) => {
+            options={[
+              ...ANALYZERS.filter((item) => item !== "F006_1_ONLY" && item !== "F006_1_1_ONLY").map((item) => ({
+                value: item,
+                label: item === "ENSEMBLE"
+                  ? "ENSEMBLE_V2_V3 · V2 + V3"
+                  : ANALYZER_LABEL[item],
+              })),
+              ...((researchMode || models.data?.localPreferredAnalyzer === "EXPERIMENTAL_F006_1_MODEL") && f0061Usable
+                ? [{ value: "F006_1_ONLY", label: "F006.1 · Experimental" }]
+                : []),
+              ...((researchMode || models.data?.localPreferredAnalyzer === "EXPERIMENTAL_F006_1_MODEL") && f0061 && !f0061Usable
+                ? [{ value: "F006_1_ONLY", label: "F006.1 · Experimental · No disponible localmente", disabled: true }]
+                : []),
+              ...(researchMode && f00611Usable
+                ? [{ value: "F006_1_1_ONLY", label: "F006.1.1 · Experimental" }]
+                : []),
+              ...(researchMode && f00611 && !f00611Usable
+                ? [{ value: "F006_1_1_ONLY", label: "F006.1.1 · Experimental · No disponible localmente", disabled: true }]
+                : []),
+            ]}
+            onChange={(value) => {
               analyze.reset();
               analyzerTouched.current = true;
-              const next = event.currentTarget.value as AnalyzerName;
+              const next = value as AnalyzerName;
               setAnalyzer(next);
               if (next === "F006_1_ONLY" || next === "F006_1_1_ONLY") {
                 setProfile("BALANCED");
               }
             }}
-          >
-            {ANALYZERS.filter((item) => item !== "F006_1_ONLY" && item !== "F006_1_1_ONLY").map((item) => (
-              <option key={item} value={item}>
-                {item === "ENSEMBLE"
-                  ? "ENSEMBLE_V2_V3 · V2 + V3"
-                  : ANALYZER_LABEL[item]}
-              </option>
-            ))}
-            {(researchMode || models.data?.localPreferredAnalyzer === "EXPERIMENTAL_F006_1_MODEL") && f0061Usable && (
-              <option value="F006_1_ONLY">F006.1 · Experimental</option>
-            )}
-            {(researchMode || models.data?.localPreferredAnalyzer === "EXPERIMENTAL_F006_1_MODEL") && f0061 && !f0061Usable && (
-              <option value="" disabled>
-                F006.1 · Experimental · No disponible localmente
-              </option>
-            )}
-            {researchMode && f00611Usable && (
-              <option value="F006_1_1_ONLY">F006.1.1 · Experimental</option>
-            )}
-            {researchMode && f00611 && !f00611Usable && (
-              <option value="" disabled>
-                F006.1.1 · Experimental · No disponible localmente
-              </option>
-            )}
-          </select>
-        </label>
+          />
+        </div>
 
         {(analyzer === "F006_1_ONLY" || analyzer === "F006_1_1_ONLY") && (
-          <label className="analysis-toolbar-field">
+          <div className="analysis-toolbar-field">
             <span>Idioma para calibración</span>
-            <select
+            <CustomSelect
               id="analysis-language-code"
+              label="Idioma para calibración"
               value={languageCode}
-              onChange={(event) => {
+              options={[
+                { value: "es", label: "Español · calibración española" },
+                { value: "en", label: "Inglés · calibración global" },
+                { value: "other", label: "Otro o desconocido · calibración global" },
+              ]}
+              onChange={(value) => {
                 analyze.reset();
-                setLanguageCode(event.currentTarget.value as LanguageCode);
+                setLanguageCode(value as LanguageCode);
               }}
-            >
-              <option value="es">Español · calibración española</option>
-              <option value="en">Inglés · calibración global</option>
-              <option value="other">Otro o desconocido · calibración global</option>
-            </select>
-          </label>
+            />
+          </div>
         )}
 
         {models.data?.localPreferredWarning && (
@@ -726,22 +728,19 @@ export function AnalysisPanel({
           </p>
         )}
 
-        <label className="analysis-toolbar-field">
+        <div className="analysis-toolbar-field">
           <span>Perfil</span>
-          <select
+          <CustomSelect
+            id="analysis-threshold-profile"
+            label="Perfil"
             value={profile}
-            onChange={(event) => {
+            options={THRESHOLD_PROFILES.map((item) => ({ value: item, label: PROFILE_LABEL[item] }))}
+            onChange={(value) => {
               analyze.reset();
-              setProfile(event.currentTarget.value as ThresholdProfileName);
+              setProfile(value as ThresholdProfileName);
             }}
-          >
-            {THRESHOLD_PROFILES.map((item) => (
-              <option key={item} value={item}>
-                {PROFILE_LABEL[item]}
-              </option>
-            ))}
-          </select>
-        </label>
+          />
+        </div>
 
         <div className="analysis-toolbar-field analysis-paragraph-mode-field">
           <div className="analysis-paragraph-mode-label">
@@ -767,32 +766,37 @@ export function AnalysisPanel({
               </div>
             </details>
           </div>
-          <select
+          <CustomSelect
             id="analysis-paragraph-mode"
+            label="Modo de párrafo"
             value={mode}
-            onChange={(event) => {
+            options={PARAGRAPH_MODES.map((item) => ({
+              value: item,
+              label: item === "STRICT_PARAGRAPH"
+                ? "Solo el párrafo · Recomendado"
+                : "Con contexto breve · Experimental",
+            }))}
+            onChange={(value) => {
               analyze.reset();
-              setMode(event.currentTarget.value as ParagraphModeName);
+              setMode(value as ParagraphModeName);
             }}
-          >
-            {PARAGRAPH_MODES.map((item) => (
-              <option key={item} value={item}>
-                {item === "STRICT_PARAGRAPH"
-                  ? "Solo el párrafo · Recomendado"
-                  : "Con contexto breve · Experimental"}
-              </option>
-            ))}
-          </select>
+          />
         </div>
 
         {researchMode && history.length > 0 && (
-          <label className="analysis-toolbar-field analysis-history-field">
+          <div className="analysis-toolbar-field analysis-history-field">
             <span>Ejecución</span>
-            <select
+            <CustomSelect
+              id="analysis-history-run"
+              label="Ejecución"
               value={runId ?? ""}
-              onChange={(event) => {
+              options={history.map((item) => ({
+                value: item.id,
+                label: `${runDate(item.createdAt)} · ${ANALYZER_LABEL[item.analyzerMode]} · ${PROFILE_LABEL[item.thresholdProfile] ?? item.thresholdProfile} · ${item.documentScorePercent === undefined ? formatSignal(item.documentScore) : formatPercentPoints(item.documentScorePercent)} · ${STATUS_LABEL[item.status] ?? item.status}`,
+              }))}
+              onChange={(value) => {
                 analyze.reset();
-                setSelectedRun(event.currentTarget.value);
+                setSelectedRun(value);
               setSettingsExpanded(false);
                 setPage(1);
                 setExpandedParagraphs({});
@@ -803,22 +807,8 @@ export function AnalysisPanel({
                 setReviewNavigationIndex(0);
                 setReviewJump({ paragraphIndex: null, sequence: 0 });
               }}
-            >
-              {history.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {runDate(item.createdAt)} ·{" "}
-                  {ANALYZER_LABEL[item.analyzerMode]} ·{" "}
-                  {PROFILE_LABEL[item.thresholdProfile] ??
-                    item.thresholdProfile}
-                  {" · "}
-                  {item.documentScorePercent === undefined
-                    ? formatSignal(item.documentScore)
-                    : formatPercentPoints(item.documentScorePercent)}{" "}
-                  · {STATUS_LABEL[item.status] ?? item.status}
-                </option>
-              ))}
-            </select>
-          </label>
+            />
+          </div>
         )}
         </>}
 
@@ -892,9 +882,7 @@ export function AnalysisPanel({
           </p>
         )}
         {analyze.isPending && (
-          <p className="analysis-notice" role="status" aria-live="polite">
-            Analizando documento localmente ({workflowStatus})…
-          </p>
+          <TurnitingFeedback state="analyzing" title="Analizando el documento" description={`Evaluación local en curso (${workflowStatus}). El estado se mantiene indeterminado hasta recibir el resultado.`} className="analysis-notice" layout="inline" />
         )}
       </div>
 
@@ -1266,39 +1254,42 @@ export function AnalysisPanel({
             </span>
           </div>
           <div className="analysis-segment-controls">
-            <label>
+            <div className="analysis-segment-control">
               <span>Filtrar</span>
-              <select
+              <CustomSelect
+                id="analysis-segment-filter"
+                label="Filtrar párrafos"
                 value={filter}
-                onChange={(event) => {
-                  setFilter(event.currentTarget.value as AnalysisSegmentFilter);
+                options={ANALYSIS_SEGMENT_FILTERS.map((item) => ({
+                  value: item,
+                  label: item === "ALL"
+                    ? "Todos los niveles"
+                    : item === "INSUFFICIENT"
+                      ? "Texto insuficiente"
+                      : SIGNAL_LABEL[item],
+                }))}
+                onChange={(value) => {
+                  setFilter(value as AnalysisSegmentFilter);
                   setPage(1);
                 }}
-              >
-                {ANALYSIS_SEGMENT_FILTERS.map((item) => (
-                  <option key={item} value={item}>
-                    {item === "ALL"
-                      ? "Todos los niveles"
-                      : item === "INSUFFICIENT"
-                        ? "Texto insuficiente"
-                        : SIGNAL_LABEL[item]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
+              />
+            </div>
+            <div className="analysis-segment-control">
               <span>Ordenar</span>
-              <select
+              <CustomSelect
+                id="analysis-segment-sort"
+                label="Ordenar párrafos"
                 value={sort}
-                onChange={(event) => {
-                  setSort(event.currentTarget.value as AnalysisSegmentSort);
+                options={[
+                  { value: "PARAGRAPH", label: "Orden del documento" },
+                  { value: "SCORE_DESC", label: "Señal más alta primero" },
+                ]}
+                onChange={(value) => {
+                  setSort(value as AnalysisSegmentSort);
                   setPage(1);
                 }}
-              >
-                <option value="PARAGRAPH">Orden del documento</option>
-                <option value="SCORE_DESC">Señal más alta primero</option>
-              </select>
-            </label>
+              />
+            </div>
           </div>
         </div>
       )}

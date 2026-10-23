@@ -5,6 +5,7 @@ import { analysisQueryKeys, listDocumentAnalyses } from '../../api/analysis'
 import { documentQueryKeys, listDocuments, type DocumentSummary } from '../../api/documents'
 import { ANALYZER_LABEL } from '../analysis/analysis-utils'
 import { Icon } from '../../components/Icon'
+import { TurnitingFeedback } from '../../components/TurnitingFeedback'
 import { ApiErrorNotice } from './ApiErrorNotice'
 import { DocumentUpload } from './DocumentUpload'
 import { formatBytes, formatDate, statusClass, statusLabel } from './document-utils'
@@ -101,18 +102,11 @@ export function DocumentListPage() {
         )}
 
         {documents.isPending && (
-          <div className="documents-library-state" role="status" aria-live="polite">
-            <span className="documents-loading-mark" aria-hidden="true" />
-            <span>Cargando documentos…</span>
-          </div>
+          <TurnitingFeedback state="reading" title="Leyendo documentos" description="Cargando tu biblioteca…" className="documents-library-state" layout="inline" />
         )}
 
         {pageData && pageData.items.length === 0 && (
-          <div className="documents-library-empty" role="status" aria-live="polite">
-            <span className="documents-empty-icon" aria-hidden="true"><Icon name="file" size={20} /></span>
-            <strong>Aún no hay documentos</strong>
-            <span>Sube un archivo para seguir aquí su procesamiento y análisis.</span>
-          </div>
+          <TurnitingFeedback state="empty" title="Aún no hay documentos" description="Sube un archivo para seguir aquí su procesamiento y análisis." className="documents-library-empty" />
         )}
 
         {pageData && pageData.items.length > 0 && (

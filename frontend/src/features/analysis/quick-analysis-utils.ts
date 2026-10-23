@@ -2,10 +2,27 @@ import {
   analyzeQuickText,
   type AnalysisClassification,
   type QuickAnalysisResponse,
+  type ThresholdProfileName,
 } from '../../api/analysis'
 import { ApiRequestError } from '../../api/client'
 
 export const MAX_TEXT_LENGTH = 20_000
+
+export function getSelectableThresholdProfiles(
+  profiles: readonly ThresholdProfileName[],
+  availableProfiles?: string[],
+) {
+  if (!availableProfiles) return [...profiles]
+  return profiles.filter((profile) => availableProfiles.includes(profile))
+}
+
+export function reconcileThresholdProfile(
+  currentProfile: ThresholdProfileName,
+  availableProfiles: readonly ThresholdProfileName[],
+): ThresholdProfileName {
+  if (availableProfiles.includes(currentProfile)) return currentProfile
+  return availableProfiles[0] ?? 'BALANCED'
+}
 
 const BLANK_LINE = /\n[ \t\r\f\v]*\n/gu
 const SENTENCE_END = /[.!?:;»")\]]\s*$/u
@@ -30,6 +47,14 @@ export function getQuickAnalysisErrorMessage(error: unknown) {
 export function isQuickAnalysisRetryable(error: unknown) {
   if (!(error instanceof ApiRequestError)) return true
   return error.status === 408 || error.status === 429 || error.status >= 500
+}
+
+export type QuickAnalysisErrorMascotState = 'network-error' | 'warning' | 'error'
+
+export function getQuickAnalysisErrorMascotState(error: unknown): QuickAnalysisErrorMascotState {
+  if (!(error instanceof ApiRequestError)) return 'network-error'
+  if (error.status === 408 || error.status === 429 || error.status === 503) return 'warning'
+  return 'error'
 }
 
 export function isQuickAnalysisShortcut(event: { key: string; ctrlKey: boolean; metaKey: boolean }) {
@@ -225,12 +250,13 @@ export async function runQuickAnalysis(
   request: (input: string) => Promise<QuickAnalysisResponse> = analyzeQuickText,
 ) {
   try {
-    return { result: await request(text), error: null, retryable: false }
+    return { result: await request(text), error: null, retryable: false, mascotState: null }
   } catch (error) {
     return {
       result: null,
       error: getQuickAnalysisErrorMessage(error),
       retryable: isQuickAnalysisRetryable(error),
+      mascotState: getQuickAnalysisErrorMascotState(error),
     }
   }
 }

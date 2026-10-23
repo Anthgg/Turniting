@@ -16,6 +16,9 @@ import {
   type ThresholdProfileName,
 } from '../../api/analysis'
 import { Icon } from '../../components/Icon'
+import { CustomSelect } from '../../components/CustomSelect'
+import type { CustomSelectOption } from '../../components/custom-select-utils'
+import { TurnitingMascot, type MascotState } from '../../components/TurnitingMascot'
 import {
   ANALYZER_LABEL,
   DEFAULT_PARAGRAPH_MODE,
@@ -27,7 +30,10 @@ import {
   filterQuickResultParagraphs,
   formatQuickParagraphCopy,
   formatQuickResultCopy,
+  getSelectableThresholdProfiles,
   getQuickAnalysisOverLimitGuidance,
+  reconcileThresholdProfile,
+  type QuickAnalysisErrorMascotState,
   isQuickResultStale,
   isQuickAnalysisShortcut,
   MAX_TEXT_LENGTH,
@@ -52,6 +58,13 @@ const ANALYZER_FOR_MODEL: Record<string, AnalyzerName> = {
   EXPERIMENTAL_F006_1_MODEL: 'F006_1_ONLY',
   EXPERIMENTAL_F006_1_1_MODEL: 'F006_1_1_ONLY',
 }
+
+const QUICK_RESULT_FILTER_OPTIONS: CustomSelectOption[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'review', label: 'Para revisión (>20%)' },
+  { value: 'flagged', label: 'Señalados por detector' },
+  { value: 'unevaluated', label: 'No evaluados' },
+]
 
 export function isQuickAnalyzerAvailable(
   analyzer: AnalyzerName,
@@ -154,6 +167,7 @@ export function QuickResultSummary({
   onCopyAll,
   onCopyParagraph,
   onReanalyze,
+  mascotState,
 }: {
   result: QuickAnalysisResponse
   paragraphTexts: string[]
@@ -166,10 +180,14 @@ export function QuickResultSummary({
   onCopyAll: () => void
   onCopyParagraph: (paragraph: QuickAnalysisResponse['paragraphs'][number]) => void
   onReanalyze: () => void
+  mascotState?: MascotState
 }) {
   const evaluated = result.evaluated && result.score !== null && result.scientificFlag !== null
   const appliedAnalyzer = result.analyzer ?? analyzer ?? 'V3_ONLY'
   const appliedProfile = result.thresholdProfile ?? profile ?? 'BALANCED'
+  const appliedProfileLabel = isLanguageCalibrationAnalyzer(appliedAnalyzer)
+    ? 'Umbral fijo del modelo según idioma'
+    : PROFILE_LABEL[appliedProfile]
   const appliedMode = result.paragraphMode ?? mode ?? DEFAULT_PARAGRAPH_MODE
   const signalMessage = localSignalMessage(result.scientificFlag, evaluated)
   const reviewMessage = !evaluated
@@ -182,11 +200,14 @@ export function QuickResultSummary({
   const visibleParagraphs = filterQuickResultParagraphs(result.paragraphs, filter)
 
   return (
-    <section className="quick-result-card" aria-labelledby="quick-result-title" aria-live="polite">
+    <section className="quick-result-card" aria-labelledby="quick-result-title">
       <div className="quick-result-header">
-        <div>
-          <p className="quick-eyebrow">Resultado de esta sesión</p>
-          <h2 id="quick-result-title">{evaluated ? 'Análisis completado' : 'Texto no evaluado'}</h2>
+        <div className="quick-result-title-group">
+          <TurnitingMascot state={mascotState ?? (evaluated ? 'result-reveal' : 'warning')} size="compact" />
+          <div>
+            <p className="quick-eyebrow">Resultado de esta sesión</p>
+            <h2 id="quick-result-title" aria-live="polite" aria-atomic="true">{evaluated ? 'Análisis completado' : 'Texto no evaluado'}</h2>
+          </div>
         </div>
         <span className={`quick-overall-status${evaluated ? ' is-complete' : ' is-unrated'}`}>
           <span className="quick-status-dot" aria-hidden="true" />
@@ -243,7 +264,7 @@ export function QuickResultSummary({
           <div><span className="quick-metric-label">Umbral científico</span><strong>{formatPercent(result.scientificThreshold)}</strong></div>
           <div><span className="quick-metric-label">Umbral visual (estricto)</span><strong>&gt; {formatPercent(result.reviewThreshold)}</strong></div>
           <div><span className="quick-metric-label">Analizador</span><strong>{appliedAnalyzer === 'ENSEMBLE' ? 'ENSEMBLE_V2_V3 · V2 + V3' : ANALYZER_LABEL[appliedAnalyzer]}</strong></div>
-          <div><span className="quick-metric-label">Perfil</span><strong>{PROFILE_LABEL[appliedProfile]}</strong></div>
+          <div><span className="quick-metric-label">Perfil</span><strong>{appliedProfileLabel}</strong></div>
           <div><span className="quick-metric-label">Modo de párrafo</span><strong>{appliedMode === 'STRICT_PARAGRAPH' ? 'Solo el párrafo' : 'Con contexto breve'}</strong></div>
           <div><span className="quick-metric-label">Modelo usado</span><strong>{result.model.displayName}</strong></div>
           <div><span className="quick-metric-label">Versión</span><strong>{result.model.version}</strong></div>
@@ -259,15 +280,16 @@ export function QuickResultSummary({
               <h3>Resultado por párrafo</h3>
               <span>{visibleParagraphs.length} de {result.paragraphs.length} párrafos</span>
             </div>
-            <label className="quick-filter-field">
+            <div className="quick-filter-field">
               <span>Mostrar</span>
-              <select value={filter} onChange={(event) => onFilterChange(event.currentTarget.value as QuickResultFilter)}>
-                <option value="all">Todos</option>
-                <option value="review">Para revisión (&gt;20%)</option>
-                <option value="flagged">Señalados por detector</option>
-                <option value="unevaluated">No evaluados</option>
-              </select>
-            </label>
+              <CustomSelect
+                id="quick-result-filter"
+                label="Mostrar resultados"
+                value={filter}
+                options={QUICK_RESULT_FILTER_OPTIONS}
+                onChange={(next) => onFilterChange(next as QuickResultFilter)}
+              />
+            </div>
           </div>
           <div className="quick-paragraph-results-list">
             {visibleParagraphs.map((paragraph) => (
@@ -294,40 +316,77 @@ export function QuickStatusPanel({
   message,
   retryable = false,
   onRetry,
+  mascotState,
 }: {
   status: 'idle' | 'loading' | 'error'
   message?: string
   retryable?: boolean
   onRetry?: () => void
+  mascotState?: MascotState
 }) {
   if (status === 'loading') {
+    const loadingTitle = mascotState === 'stand-up'
+      ? 'Turni se prepara…'
+      : mascotState === 'reading'
+        ? 'Leyendo párrafos…'
+        : 'Analizando señales…'
+
     return (
       <div className="quick-feedback-card quick-loading" role="status" aria-live="polite">
-        <span className="quick-spinner" aria-hidden="true" />
-        <div><strong>Analizando el texto…</strong><span>La solicitud se procesa sin crear historial.</span></div>
+        <TurnitingMascot state={mascotState ?? 'analyzing'} size="standard" />
+        <div className="quick-feedback-copy">
+          <p className="quick-eyebrow">Analizador rápido</p>
+          <h2>{loadingTitle}</h2>
+          <p>La solicitud sigue en curso; la animación no representa un porcentaje de avance.</p>
+        </div>
       </div>
     )
   }
 
   if (status === 'error') {
+    const state = mascotState ?? 'error'
+    const title = state === 'network-error'
+      ? 'No hay conexión con el servicio'
+      : state === 'warning'
+        ? 'El servicio necesita un momento'
+        : 'No se pudo completar el análisis'
+
     return (
       <section className="quick-feedback-card quick-error-state" aria-labelledby="quick-error-title" role="alert">
-        <h2 id="quick-error-title">No se pudo completar el análisis</h2>
-        <p>{message}</p>
-        {retryable && onRetry && (
-          <button className="quick-retry-button" type="button" onClick={onRetry}>
-            <Icon name="refresh" size={15} /> Reintentar análisis
-          </button>
-        )}
+        <TurnitingMascot state={state} size="standard" />
+        <div className="quick-feedback-copy">
+          <p className="quick-eyebrow">Estado del servicio</p>
+          <h2 id="quick-error-title">{title}</h2>
+          <p>{message}</p>
+          {retryable && onRetry && (
+            <button className="quick-retry-button" type="button" onClick={onRetry}>
+              <Icon name="refresh" size={15} /> Reintentar análisis
+            </button>
+          )}
+        </div>
       </section>
     )
   }
 
+  const state = mascotState ?? 'idle'
+  const isReady = state === 'ready'
+  const isEmpty = state === 'empty'
+  const wasCleared = state === 'clear'
+
   return (
     <section className="quick-feedback-card quick-empty-result" aria-label="Resultado pendiente">
-      <span className="quick-empty-mark" aria-hidden="true"><Icon name="spark" size={20} /></span>
-      <h2>Tu resultado aparecerá aquí</h2>
-      <p>El puntaje y las señales por párrafo se mostrarán cuando completes el análisis.</p>
+      <TurnitingMascot state={state} size="standard" />
+      <div className="quick-feedback-copy">
+        <p className="quick-eyebrow">{isReady ? 'Entrada preparada' : 'Turniting'}</p>
+        <h2>{isReady ? 'Texto listo para analizar' : isEmpty ? 'Agrega texto para empezar' : wasCleared ? 'Espacio listo para un nuevo texto' : 'Tu resultado aparecerá aquí'}</h2>
+        <p>{isReady
+          ? 'Elige el idioma cuando aplique, el perfil, el modo y el analizador; después inicia el análisis.'
+          : isEmpty
+            ? 'El contenido está vacío. Pega un texto para que Turniting pueda revisarlo.'
+            : wasCleared
+              ? 'El texto y el resultado se quitaron de esta sesión.'
+              : 'El puntaje y las señales por párrafo aparecerán cuando completes el análisis.'}</p>
+      </div>
     </section>
   )
 }
@@ -349,11 +408,15 @@ export function QuickAnalysisPage() {
   const [error, setError] = useState<string | null>(null)
   const [canRetry, setCanRetry] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loadingMascotState, setLoadingMascotState] = useState<MascotState>('stand-up')
+  const [errorMascotState, setErrorMascotState] = useState<QuickAnalysisErrorMascotState>('error')
+  const [mascotCue, setMascotCue] = useState<MascotState | null>(null)
   const [filter, setFilter] = useState<QuickResultFilter>('all')
   const [copyFeedback, setCopyFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const requestPendingRef = useRef(false)
   const requestIdRef = useRef(0)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const mascotCueTimeoutRef = useRef<number | null>(null)
   const models = useQuery({
     queryKey: analysisQueryKeys.models(),
     queryFn: listAnalyzerModels,
@@ -380,11 +443,50 @@ export function QuickAnalysisPage() {
   const f00611 = models.data?.items.find((item) => item.name === 'EXPERIMENTAL_F006_1_1_MODEL')
   const f0061Usable = Boolean(f0061?.servable && isAnalyzerUsable(f0061.availability))
   const f00611Usable = Boolean(f00611?.servable && isAnalyzerUsable(f00611.availability))
+  const selectedAnalyzerModel = models.data?.items.find((item) => item.name === MODEL_FOR_ANALYZER[selectedAnalyzer])
+  const supportedProfiles = getSelectableThresholdProfiles(THRESHOLD_PROFILES, selectedAnalyzerModel?.thresholdProfiles)
+  const analyzerOptions: CustomSelectOption[] = [
+    ...ANALYZERS.filter((item) => item !== 'F006_1_ONLY' && item !== 'F006_1_1_ONLY').map((item) => {
+      const usable = isQuickAnalyzerAvailable(item, models.data?.items)
+      const label = item === 'ENSEMBLE' ? 'ENSEMBLE_V2_V3 · V2 + V3' : ANALYZER_LABEL[item]
+      return { value: item, label: usable ? label : `${label} · No disponible`, disabled: !usable }
+    }),
+    ...(f0061 ? [{ value: 'F006_1_ONLY', label: `F006.1 · Experimental${f0061Usable ? '' : ' · No disponible localmente'}`, disabled: !f0061Usable }] : []),
+    ...(f00611 ? [{ value: 'F006_1_1_ONLY', label: `F006.1.1 · Experimental${f00611Usable ? '' : ' · No disponible localmente'}`, disabled: !f00611Usable }] : []),
+  ]
+  const profileOptions: CustomSelectOption[] = THRESHOLD_PROFILES.map((item) => ({
+    value: item,
+    label: PROFILE_LABEL[item],
+    disabled: !supportedProfiles.includes(item),
+  }))
+  const displayedProfileOptions: CustomSelectOption[] = supportedProfiles.length > 0
+    ? profileOptions
+    : [{ value: 'BALANCED', label: 'Umbral fijo del modelo', disabled: true }]
+  const modeOptions: CustomSelectOption[] = PARAGRAPH_MODES.map((item) => ({
+    value: item,
+    label: item === 'STRICT_PARAGRAPH' ? 'Solo el párrafo (Recomendado)' : 'Con contexto breve (Experimental)',
+  }))
+  const languageOptions: CustomSelectOption[] = [
+    { value: 'es', label: 'Español · calibración española' },
+    { value: 'en', label: 'Inglés · calibración global' },
+    { value: 'other', label: 'Otro o desconocido · calibración global' },
+  ]
 
   useEffect(() => () => {
     requestIdRef.current += 1
     abortControllerRef.current?.abort()
+    if (mascotCueTimeoutRef.current !== null) window.clearTimeout(mascotCueTimeoutRef.current)
   }, [])
+
+  useEffect(() => {
+    if (!isSubmitting) return
+    const readingTimeout = window.setTimeout(() => setLoadingMascotState('reading'), 650)
+    const analyzingTimeout = window.setTimeout(() => setLoadingMascotState('analyzing'), 1750)
+    return () => {
+      window.clearTimeout(readingTimeout)
+      window.clearTimeout(analyzingTimeout)
+    }
+  }, [isSubmitting])
 
   useEffect(() => {
     if (!copyFeedback) return
@@ -396,6 +498,23 @@ export function QuickAnalysisPage() {
     setSnapshot(null)
     setError(null)
     setCanRetry(false)
+    setErrorMascotState('error')
+    clearMascotCue()
+  }
+
+  function clearMascotCue() {
+    if (mascotCueTimeoutRef.current !== null) window.clearTimeout(mascotCueTimeoutRef.current)
+    mascotCueTimeoutRef.current = null
+    setMascotCue(null)
+  }
+
+  function showMascotCue(state: MascotState, duration = 850) {
+    if (mascotCueTimeoutRef.current !== null) window.clearTimeout(mascotCueTimeoutRef.current)
+    setMascotCue(state)
+    mascotCueTimeoutRef.current = window.setTimeout(() => {
+      mascotCueTimeoutRef.current = null
+      setMascotCue(null)
+    }, duration)
   }
 
   async function submit(event?: FormEvent<HTMLFormElement>) {
@@ -407,6 +526,8 @@ export function QuickAnalysisPage() {
     const controller = new AbortController()
     abortControllerRef.current = controller
     requestPendingRef.current = true
+    clearMascotCue()
+    setLoadingMascotState('stand-up')
     setIsSubmitting(true)
     setError(null)
     setCanRetry(false)
@@ -434,9 +555,11 @@ export function QuickAnalysisPage() {
         mode: analyzedMode,
         languageCode: analyzedLanguage,
       })
+      showMascotCue(response.result.evaluated ? 'success' : 'warning')
     }
     setError(response.error)
     setCanRetry(response.retryable)
+    if (response.mascotState) setErrorMascotState(response.mascotState)
     requestPendingRef.current = false
     abortControllerRef.current = null
     setIsSubmitting(false)
@@ -451,13 +574,24 @@ export function QuickAnalysisPage() {
 
   const resultState = isSubmitting ? 'loading' : error ? 'error' : result ? null : 'idle'
   const resultIsStale = snapshot ? isQuickResultStale(text, snapshot.text) : false
+  const quickMascotState: MascotState = mascotCue ?? (resultState === 'loading'
+    ? loadingMascotState
+    : resultState === 'error'
+      ? errorMascotState
+      : !text.length
+        ? 'idle'
+        : text.trim()
+          ? 'ready'
+          : 'empty')
 
   async function copyToClipboard(value: string, successMessage = 'Resultado copiado.') {
     try {
       const method = await copyPlainText(value)
       setCopyFeedback({ type: 'success', message: method === 'fallback' ? 'Copiado.' : successMessage })
+      showMascotCue('copy')
     } catch (copyError) {
       setCopyFeedback({ type: 'error', message: copyError instanceof Error ? copyError.message : 'No se pudo copiar el resultado.' })
+      showMascotCue('warning')
     }
   }
 
@@ -465,7 +599,9 @@ export function QuickAnalysisPage() {
     if (!snapshot) return
     void copyToClipboard(formatQuickResultCopy(snapshot.result, snapshot.paragraphTexts, {
       analyzer: ANALYZER_LABEL[snapshot.analyzer],
-      profile: PROFILE_LABEL[snapshot.profile],
+      profile: isLanguageCalibrationAnalyzer(snapshot.analyzer)
+        ? 'Umbral fijo del modelo según idioma'
+        : PROFILE_LABEL[snapshot.profile],
       mode: snapshot.mode,
       language: snapshot.result.languageCode.toUpperCase(),
     }), 'Análisis completo copiado.')
@@ -487,6 +623,8 @@ export function QuickAnalysisPage() {
     setCanRetry(false)
     setIsSubmitting(false)
     setFilter('all')
+    setErrorMascotState('error')
+    showMascotCue('clear', 900)
     setCopyFeedback({ type: 'success', message: 'Contenido eliminado.' })
   }
 
@@ -503,92 +641,78 @@ export function QuickAnalysisPage() {
 
       <div className="quick-analysis-layout">
         <form className="quick-input-card" onSubmit={submit}>
+          <div className="quick-input-heading">
+            <p className="quick-eyebrow">Entrada</p>
+            <h2>Configura y pega tu texto</h2>
+          </div>
           <fieldset className="quick-analysis-settings" disabled={isSubmitting}>
             <legend>Configuración del análisis</legend>
             <div className="quick-analysis-settings-grid">
-              <label className="quick-setting-field" htmlFor="quick-analysis-analyzer">
+              <div className="quick-setting-field">
                 <span>Analizador</span>
-                <select
+                <CustomSelect
                   id="quick-analysis-analyzer"
+                  label="Analizador"
                   value={selectedAnalyzer}
+                  options={analyzerOptions}
+                  disabled={isSubmitting}
                   onChange={(event) => {
-                    const next = event.currentTarget.value as AnalyzerName
+                    const next = event as AnalyzerName
                     setAnalyzerTouched(true)
                     setAnalyzer(next)
-                    if (isLanguageCalibrationAnalyzer(next)) setProfile('BALANCED')
+                    const nextModel = models.data?.items.find((item) => item.name === MODEL_FOR_ANALYZER[next])
+                    const nextSupportedProfiles = getSelectableThresholdProfiles(THRESHOLD_PROFILES, nextModel?.thresholdProfiles)
+                    setProfile(reconcileThresholdProfile(profile, nextSupportedProfiles))
                     clearResult()
                   }}
-                >
-                  {ANALYZERS.filter((item) => item !== 'F006_1_ONLY' && item !== 'F006_1_1_ONLY').map((item) => (
-                    <option key={item} value={item} disabled={!isQuickAnalyzerAvailable(item, models.data?.items)}>
-                      {item === 'ENSEMBLE' ? 'ENSEMBLE_V2_V3 · V2 + V3' : ANALYZER_LABEL[item]}{isQuickAnalyzerAvailable(item, models.data?.items) ? '' : ' · No disponible'}
-                    </option>
-                  ))}
-                  {f0061Usable && (
-                    <option value="F006_1_ONLY">F006.1 · Experimental</option>
-                  )}
-                  {f0061 && !f0061Usable && (
-                    <option value="" disabled>F006.1 · Experimental · No disponible localmente</option>
-                  )}
-                  {f00611Usable && (
-                    <option value="F006_1_1_ONLY">F006.1.1 · Experimental</option>
-                  )}
-                  {f00611 && !f00611Usable && (
-                    <option value="" disabled>F006.1.1 · Experimental · No disponible localmente</option>
-                  )}
-                </select>
-              </label>
+                />
+              </div>
 
-              <label className="quick-setting-field" htmlFor="quick-analysis-profile">
+              <div className="quick-setting-field">
                 <span>Perfil</span>
-                <select
+                <CustomSelect
                   id="quick-analysis-profile"
+                  label="Perfil"
                   value={profile}
-                  onChange={(event) => {
-                    setProfile(event.currentTarget.value as ThresholdProfileName)
+                  options={displayedProfileOptions}
+                  disabled={isSubmitting || supportedProfiles.length === 0}
+                  onChange={(next) => {
+                    setProfile(next as ThresholdProfileName)
                     clearResult()
                   }}
-                >
-                  {THRESHOLD_PROFILES.map((item) => (
-                    <option key={item} value={item}>{PROFILE_LABEL[item]}</option>
-                  ))}
-                </select>
-              </label>
+                />
+              </div>
 
-              <label className="quick-setting-field" htmlFor="quick-analysis-mode">
+              <div className="quick-setting-field">
                 <span>Modo de párrafo</span>
-                <select
+                <CustomSelect
                   id="quick-analysis-mode"
+                  label="Modo de párrafo"
                   value={mode}
-                  onChange={(event) => {
-                    setMode(event.currentTarget.value as ParagraphModeName)
+                  options={modeOptions}
+                  disabled={isSubmitting}
+                  onChange={(next) => {
+                    setMode(next as ParagraphModeName)
                     clearResult()
                   }}
-                >
-                  {PARAGRAPH_MODES.map((item) => (
-                    <option key={item} value={item}>
-                      {item === 'STRICT_PARAGRAPH' ? 'Solo el párrafo (Recomendado)' : 'Con contexto breve (Experimental)'}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                />
+              </div>
 
               {isLanguageCalibrationAnalyzer(selectedAnalyzer) && (
-                <label className="quick-setting-field" htmlFor="quick-analysis-language">
+                <div className="quick-setting-field">
                   <span>Idioma para calibración</span>
-                  <select
+                  <CustomSelect
                     id="quick-analysis-language"
+                    label="Idioma para calibración"
                     value={languageCode}
-                    onChange={(event) => {
-                      setLanguageCode(event.currentTarget.value as LanguageCode)
+                    options={languageOptions}
+                    disabled={isSubmitting}
+                    onChange={(next) => {
+                      setLanguageCode(next as LanguageCode)
                       clearResult()
                     }}
-                  >
-                    <option value="es">Español · calibración española</option>
-                    <option value="en">Inglés · calibración global</option>
-                    <option value="other">Otro o desconocido · calibración global</option>
-                  </select>
-                </label>
+                  />
+                </div>
               )}
             </div>
           </fieldset>
@@ -653,6 +777,7 @@ export function QuickAnalysisPage() {
               onCopyAll={copyAllResult}
               onCopyParagraph={copyParagraph}
               onReanalyze={() => void submit()}
+              mascotState={mascotCue ?? (resultIsStale ? 'warning' : undefined)}
             />
           ) : (
             <QuickStatusPanel
@@ -660,6 +785,7 @@ export function QuickAnalysisPage() {
               message={error ?? undefined}
               retryable={canRetry}
               onRetry={() => void submit()}
+              mascotState={quickMascotState}
             />
           )}
         </div>

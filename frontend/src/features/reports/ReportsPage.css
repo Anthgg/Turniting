@@ -51,11 +51,12 @@
 
 .reports-history-panel {
   min-width: 0;
-  padding: clamp(16px, 2vw, 24px);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
-  box-shadow: 0 12px 34px #183b2c08;
+  padding: 18px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .reports-history-heading {
@@ -126,6 +127,10 @@
 .reports-filter-field select:focus-visible {
   border-color: #5a9b88;
   outline: 3px solid #5a9b8830;
+}
+
+.reports-filter-field .custom-select {
+  width: 100%;
 }
 
 .reports-filter-summary {

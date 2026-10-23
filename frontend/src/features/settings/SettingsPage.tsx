@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Icon } from '../../components/Icon'
 import { ServiceStatusCard } from '../../components/ServiceStatusCard'
+import { TurnitingFeedback } from '../../components/TurnitingFeedback'
 import { getHealth } from '../../api/health'
 import type { HealthService } from '../../api/health'
 
@@ -31,6 +32,13 @@ export function SettingsPage() {
   })
 
   const isRefreshing = backend.isFetching || database.isFetching || ai.isFetching
+  const initialHealthCheck = backend.isPending || database.isPending || ai.isPending
+  const hasServiceIssue = backend.isError || database.isError || ai.isError
+    || backend.data?.status.toLowerCase() !== 'ok'
+    || database.data?.status.toLowerCase() !== 'ok'
+    || database.data?.database?.toLowerCase() !== 'connected'
+    || ai.data?.status.toLowerCase() !== 'ok'
+    || ai.data?.aiService?.toLowerCase() !== 'connected'
 
   async function refreshServices() {
     await Promise.all([backend.refetch(), database.refetch(), ai.refetch()])
@@ -66,6 +74,9 @@ export function SettingsPage() {
             </button>
           </div>
         </div>
+        {initialHealthCheck && <TurnitingFeedback state="thinking" title="Comprobando servicios" description="Revisando backend, base de datos y servicio de IA…" className="settings-health-feedback" layout="inline" />}
+        {!initialHealthCheck && hasServiceIssue && <TurnitingFeedback state="warning" title="Hay servicios que requieren atención" description="Consulta cada tarjeta para ver su estado y última respuesta." className="settings-health-feedback" layout="inline" />}
+        {!initialHealthCheck && !hasServiceIssue && <TurnitingFeedback state="success" title="Servicios operativos" description="Backend, base de datos y servicio de IA respondieron correctamente." className="settings-health-feedback" layout="inline" />}
         <div className="service-grid">
           <ServiceStatusCard title="Backend API" description="API principal de la plataforma" endpoint={serviceEndpoints.backend} icon="server" service="backend" query={backend} />
           <ServiceStatusCard title="Base de datos" description="Conexión con PostgreSQL" endpoint={serviceEndpoints.database} icon="database" service="database" query={database} />

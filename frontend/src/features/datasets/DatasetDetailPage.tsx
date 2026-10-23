@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { CustomSelect } from '../../components/CustomSelect'
+import { TurnitingFeedback } from '../../components/TurnitingFeedback'
 import {
   datasetQueryKeys,
   getDataset,
@@ -42,7 +44,7 @@ export function DatasetDetailPage() {
   })
 
   if (dataset.isError) return <div className="dashboard-main"><ApiErrorNotice error={dataset.error} title="No se pudo cargar el dataset" /></div>
-  if (!dataset.data) return <div className="dashboard-main"><div className="documents-empty-state" role="status"><span className="state-indicator is-animated" /><span>Cargando dataset…</span></div></div>
+  if (!dataset.data) return <div className="dashboard-main"><TurnitingFeedback state="reading" title="Leyendo el dataset" description="Cargando metadata, fuentes y estadísticas…" className="documents-empty-state" layout="inline" /></div>
   const d = dataset.data
   const leakage = stats.data?.statistics?.leakage
 
@@ -76,7 +78,7 @@ export function DatasetDetailPage() {
           <div><p className="eyebrow">MODELOS</p><h2 id="models-title">Modelos asociados</h2></div>
           <span className="documents-section-meta">Solo metadata · ningún modelo está activo en producción</span>
         </div>
-        {d.modelVersions.length === 0 && <div className="documents-empty-state"><span>Sin modelos registrados para este dataset.</span></div>}
+        {d.modelVersions.length === 0 && <TurnitingFeedback state="empty" title="Sin modelos asociados" description="Todavía no hay modelos registrados para este dataset." className="documents-empty-state" layout="inline" />}
         <div className="dataset-model-grid">
           {d.modelVersions.map((m) => {
             const metrics = selectedMetrics(m.metrics)
@@ -184,16 +186,20 @@ export function DatasetDetailPage() {
         </div>
         <div className="dataset-filters">
           {Object.entries(SAMPLE_FILTERS).map(([key, options]) => (
-            <label key={key}>
+            <div className="dataset-filter-field" key={key}>
               <span>{key}</span>
-              <select value={filters[key] ?? ''} onChange={(e) => setFilters({ ...filters, [key]: e.currentTarget.value })}>
-                {options.map((o) => <option key={o} value={o}>{o || 'todos'}</option>)}
-              </select>
-            </label>
+              <CustomSelect
+                id={`dataset-${key}-sample-filter`}
+                label={`Filtro ${key}`}
+                value={filters[key] ?? ''}
+                options={options.map((o) => ({ value: o, label: o || 'todos' }))}
+                onChange={(value) => setFilters({ ...filters, [key]: value })}
+              />
+            </div>
           ))}
         </div>
         {samples.isError && <ApiErrorNotice error={samples.error} title="No se pudieron cargar las muestras" />}
-        {samples.data?.items.length === 0 && <div className="documents-empty-state"><span>Sin muestras locales con estos filtros.</span></div>}
+        {samples.data?.items.length === 0 && <TurnitingFeedback state="empty" title="Sin muestras para estos filtros" description="Prueba con otros filtros para consultar las muestras locales." className="documents-empty-state" layout="inline" />}
         {samples.data && samples.data.items.length > 0 && (
           <div className="dataset-table-wrap">
             <table className="dataset-table">

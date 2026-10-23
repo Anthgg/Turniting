@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { CustomSelect } from '../../components/CustomSelect'
+import { TurnitingFeedback } from '../../components/TurnitingFeedback'
 import { ApiErrorNotice } from '../documents/ApiErrorNotice'
 import {
   analysisHistoryQueryKeys,
@@ -91,42 +93,61 @@ export function AnalysisHistoryPage() {
               <span>Documento</span>
               <input value={documentFilter} onChange={(event) => setDocumentFilter(event.currentTarget.value)} placeholder="Buscar por nombre" />
             </label>
-            <label>
+            <div className="history-filter-field">
               <span>Fecha</span>
-              <select value={dateFilter} onChange={(event) => setDateFilter(event.currentTarget.value)}>
-                <option value="all">Cualquier fecha</option>
-                <option value="7">Últimos 7 días</option>
-                <option value="30">Últimos 30 días</option>
-              </select>
-            </label>
-            <label>
+              <CustomSelect
+                id="history-date-filter"
+                label="Fecha"
+                value={dateFilter}
+                options={[
+                  { value: 'all', label: 'Cualquier fecha' },
+                  { value: '7', label: 'Últimos 7 días' },
+                  { value: '30', label: 'Últimos 30 días' },
+                ]}
+                onChange={setDateFilter}
+              />
+            </div>
+            <div className="history-filter-field">
               <span>Tipo</span>
-              <select value={typeFilter} onChange={(event) => setTypeFilter(event.currentTarget.value)}>
-                <option value="all">Todos</option>
-                {analyzerModes.map((mode) => <option value={mode} key={mode}>{analyzerLabel(mode)}</option>)}
-              </select>
-            </label>
-            <label>
+              <CustomSelect
+                id="history-type-filter"
+                label="Tipo de análisis"
+                value={typeFilter}
+                options={[
+                  { value: 'all', label: 'Todos' },
+                  ...analyzerModes.map((mode) => ({ value: mode, label: analyzerLabel(mode) })),
+                ]}
+                onChange={setTypeFilter}
+              />
+            </div>
+            <div className="history-filter-field">
               <span>Modelo</span>
-              <select value={modelFilter} onChange={(event) => setModelFilter(event.currentTarget.value)}>
-                <option value="all">Todos</option>
-                {modelOptions.map((model) => <option value={model} key={model}>{model}</option>)}
-              </select>
-            </label>
+              <CustomSelect
+                id="history-model-filter"
+                label="Modelo"
+                value={modelFilter}
+                options={[
+                  { value: 'all', label: 'Todos' },
+                  ...modelOptions.map((model) => ({ value: model, label: model })),
+                ]}
+                onChange={setModelFilter}
+              />
+            </div>
           </section>
 
           {history.data.failedDocuments > 0 && (
-            <p className="history-partial-warning" role="status">
-              No se pudo cargar el historial de {history.data.failedDocuments} documento(s); se muestran los demás resultados.
-            </p>
+            <TurnitingFeedback state="warning" title="Historial parcialmente disponible" description={`No se pudo cargar el historial de ${history.data.failedDocuments} documento(s); se muestran los demás resultados.`} className="history-partial-warning" layout="inline" />
           )}
 
           {filteredEntries.length === 0 ? (
-            <section className="history-empty-state">
-              <strong>{history.data.entries.length === 0 ? 'Aún no hay análisis' : 'No hay resultados con estos filtros'}</strong>
-              <span>{history.data.entries.length === 0 ? 'Cuando ejecutes un análisis documental, aparecerá aquí.' : 'Prueba con otro nombre, periodo, tipo o modelo.'}</span>
+            <TurnitingFeedback
+              state="empty"
+              title={history.data.entries.length === 0 ? 'Aún no hay análisis' : 'No hay resultados con estos filtros'}
+              description={history.data.entries.length === 0 ? 'Cuando ejecutes un análisis documental, aparecerá aquí.' : 'Prueba con otro nombre, periodo, tipo o modelo.'}
+              className="history-empty-state"
+            >
               {history.data.entries.length === 0 && <Link className="button button-secondary" to="/documents">Analizar documento</Link>}
-            </section>
+            </TurnitingFeedback>
           ) : (
             <section className="analysis-history-list" aria-label="Corridas de análisis">
               {filteredEntries.map(({ document, run }) => (
@@ -169,7 +190,7 @@ export function AnalysisHistoryPage() {
           )}
         </>
       )}
-      {history.isPending && <div className="documents-empty-state" role="status"><span className="state-indicator is-animated" /><span>Cargando historial…</span></div>}
+      {history.isPending && <TurnitingFeedback state="thinking" title="Preparando el historial" description="Cargando las corridas de análisis…" className="documents-empty-state" layout="inline" />}
     </div>
   )
 }

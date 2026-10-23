@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import "./ReportsPage.css";
+import { CustomSelect } from "../../components/CustomSelect";
+import { TurnitingFeedback } from "../../components/TurnitingFeedback";
 import {
   deleteReport,
   downloadReport,
@@ -133,6 +135,7 @@ export function ReportsPage() {
   }
 
   const items = reports.data?.items ?? [];
+  const hasGeneratingReport = items.some((report) => report.status === "GENERATING");
   const total = reports.data?.total ?? 0;
   const pageCount = Math.max(1, Math.ceil((reports.data?.total ?? 0) / REPORT_HISTORY_PAGE_SIZE));
 
@@ -160,47 +163,45 @@ export function ReportsPage() {
         </div>
 
         <div className="reports-filter-toolbar" aria-label="Filtros de reportes">
-          <label className="reports-filter-field">
+          <div className="reports-filter-field">
             <span>Tipo de reporte</span>
-            <select
-              aria-label="Tipo de reporte"
+            <CustomSelect
+              id="reports-type-filter"
+              label="Tipo de reporte"
               value={type ?? ""}
-              onChange={(event) => updateType(event.target.value ? event.target.value as ReportType : undefined)}
-            >
-              <option value="">Todos los tipos</option>
-              <option value="AI_ORIGINAL_REVIEW">Revisión original</option>
-              <option value="AI_PARAGRAPH_TECHNICAL">Detalle por párrafos</option>
-              <option value="AI_REPORT">Reporte IA anterior</option>
-              <option value="SIMILARITY_REPORT">Similitud</option>
-            </select>
-          </label>
-          <label className="reports-filter-field">
+              options={[
+                { value: "", label: "Todos los tipos" },
+                { value: "AI_ORIGINAL_REVIEW", label: "Revisión original" },
+                { value: "AI_PARAGRAPH_TECHNICAL", label: "Detalle por párrafos" },
+                { value: "AI_REPORT", label: "Reporte IA anterior" },
+                { value: "SIMILARITY_REPORT", label: "Similitud" },
+              ]}
+              onChange={(value) => updateType(value ? value as ReportType : undefined)}
+            />
+          </div>
+          <div className="reports-filter-field">
             <span>Estado</span>
-            <select
-              aria-label="Estado del reporte"
+            <CustomSelect
+              id="reports-status-filter"
+              label="Estado del reporte"
               value={status ?? ""}
-              onChange={(event) => updateStatus(event.target.value ? event.target.value as ReportStatus : undefined)}
-            >
-              {statusFilters.map((filter) => (
-                <option key={filter.label} value={filter.value ?? ""}>{filter.label}</option>
-              ))}
-            </select>
-          </label>
+              options={statusFilters.map((filter) => ({ value: filter.value ?? "", label: filter.label }))}
+              onChange={(value) => updateStatus(value ? value as ReportStatus : undefined)}
+            />
+          </div>
           <span className="reports-filter-summary">{total} {total === 1 ? "resultado" : "resultados"}</span>
         </div>
 
         {message && <p className="report-export-note" role="status">{message}</p>}
-        {remove.isError && <p className="report-export-error" role="alert">No se pudo eliminar el PDF del reporte.</p>}
-        {regenerate.isError && <p className="report-export-error" role="alert">No se pudo regenerar el reporte. Revisa que la corrida original siga disponible.</p>}
-        {download.isError && <p className="report-export-error" role="alert">No se pudo descargar el PDF.</p>}
-        {reports.isPending && <p className="report-export-note" role="status">Cargando historial…</p>}
-        {reports.isError && <p className="report-export-error" role="alert">No se pudo cargar el historial de reportes.</p>}
+        {reports.isPending && <TurnitingFeedback state="reading" title="Leyendo el historial" description="Cargando reportes y estados de vigencia…" className="reports-feedback" layout="inline" />}
+        {reports.isError && <TurnitingFeedback state="network-error" title="No se pudo cargar el historial de reportes" className="reports-feedback" layout="inline" />}
+        {!reports.isPending && !reports.isError && (regenerate.isPending || hasGeneratingReport) && <TurnitingFeedback state="analyzing" title="Generando reporte PDF" description="La generación sigue en curso; la lista se actualizará cuando el servicio informe el resultado." className="reports-feedback" layout="inline" />}
+        {download.isPending && <TurnitingFeedback state="reading" title="Preparando descarga" description="Descargando el PDF seleccionado…" className="reports-feedback" layout="inline" />}
+        {remove.isError && <TurnitingFeedback state="error" title="No se pudo eliminar el PDF del reporte" className="reports-feedback" layout="inline" />}
+        {regenerate.isError && <TurnitingFeedback state="error" title="No se pudo regenerar el reporte" description="Revisa que la corrida original siga disponible." className="reports-feedback" layout="inline" />}
+        {download.isError && <TurnitingFeedback state="error" title="No se pudo descargar el PDF" className="reports-feedback" layout="inline" />}
         {reports.data && items.length === 0 && (
-          <div className="reports-empty-state">
-            <span className="reports-empty-icon" aria-hidden="true">PDF</span>
-            <strong>No hay reportes para estos filtros.</strong>
-            <span>Los PDFs generados desde análisis completados aparecerán aquí.</span>
-          </div>
+          <TurnitingFeedback state="empty" title="No hay reportes para estos filtros" description="Los PDFs generados desde análisis completados aparecerán aquí." className="reports-empty-state" />
         )}
 
         {items.length > 0 && (

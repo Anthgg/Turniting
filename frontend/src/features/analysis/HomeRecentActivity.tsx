@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { listReports } from '../../api/reports'
+import { TurnitingFeedback } from '../../components/TurnitingFeedback'
 import { loadAnalysisHistory } from './analysis-history-data'
 import './AnalysisHistoryPage.css'
 
@@ -50,8 +51,8 @@ export function HomeRecentActivity() {
           <h2>Último análisis</h2>
           <Link className="button button-quiet" to="/history">Historial</Link>
         </div>
-        {latestAnalysis.isPending && <p className="home-highlight-empty" role="status">Cargando el último análisis…</p>}
-        {latestAnalysis.isError && <p className="home-highlight-empty" role="alert">No se pudo cargar el último análisis.</p>}
+        {latestAnalysis.isPending && <TurnitingFeedback state="thinking" title="Buscando el último análisis" className="home-highlight-empty" layout="inline" />}
+        {latestAnalysis.isError && <TurnitingFeedback state="network-error" title="No se pudo cargar el último análisis" className="home-highlight-empty" layout="inline" />}
         {latest ? (
           <div className="home-latest-analysis">
             <Link to={`/documents/${latest.document.id}`} title={latest.document.originalName}>
@@ -63,9 +64,9 @@ export function HomeRecentActivity() {
             </strong>
           </div>
         ) : latestAnalysis.data && (
-          <div className="home-highlight-empty">
-            Aún no hay análisis documentales. <Link to="/documents">Analizar documento</Link>
-          </div>
+          <TurnitingFeedback state="empty" title="Aún no hay análisis documentales" className="home-highlight-empty" layout="inline">
+            <Link to="/documents">Analizar documento</Link>
+          </TurnitingFeedback>
         )}
       </article>
 
@@ -74,9 +75,9 @@ export function HomeRecentActivity() {
           <h2>Reportes recientes</h2>
           <Link className="button button-quiet" to="/reports">Ver reportes</Link>
         </div>
-        {recentReports.isPending && <p className="home-highlight-empty" role="status">Cargando reportes…</p>}
-        {recentReports.isError && <p className="home-highlight-empty" role="alert">No se pudieron cargar los reportes.</p>}
-        {recentReports.data?.items.length === 0 && <p className="home-highlight-empty">Aún no hay reportes generados.</p>}
+        {recentReports.isPending && <TurnitingFeedback state="reading" title="Leyendo reportes recientes" className="home-highlight-empty" layout="inline" />}
+        {recentReports.isError && <TurnitingFeedback state="network-error" title="No se pudieron cargar los reportes" className="home-highlight-empty" layout="inline" />}
+        {recentReports.data?.items.length === 0 && <TurnitingFeedback state="empty" title="Aún no hay reportes generados" className="home-highlight-empty" layout="inline" />}
         {recentReports.data?.items.map((report) => (
           <div className="home-recent-report" key={report.id}>
             <Link to="/reports" title={report.documentName ?? report.filename}>

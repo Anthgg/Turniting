@@ -10,6 +10,7 @@ import {
   reparseTurnitinReport,
   turnitinQueryKeys,
 } from '../../api/turnitin'
+import { TurnitingFeedback } from '../../components/TurnitingFeedback'
 import { ApiErrorNotice } from '../documents/ApiErrorNotice'
 
 const PAGE_SIZE = 50
@@ -112,7 +113,9 @@ export function TurnitinReportDetailPage() {
       {reparse.isError && <ApiErrorNotice error={reparse.error} title="No se pudo reprocesar el reporte" />}
       {ocrReparse.isError && <ApiErrorNotice error={ocrReparse.error} title="No se pudo aplicar OCR al reporte" />}
       {remove.isError && <ApiErrorNotice error={remove.error} title="No se pudo eliminar el reporte" />}
-      {report.isPending && <div className="documents-empty-state" role="status"><span className="state-indicator is-animated" /><span>Cargando reporte…</span></div>}
+      {report.isPending && <TurnitingFeedback state="reading" title="Leyendo reporte Turnitin" description="Cargando resultados, fuentes y segmentos…" className="documents-empty-state" layout="inline" />}
+      {(reparse.isPending || ocrReparse.isPending) && <TurnitingFeedback state="reading" title={ocrReparse.isPending ? 'Procesando OCR local' : 'Releyendo el PDF'} description="La lectura se ejecuta sin porcentaje estimado." className="turnitin-processing-feedback" layout="inline" />}
+      {record && (record.status === 'PARTIAL' || record.status === 'OCR_REQUIRED') && <TurnitingFeedback state="warning" title={record.status === 'PARTIAL' ? 'Lectura parcial' : 'OCR requerido'} description="Revisa las advertencias y los segmentos que pudieron recuperarse del reporte." className="turnitin-processing-feedback" layout="inline" />}
 
       {record && (
         <>

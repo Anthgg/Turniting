@@ -17,6 +17,8 @@ import {
   filterQuickResultParagraphs,
   formatQuickParagraphCopy,
   formatQuickResultCopy,
+  getSelectableThresholdProfiles,
+  reconcileThresholdProfile,
   getQuickAnalysisErrorMessage,
   getQuickAnalysisOverLimitGuidance,
   isQuickResultStale,
@@ -70,6 +72,22 @@ const summaryActions = {
 }
 
 describe('quick text analysis', () => {
+  it('disables threshold profiles that the selected analyzer does not publish', () => {
+    expect(getSelectableThresholdProfiles(['BALANCED', 'LOW_FALSE_POSITIVE', 'VERY_LOW_FALSE_POSITIVE'], ['BALANCED']))
+      .toEqual(['BALANCED'])
+    expect(getSelectableThresholdProfiles(['BALANCED', 'LOW_FALSE_POSITIVE'], undefined))
+      .toEqual(['BALANCED', 'LOW_FALSE_POSITIVE'])
+    expect(getSelectableThresholdProfiles(['BALANCED', 'LOW_FALSE_POSITIVE'], []))
+      .toEqual([])
+  })
+
+  it('resets to the model-managed BALANCED threshold when the next analyzer publishes no profiles', () => {
+    expect(reconcileThresholdProfile('LOW_FALSE_POSITIVE', [])).toBe('BALANCED')
+    expect(reconcileThresholdProfile('LOW_FALSE_POSITIVE', ['BALANCED'])).toBe('BALANCED')
+    expect(reconcileThresholdProfile('LOW_FALSE_POSITIVE', ['BALANCED', 'LOW_FALSE_POSITIVE']))
+      .toBe('LOW_FALSE_POSITIVE')
+  })
+
   it('accepts the aggregate score and detector status from the backend contract', () => {
     const parsed = quickAnalysisResponseSchema.parse(syntheticResponse)
     expect(parsed).toMatchObject({
@@ -94,6 +112,12 @@ describe('quick text analysis', () => {
     expect(markup).toContain('quick-result-paragraph is-highlighted')
     expect(markup).toContain('Primer texto sintético.')
     expect(markup).toContain('Segundo texto sintético.')
+    expect(markup).toContain('role="combobox"')
+    expect(markup).toContain('aria-label="Mostrar resultados: Todos"')
+    expect(markup).toContain('id="quick-result-title" aria-live="polite" aria-atomic="true"')
+    expect(markup).not.toContain('<section class="quick-result-card" aria-labelledby="quick-result-title" aria-live')
+    expect(markup).toContain('Copiar todo')
+    expect(markup).not.toContain('<select')
     expect(markup).not.toMatch(/<details class="quick-technical-details" open/)
     expect(markup).not.toMatch(/<details class="quick-source-details" open/)
     expect(markup).not.toContain('quick-summary-item')
@@ -112,11 +136,25 @@ describe('quick text analysis', () => {
     expect(markup).not.toContain('undefined')
   })
 
+  it('labels language-calibrated model thresholds as model-managed in result details', () => {
+    const markup = renderToStaticMarkup(
+      <QuickResultSummary
+        result={{ ...syntheticResponse, analyzer: 'F006_1_ONLY', thresholdProfile: 'BALANCED' }}
+        paragraphTexts={['Texto sintético.']}
+        analyzer="F006_1_ONLY"
+        profile="BALANCED"
+        {...summaryActions}
+      />,
+    )
+
+    expect(markup).toContain('Umbral fijo del modelo según idioma')
+  })
+
   it('shows a loading status while a synthetic request is pending', () => {
     const markup = renderToStaticMarkup(<QuickStatusPanel status="loading" />)
     expect(markup).toContain('role="status"')
-    expect(markup).toContain('Analizando el texto…')
-    expect(markup).toContain('sin crear historial')
+    expect(markup).toContain('Analizando señales…')
+    expect(markup).toContain('La solicitud sigue en curso; la animación no representa un porcentaje de avance.')
   })
 
   it('returns a synthetic successful result and offers a retry after retryable errors', async () => {

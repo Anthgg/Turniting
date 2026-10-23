@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { datasetQueryKeys, listDatasets } from '../../api/datasets'
+import { TurnitingFeedback } from '../../components/TurnitingFeedback'
 import { ApiErrorNotice } from '../documents/ApiErrorNotice'
 import { LicenseWarning } from './LicenseWarning'
 import { datasetStatusLabel, formatCount } from './dataset-utils'
@@ -27,12 +28,9 @@ export function DatasetsPage() {
           <span className="documents-section-meta">{datasets.data?.total ?? 0} versiones</span>
         </div>
         {datasets.isError && <ApiErrorNotice error={datasets.error} title="No se pudieron cargar los datasets" />}
-        {datasets.isPending && <div className="documents-empty-state" role="status"><span className="state-indicator is-animated" /><span>Cargando datasets…</span></div>}
+        {datasets.isPending && <TurnitingFeedback state="reading" title="Leyendo catálogo" description="Cargando datasets registrados…" className="documents-empty-state" layout="inline" />}
         {datasets.data?.items.length === 0 && (
-          <div className="documents-empty-state">
-            <strong>Aún no hay datasets registrados</strong>
-            <span>Registra TURNITING_DATASET_V1 con POST /api/datasets/register usando los manifests de training/.</span>
-          </div>
+          <TurnitingFeedback state="empty" title="Aún no hay datasets registrados" description="Registra TURNITING_DATASET_V1 con POST /api/datasets/register usando los manifests de training/." className="documents-empty-state" layout="inline" />
         )}
         {datasets.data && datasets.data.items.length > 0 && (
           <div className="dataset-table-wrap">
