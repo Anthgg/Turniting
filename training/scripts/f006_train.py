@@ -97,6 +97,28 @@ def sampler_weights(meta: pd.DataFrame, hard: np.ndarray, sp: dict, a) -> tuple[
         base = (m_w + norm(wh, es_hard & human, hsh * fh) + norm(w0, es & human & ~es_hard, hsh * fn)
                 + norm(w0, g_h & ~hard, hsh * fg * (1 - a.hard_ratio)) + norm(wh, g_h & hard, hsh * fg * a.hard_ratio))
         comp = {"base": 1.0, "human_component": {"spanish_hard": fh, "spanish_normal": fn, "global": fg}}
+    if a.mixture == "f006_2":
+        names = ["replay", "hard_human", "new_human_academic", "new_machine_es", "mixed", "ai_edited", "hard_machine", "txd_aux", "robustness"]
+        mix = dict(zip(names, a.mix))
+        new = meta["dataset"].astype(str).str.startswith("f0062_").values
+        scope = new if a.new_only else np.ones(len(meta), bool)  # candidate A: continual fine-tuning on the new data only
+        txd = (meta["dataset"].astype(str) == "f0062_txd22").values
+        hm = meta["hard_machine"].values.astype(bool) if "hard_machine" in meta else np.zeros(len(meta), bool)
+        aca_hard = es_hard | hard
+        tdx = (meta["dataset"].astype(str) == "f0062_tdx_thesis_es").values
+        claude_m = (meta["dataset"].astype(str) == "f0062_claude_es_academic").values & meta["fine_label"].isin([A.AI_GENERATED, A.PARAPHRASED_AI]).values
+        mixed = meta["fine_label"].isin([A.MIXED, A.HUMAN_EDITED_AI]).values & ~txd
+        edited = meta["fine_label"].isin([A.AI_EDITED]).values & ~txd
+        total = base * mix["replay"] if not a.new_only else np.zeros(len(meta))
+        total += norm(wh, aca_hard & human & scope, mix["hard_human"])
+        total += norm(w0, tdx & human & ~aca_hard, mix["new_human_academic"])
+        total += norm(w0, claude_m & ~hm, mix["new_machine_es"])
+        total += norm(w0, mixed & scope, mix["mixed"])
+        total += norm(w0, edited & scope, mix["ai_edited"])
+        total += norm(w0, hm, mix["hard_machine"])
+        total += norm(w0, txd, mix["txd_aux"])  # TXD-22 (English) capped: never dominates the Spanish training
+        total += norm(w0, adv & scope, mix["robustness"])
+        return total, {**mix, "new_only": bool(a.new_only)}
     if a.mixture == "f006_1_1":
         mix = dict(zip(["replay", "hard_human", "spanish_human", "mixed", "span", "ai_edited", "robustness"], a.mix))
         aca_hard = es_hard | hard
@@ -271,7 +293,7 @@ def _tok_docs(docs: list[dict]):
 
 def cache_key(a) -> str:
     keys = ["windows", "human_share", "hard_ratio", "es_w", "aca_w", "para_frac", "stage", "emphasis", "hard_pool", "seed",
-            "es_mix", "es_hard_pool", "train_extra", "mixture", "mix"]
+            "es_mix", "es_hard_pool", "train_extra", "mixture", "mix", "new_only", "hard_machine_pool"]
     s = json.dumps({k: getattr(a, k) for k in keys}, sort_keys=True, default=str)
     return hashlib.sha256(s.encode()).hexdigest()[:12]
 
@@ -300,6 +322,8 @@ def build_cache(a, cfg, tok_path, cache: Path) -> dict:
         if extra is not None:
             span_ids |= set(extra.loc[extra["span_labels"].notna(), "id"])
         meta["has_span"] = meta["id"].isin(span_ids).values
+    if a.hard_machine_pool:
+        meta["hard_machine"] = meta["id"].isin(set(pd.read_parquet(a.hard_machine_pool, columns=["id"])["id"])).values
     pool = pd.read_parquet(a.hard_pool, columns=["id"]) if a.hard_pool else pd.DataFrame({"id": []})
     hard = meta["id"].isin(set(pool["id"])).values & (meta["fine_label"] == A.HUMAN).values
     w, comp = sampler_weights(meta, hard, cfg["sampling"], a)
@@ -425,10 +449,12 @@ def main() -> int:
     ap.add_argument("--es-hard-pool", default=None)
     ap.add_argument("--es-mix", default=None, help="Spanish-hard,Spanish-normal,global shares of the human component, e.g. 0.4,0.3,0.3")
     ap.add_argument("--train-extra", default=None)
-    ap.add_argument("--mixture", default="f006", choices=["f006", "f006_1", "f006_1_1"])
+    ap.add_argument("--mixture", default="f006", choices=["f006", "f006_1", "f006_1_1", "f006_2"])
     ap.add_argument("--mix", default="0.30,0.25,0.15,0.10,0.10,0.05,0.05", help="f006_1_1: replay,hard,spanish,mixed,span,edited,robust")
     ap.add_argument("--token-weight", type=float, default=None, help="override head-C loss weight (multi-task ablation)")
-    ap.add_argument("--score", default="f006", choices=["f006", "f006_1", "f006_1_1"])
+    ap.add_argument("--score", default="f006", choices=["f006", "f006_1", "f006_1_1", "f006_2"])
+    ap.add_argument("--new-only", action="store_true", help="f006_2 candidate A: sample only the new F006.2 rows (no historical replay)")
+    ap.add_argument("--hard-machine-pool", default=None, help="f006_2: ids of HARD_MACHINE train rows")
     ap.add_argument("--master", default="/content/f006work/master_v2")
     ap.add_argument("--val", default="/content/drive/MyDrive/turniting/f006/datasets/f006_validation.parquet")
     ap.add_argument("--drive", default="/content/drive/MyDrive/turniting/f006")
@@ -529,6 +555,11 @@ def main() -> int:
             return ((1 - pt) ** a.focal_gamma * l_).mean()
         return l_.mean()
 
+    # precision: bf16 where the GPU supports it, else fp16 with loss scaling (F006.2: T4 / V100 fallback)
+    bf16 = device.type == "cuda" and torch.cuda.is_bf16_supported()
+    amp_dtype = torch.bfloat16 if bf16 else torch.float16
+    scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda" and not bf16)
+    log(f"precision: {'bf16' if bf16 else 'fp16'}")
     sync, mon = DriveSync(), GpuMonitor()
     mon.start()
     t0, seen, stop = time.time(), 0, False
@@ -550,7 +581,7 @@ def main() -> int:
                 batch = next(it)
                 ids = batch["input_ids"].to(device, non_blocking=True)
                 mask = batch["attention_mask"].to(device, non_blocking=True)
-                with torch.autocast("cuda", dtype=torch.bfloat16, enabled=device.type == "cuda"):
+                with torch.autocast("cuda", dtype=amp_dtype, enabled=device.type == "cuda"):
                     out = model(ids, mask)
                 la = loss_a(out["a"].float(), batch["a"].to(device))
                 lb = ce(out["b"].float(), batch["b"].to(device))
@@ -560,11 +591,12 @@ def main() -> int:
                 loss = (hw["binary_weight"] * la + hw["fine_weight"] * lb + hw["token_weight"] * lc) / len(g)
                 if not torch.isfinite(loss):
                     raise RuntimeError(f"ABORT: non-finite loss at step {step}")
-                loss.backward()
+                scaler.scale(loss).backward()
                 tot["a"] += float(la) / len(g); tot["b"] += float(lb) / len(g); tot["c"] += float(lc) / len(g)
                 seen += ids.shape[0]
+            scaler.unscale_(opt)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            opt.step(); sched.step(); opt.zero_grad(set_to_none=True)
+            scaler.step(opt); scaler.update(); sched.step(); opt.zero_grad(set_to_none=True)
             step += 1
             if step % 50 == 0:
                 el = time.time() - t0
@@ -613,7 +645,8 @@ def main() -> int:
         "run": a.run, "stage": a.stage, "timestamp": utc_now(), "gitCommit": git_commit(), "init": a.init,
         "config": {k: getattr(a, k) for k in ("windows", "human_share", "hard_ratio", "es_w", "aca_w", "para_frac", "emphasis",
                                                "loss", "human_weight", "focal_gamma", "lr", "epochs", "seed", "hard_pool",
-                                               "es_mix", "es_hard_pool", "train_extra", "mixture", "score", "mix", "token_weight")},
+                                               "es_mix", "es_hard_pool", "train_extra", "mixture", "score", "mix", "token_weight",
+                                               "new_only", "hard_machine_pool")},
         "sampleAudit": {k: v for k, v in audit.items() if k != "by_dataset"}, "microBatch": micro, "accumulation": accum,
         "stepsPerEpoch": steps_per_epoch, "totalSteps": total, "stoppedAtStep": step, "trainSeconds": round(train_s, 1),
         "throughputWindowsPerSec": round(seen / max(train_s, 1), 1), "gpuMonitor": mon.summary(),

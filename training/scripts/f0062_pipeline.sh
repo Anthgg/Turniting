@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# F006.2 SPANISH ACADEMIC + MODERN GENERATOR HARDENING (Track A only). Resumable: finished steps leave .done markers on Drive,
+# training resumes from the Drive `last` checkpoint (model + optimizer + scheduler + step), never from scratch when one exists.
+#   nohup bash scripts/f0062_pipeline.sh > /content/f0062_pipeline.out 2>&1 &
+set -euo pipefail
+cd "$(dirname "$0")/.."
+T=/content/drive/MyDrive/turniting
+D=$T/f006_2
+F611=$T/f006_1_1/models/experimental_f006_1_1
+S=$D/datasets/splits
+LOG=$D/logs
+mkdir -p "$D"/datasets/{raw,normalized,splits,manifests} "$D"/models/{checkpoints,final} "$D"/{reports,logs} reports/f006_2
+step() { [ -f "$LOG/$1.done" ]; }
+done_() { date -u +%FT%TZ > "$LOG/$1.done"; echo "=== STEP $1 DONE $(date -u +%T)"; }
+ts() { echo "=== STEP $1 START $(date -u +%T)"; }
+
+# replay corpus (read-only copy of the historical V2 master)
+if [ ! -f /content/f006work/master_v2/.complete ]; then
+  mkdir -p /content/f006work/master_v2 && rsync -a $T/v3/datasets/master_v2/ /content/f006work/master_v2/ && touch /content/f006work/master_v2/.complete
+fi
+
+if ! step sources; then ts sources; python -W ignore scripts/f0062_sources.py 2>&1 | tee -a $LOG/sources.log; done_ sources; fi
+if ! step claude; then ts claude
+  if [ -z "${ANTHROPIC_API_KEY:-}" ]; then echo "=== STOP: ANTHROPIC_API_KEY missing (Colab secret); Claude data is required before the splits"; exit 2; fi
+  python -W ignore scripts/f0062_claude.py run 2>&1 | tee -a $LOG/claude.log; done_ claude; fi
+if ! step splits; then ts splits; python -W ignore scripts/f0062_splits.py 2>&1 | tee -a $LOG/splits.log; done_ splits; fi
+if ! step hard; then ts hard; python -W ignore scripts/f0062_hard.py 2>&1 | tee -a $LOG/hard.log; done_ hard; fi
+
+# training config inherited from the F006.1.1 full run (human weight / Spanish weight / token weight); lower LR than the original
+read -r _H HW ES _MIX TW <<< "$(python scripts/f0611_cfg.py $T/f006_1_1/runs/F00611_FULL/run.json)"
+LR=${F0062_LR:-5e-6}
+COMMON=(--stage full --init $F611 --icfg-from $F611/inference_config.json --drive $D/models/checkpoints --val $S/f006_2_validation.parquet
+        --train-extra $S/f006_2_train_extra.parquet --hard-pool $S/f006_2_hard_human_pool.parquet --es-hard-pool $S/f006_2_spanish_hard_pool.parquet
+        --hard-machine-pool $S/f006_2_hard_machine_pool.parquet --mixture f006_2 --score f006_2 --loss weighted --human-weight $HW --es-w $ES
+        --token-weight $TW --aca-w 1.5 --hard-ratio 0.3 --para-frac 0.30 --lr $LR --eval-every ${F0062_EVAL_EVERY:-500}
+        --min-epochs-before-stop 0.5 --patience 3 --local /content/turniting-f0062/ckpt --cache-root /content/turniting-f0062/cache)
+#                replay hard_h new_h_aca new_m_es mixed edited hard_m txd(0: TXD-22 is historical V2 data) robust
+MIX_A=0.00,0.28,0.22,0.22,0.13,0.07,0.08,0.00,0.00
+MIX_B=0.38,0.16,0.15,0.13,0.08,0.04,0.04,0.00,0.02
+WA=${F0062_WINDOWS_A:-150000}; WB=${F0062_WINDOWS_B:-250000}
+
+python scripts/f0062_preflight.py --run F0062_A --windows $WA --lr $LR --base-model $F611 || { echo "=== STOP_BEFORE_TRAINING"; exit 3; }
+if ! step train_a; then ts train_a
+  python scripts/f006_train.py --run F0062_A --new-only --windows $WA --mix $MIX_A "${COMMON[@]}" 2>&1 | grep --line-buffered -v -i "warn" | tee -a $LOG/train_a.log
+  done_ train_a; fi
+python scripts/f0062_preflight.py --run F0062_B --windows $WB --lr $LR --base-model $F611 || { echo "=== STOP_BEFORE_TRAINING"; exit 3; }
+if ! step train_b; then ts train_b
+  python scripts/f006_train.py --run F0062_B --windows $WB --mix $MIX_B "${COMMON[@]}" 2>&1 | grep --line-buffered -v -i "warn" | tee -a $LOG/train_b.log
+  done_ train_b; fi
+if ! step compare; then ts compare; python -W ignore scripts/f0062_lockeval.py compare --runs F0062_A F0062_B 2>&1 | tee -a $LOG/compare.log; done_ compare; fi
+if ! step lock; then ts lock; python -W ignore scripts/f0062_lockeval.py lock 2>&1 | tee -a $LOG/lock.log; done_ lock; fi
+if ! step final; then ts final; python -W ignore scripts/f0062_lockeval.py final 2>&1 | tee -a $LOG/final.log; done_ final; fi
+python -W ignore scripts/f0062_report.py 2>&1 | tee -a $LOG/report.log
+echo "=== F006.2 PIPELINE COMPLETE $(date -u +%T)"

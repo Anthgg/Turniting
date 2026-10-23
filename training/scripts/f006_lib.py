@@ -266,8 +266,42 @@ def _score_f00611(rep: dict) -> dict:
     return {"score": pos - pen, "positive": pos, "penalty": pen, "eligible": bool(eligible), "terms": terms, "fprs": fprs, "mode": "f006_1_1"}
 
 
+F0062_WEIGHTS = {"general_macro_f1": 0.10, "spanish_macro_f1": 0.15, "academic_macro_f1": 0.20, "academic_recall": 0.10, "mixed_recall": 0.10,
+                 "ai_edited_macro_f1": 0.05, "ood_recall": 0.10, "unseen_generator_recall": 0.10, "span_token_f1": 0.10}
+F0062_PENALTIES = [("academic_fpr", 0.03, 4.0), ("spanish_fpr", 0.05, 3.0), ("fpr_all_humans", 0.05, 3.0), ("unseen_generator_fpr", 0.10, 2.0),
+                   ("hard_human_fpr", 0.30, 1.0)]
+
+
+def _score_f0062(rep: dict) -> dict:
+    """F006_2_SELECTION_SCORE (fixed before any F006.2 training), same operating point (general-human FPR <= 0.04):
+    + 0.10 F1 general + 0.15 F1 Spanish + 0.20 F1 academic + 0.10 recall academic + 0.10 recall mixed + 0.05 F1 AI-edited
+    + 0.10 recall OOD (machine-only) + 0.10 recall unseen-generator proxy + 0.10 span token F1
+    - 4*max(0, FPR_aca - 0.03) - 3*max(0, FPR_es - 0.05) - 3*max(0, FPR_all - 0.05) - 2*max(0, FPR_ugen - 0.10) - 1*max(0, FPR_hard - 0.30)
+    - 3*max(0, 0.85 - recall_all_machines)   (academic false positives must fall WITHOUT destroying AI recall)
+    eligible iff FPR_all <= 0.05, FPR_aca <= 0.05 and FPR_es <= 0.08."""
+    def g(sub, key):
+        v = rep.get(sub, {}).get(key)
+        return None if v is None else float(v)
+
+    terms = {"general_macro_f1": g("general", "macro_f1"), "spanish_macro_f1": g("spanish", "macro_f1"), "academic_macro_f1": g("academic", "macro_f1"),
+             "academic_recall": g("academic", "recall"), "mixed_recall": g("mixed", "recall"), "ai_edited_macro_f1": g("ai_edited", "macro_f1"),
+             "ood_recall": g("ood", "recall"), "unseen_generator_recall": g("unseen_generator", "recall"), "span_token_f1": g("span_head", "token_f1")}
+    fprs = {"fpr_all_humans": g("all", "fpr"), "spanish_fpr": g("spanish", "fpr"), "academic_fpr": g("academic", "fpr"),
+            "unseen_generator_fpr": g("unseen_generator", "fpr"), "hard_human_fpr": g("hard_human", "fpr")}
+    avail = {k: v for k, v in terms.items() if v is not None}
+    wsum = sum(F0062_WEIGHTS[k] for k in avail) or 1.0
+    pos = sum(F0062_WEIGHTS[k] * v for k, v in avail.items()) / wsum
+    pen = sum(w * max(0.0, fprs[k] - lim) for k, lim, w in F0062_PENALTIES if fprs.get(k) is not None)
+    rec = g("all", "recall")
+    pen += 3.0 * max(0.0, 0.85 - rec) if rec is not None else 0.0
+    eligible = all(fprs[k] is not None and fprs[k] <= lim for k, lim in (("fpr_all_humans", 0.05), ("academic_fpr", 0.05), ("spanish_fpr", 0.08)))
+    return {"score": pos - pen, "positive": pos, "penalty": pen, "eligible": bool(eligible), "terms": terms, "fprs": fprs, "recall_all": rec, "mode": "f006_2"}
+
+
 def selection_score(rep: dict) -> dict:
-    """F006 / F006_1 / F006_1_1 selection score (see set_score) from a subset_report."""
+    """F006 / F006_1 / F006_1_1 / F006_2 selection score (see set_score) from a subset_report."""
+    if SCORE_MODE["mode"] == "f006_2":
+        return _score_f0062(rep)
     if SCORE_MODE["mode"] == "f006_1_1":
         return _score_f00611(rep)
     if SCORE_MODE["mode"] == "f006_1":
