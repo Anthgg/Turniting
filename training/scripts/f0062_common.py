@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import unicodedata
 from pathlib import Path
 
-DRIVE = Path("/content/drive/MyDrive/turniting")
+DRIVE = Path(os.environ.get("TURNITING_DRIVE", "/content/drive/MyDrive/turniting"))  # override only for local data prep
 D = DRIVE / "f006_2"
 RAW, NORM, SPLITS, MANI = D / "datasets" / "raw", D / "datasets" / "normalized", D / "datasets" / "splits", D / "datasets" / "manifests"
 CKPT, FINAL, REPORTS, LOGS = D / "models" / "checkpoints", D / "models" / "final", D / "reports", D / "logs"

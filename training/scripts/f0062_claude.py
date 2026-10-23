@@ -141,9 +141,16 @@ def plan(models: dict, tdx: pd.DataFrame) -> list[dict]:
     order = list(range(len(pool)))
     rng.shuffle(order)
     used = iter(order)
+    # revisions use short paragraphs (<= 260 words) so a whole revision fits comfortably in one generation; separate seeded
+    # order, so the other classes keep exactly the same selection
+    short = pool.index[pool["n_words"] <= 260].tolist()
+    random.Random(SEED + 5).shuffle(short)
+    short_it = iter(short)
     for cls in ("HUMAN_REVISED_BY_AI", "HUMAN_WITH_AI_INSERTS", "AI_WITH_HUMAN_INSERTS"):
         for i in range(COUNTS[cls]):
             r = pool.iloc[next(used)]
+            if cls == "HUMAN_REVISED_BY_AI":
+                r = pool.loc[next(short_it)]
             f = pick_family(rng, fams)
             sents = [s for s in re.split(r"(?<=[.!?])\s+", r["text"]) if s.strip()]
             meta = {"domain": "tesis (TDX)", "source_row": r["id"], "len_bucket_target": r["len_bucket"]}
@@ -158,7 +165,8 @@ def plan(models: dict, tdx: pd.DataFrame) -> list[dict]:
                 pos = rng.randint(1, len(sents) - 1)
                 n_new = rng.choice([1, 2])
                 p = (f"A continuación hay un párrafo dividido en dos partes. Escribe {n_new} oración(es) nuevas que encajen de forma natural "
-                     f"entre la PARTE A y la PARTE B, con el mismo registro. Devuelve solo esas oraciones.\n\nPARTE A:\n{' '.join(sents[:pos])}\n\nPARTE B:\n{' '.join(sents[pos:])}")
+                     f"entre la PARTE A y la PARTE B, con el mismo registro. Devuelve solo esas oraciones.\n\n"
+                     f"PARTE A (final):\n{' '.join(sents[max(0, pos - 2):pos])}\n\nPARTE B (inicio):\n{' '.join(sents[pos:pos + 2])}")  # local context only
                 meta.update({"insert_pos_sentence": pos, "n_inserted_sentences": n_new})
             else:
                 if len(sents) < 2:
@@ -171,7 +179,7 @@ def plan(models: dict, tdx: pd.DataFrame) -> list[dict]:
                 meta.update({"human_excerpt_sha256": sha256_text(keep)})
                 r = r.copy()
                 r["excerpt"] = keep
-            reqs.append({"custom_id": f"{cls[:5].lower()}-{i:05d}", "cls": cls, "family": f, "prompt": p, "meta": meta,
+            reqs.append({"custom_id": f"{ {'HUMAN_REVISED_BY_AI': 'hrev', 'HUMAN_WITH_AI_INSERTS': 'hins', 'AI_WITH_HUMAN_INSERTS': 'ains'}[cls]}-{i:05d}", "cls": cls, "family": f, "prompt": p, "meta": meta,
                          "topic_id": None, "parent_id": r["parent_id"], "group_id": r["group_id"], "side": tdx_side(r["group_id"]), "phase": 1,
                          "human_text": r["text"], "human_excerpt": r.get("excerpt"), "human_sents": sents})
     return reqs
