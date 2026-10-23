@@ -1,0 +1,6 @@
+F006.2 self-generated data (Claude Code subagents: Opus / Sonnet / Haiku; no API key).
+Raw generator outputs only; rows are rebuilt in Colab by scripts/f0062_selfgen.py collect (needs the TDX parquet on Drive).
+1,173 rows: AI_GENERATED 490, AI_REVISED 200, HUMAN_WITH_AI_INSERTS 200, AI_WITH_HUMAN_INSERTS 150, HUMAN_REVISED_BY_AI 133.
+HUMAN_REVISED_BY_AI outputs are revisions of paragraphs from the TDX Thesis Spanish Corpus (Zenodo 10.5281/zenodo.7313149,
+Text Mining Unit, Barcelona Supercomputing Center; CC BY-NC-SA 4.0 per its README): research / non-commercial use, same licence.
+Training / validation / calibration only; never part of any final holdout.
