@@ -98,7 +98,10 @@ def main() -> int:
         if c not in train:
             train[c] = None
     extra = pd.concat([extra611[[c for c in META_COLS if c in extra611.columns]], train[META_COLS]], ignore_index=True)
-    assert not extra["id"].duplicated().any(), "duplicated ids in TRAIN_EXTRA"
+    n_dup = int(extra["id"].duplicated().sum())  # F006.1.1 train_extra already carries duplicated ids (f006_train dedups them too)
+    extra = extra.drop_duplicates("id").reset_index(drop=True)
+    log(f"dropped {n_dup:,} duplicated ids from TRAIN_EXTRA")
+    assert not extra["id"].duplicated().any()
     extra.to_parquet(SPLITS / "f006_2_train_extra.parquet", index=False)
     write_json(done, {"rows": int(len(extra)), "historical_f006_1_1_extra": int(len(extra611)), "new_rows": int(len(train)),
                       "new_by_dataset_label": (train["dataset"] + "|" + train["fine_label"]).value_counts().to_dict(),
