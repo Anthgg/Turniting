@@ -1,0 +1,187 @@
+{
+  "created_at": "2026-10-24T04:06:38Z",
+  "seed": 82008,
+  "downloads_sha256": {
+    "pawsx_es_train.parquet": "9501c5d9ebac5b7ad95970d1cb1a98798a1b16b6ffa89e48328c20f9c2b04df3",
+    "pawsx_es_validation.parquet": "1bdc3b79b00f4404bc00336648b656a3c3b35b60808959862f608e0296ef0488",
+    "pawsx_es_test.parquet": "5ba872e113a79c783616e59d3d28ec0e922b6db745d797e5eb95010a32928bee",
+    "pawsx_en_validation.parquet": "e91c4c89a3d74deaf82bf2e87e626cf8d69d85f3c8e736b1ab3b6c3503ff26da",
+    "pawsx_de_validation.parquet": "4678b3c952b038f560035623523f1e92c353f1f9e66a2b79b589ee2c20bb512f",
+    "pawsx_fr_validation.parquet": "e64e5e373b4a0728941bab3acb083aaf41fe1f62e2654e7f7ea147dfd63b56f7",
+    "sushi/sushi_dataset.txt": "bd09c5e697e9068b135a727024635ba81a01ec72f6878e0084d3725d67d8ef23",
+    "sushi/sushi0.txt": "9c79e37a7f9d3c3812351caae7a69bde14f8b9ccadde3debfac3ff1e6480d026",
+    "sushi/sushi_high1.txt": "b212ef0ffddb5041f994ee16cbee97b6c25896684c47b0942814fe47adea1661",
+    "sushi/sushi_high2.txt": "51088a3afec49c625739616d209a65deca58e816da3244e0e52ed3aff5a1e52a",
+    "sushi/sushi_high3.txt": "738abbe963f8b81eda2cd294d14f346f96d546d46ab18d77c69c870ec3ad9224",
+    "sushi/sushi_high4.txt": "991b970a9e47381548315eef63bc38604430dd330c3a2048d0702aaaf99ea72d",
+    "sushi/sushi_high5.txt": "6f021e226765ff49a48b86adcbe806a9c7165ed18fb829ae1646240ce670452f",
+    "sushi/sushi_low1.txt": "0b979ede7d251c4bb8a664bfd78428587480e662062c9f31dbc4450161914230",
+    "sushi/sushi_low2.txt": "09584a6fe1ad5dec61ab3aad1e09bd7f2f42bf155b8db262899c11dd0e7551ca",
+    "sushi/sushi_low3.txt": "7679709a09025b82acda7fceaa9b3662b3a342549311e7b44c5879f32dc86011",
+    "sushi/sushi_low4.txt": "4f45b8bf1f68509175df0dbc1cf114b210c1c57cd941070b8da3bc88b1532703",
+    "sushi/sushi_low5.txt": "f3853ad4a6f7be33bef8e0ad57840ba41212f8e1e4b24e5a27a11eefcf55191f",
+    "sushi/sushi_low4a.txt": "b3c24c57a9b3defcbe65754d9dbaa10bb7c1f06dc79827e6022bf24f77cb184e",
+    "sushi/sushi_low4b.txt": "c1f925bea45bbacda7abc584ebc74f641221030804d7c126bb378480228e799f",
+    "sushi/sushi_nopa1.txt": "218204f293f893443b7bb9c85b2daa6311ab26e6e2d705deb4ca51d05442a60a",
+    "sushi/sushi_nopa2a.txt": "482f00981edfb30714f0267a43ee01bf67d5556c46cdd5a34bb12f221f71a4db",
+    "sushi/sushi_nopa2b.txt": "3403b93ccfd154d3bf7e3a02bc5003de24b6288a424ddb49040774d18d7d80ae",
+    "sushi/sushi_nopa3.txt": "2cd6ffa3f83c100549eb89db94f5fcefd6543e7c1f5172373aeaef3cd6aac600",
+    "stses_test.parquet": "138c8b47a86812be4fb512af684325fe199c82fc3ecd292503a37bff68b0e36b"
+  },
+  "dedup": {
+    "train_rows_before": 60400,
+    "exact_within_train_removed": 2653,
+    "exact_vs_eval_removed": 0,
+    "near_vs_eval_removed": 0,
+    "parent_vs_eval_removed": 0,
+    "train_rows_after": 57747
+  },
+  "leakage": {
+    "TRAIN_vs_eval_exact": 0,
+    "TRAIN_vs_eval_near": 0,
+    "TRAIN_vs_eval_parent": 0,
+    "TRAIN_vs_eval_lineage": 0,
+    "VALIDATION_vs_CALIBRATION_parent": 0,
+    "FINAL_vs_other_eval_exact": 0,
+    "CLAUDE_rows_outside_TRAIN": 0,
+    "CROSS_SPLIT_LEAKAGE": 0,
+    "PARENT_LEAKAGE": 0,
+    "SOURCE_LEAKAGE": 0,
+    "LINEAGE_LEAKAGE": 0,
+    "result": "PASS"
+  },
+  "splits": {
+    "train": {
+      "pairs": 57747,
+      "by_class": {
+        "LEXICAL_HARD_NEGATIVE": 26788,
+        "PAWS_PARAPHRASE": 20960,
+        "FAITHFUL_PARAPHRASE": 1000,
+        "STRONG_PARAPHRASE": 1000,
+        "PARTIAL_PARAPHRASE": 1000,
+        "STRUCTURAL_REWRITE": 1000,
+        "TRANSLATED_PARAPHRASE": 1000,
+        "NEGATION_HARD_NEGATIVE": 1000,
+        "ENTITY_CHANGED_NEGATIVE": 1000,
+        "CAUSALITY_CHANGED_NEGATIVE": 1000,
+        "SAME_TOPIC_NEGATIVE": 1000,
+        "NUMBER_CHANGED_NEGATIVE": 999
+      },
+      "by_dataset": {
+        "pawsx_es_train": 46748,
+        "claude_pairs": 10999
+      },
+      "positives": 24960,
+      "negatives": 31787,
+      "parents": 29741,
+      "file_sha256": "6260878bbd591c468a22faa04838695133941c5f1de59f01af6359b854142ab6"
+    },
+    "validation": {
+      "pairs": 3243,
+      "by_class": {
+        "TRANSLATED_PARAPHRASE": 982,
+        "TRANSLATED_LEXICAL_NEGATIVE": 571,
+        "LEXICAL_HARD_NEGATIVE": 571,
+        "PAWS_PARAPHRASE": 411,
+        "ENTITY_CHANGED_NEGATIVE": 344,
+        "NEGATION_HARD_NEGATIVE": 200,
+        "NUMBER_CHANGED_NEGATIVE": 164
+      },
+      "by_dataset": {
+        "pawsx_dev_es_en": 1553,
+        "pawsx_es_dev": 982,
+        "pawsx_es_dev_validation_rule_negative": 708
+      },
+      "positives": 1393,
+      "negatives": 1850,
+      "parents": 952,
+      "file_sha256": "250b883048707361271fb6eb54fd5dcfa5459f8043bb29beb4d043fc83bd28ca"
+    },
+    "calibration": {
+      "pairs": 3365,
+      "by_class": {
+        "TRANSLATED_PARAPHRASE": 1018,
+        "TRANSLATED_LEXICAL_NEGATIVE": 582,
+        "LEXICAL_HARD_NEGATIVE": 582,
+        "PAWS_PARAPHRASE": 436,
+        "ENTITY_CHANGED_NEGATIVE": 363,
+        "NEGATION_HARD_NEGATIVE": 222,
+        "NUMBER_CHANGED_NEGATIVE": 162
+      },
+      "by_dataset": {
+        "pawsx_dev_es_en": 1600,
+        "pawsx_es_dev": 1018,
+        "pawsx_es_dev_calibration_rule_negative": 747
+      },
+      "positives": 1454,
+      "negatives": 1911,
+      "parents": 975,
+      "file_sha256": "e2aa7596bf4be30a5150eee401a9a4fe5cbcb792cdceece481da71e440354c76"
+    },
+    "translated_ood": {
+      "pairs": 6306,
+      "by_class": {
+        "TRANSLATED_PARAPHRASE": 4000,
+        "TRANSLATED_LEXICAL_NEGATIVE": 2306
+      },
+      "by_dataset": {
+        "pawsx_dev_es_de": 3153,
+        "pawsx_dev_es_fr": 3153
+      },
+      "positives": 4000,
+      "negatives": 2306,
+      "parents": 1927,
+      "file_sha256": "decfb18f01296ff30ee7fc18446733f92e9483b986f5b08d331deba8672818c5"
+    },
+    "hard_negative_ood": {
+      "pairs": 416,
+      "by_class": {
+        "STS_GRADED_ONLY": 129,
+        "ENTITY_CHANGED_NEGATIVE": 125,
+        "NEGATION_HARD_NEGATIVE": 83,
+        "NUMBER_CHANGED_NEGATIVE": 53,
+        "SAME_TOPIC_NEGATIVE": 22,
+        "STS_HIGH": 4
+      },
+      "by_dataset": {
+        "stses_rule_negative": 261,
+        "stses": 155
+      },
+      "positives": 4,
+      "negatives": 283,
+      "parents": 151,
+      "file_sha256": "4a409847a8eada18f189a7abd07c660e0629ab777810e4c22f713b3977a6d3a1"
+    },
+    "final_external_holdout": {
+      "pairs": 6912,
+      "by_class": {
+        "SAME_TOPIC_OR_VOCAB_NEGATIVE": 6582,
+        "HUMAN_PARAPHRASE": 314,
+        "HUMAN_PARAPHRASE_DOC": 12,
+        "SAME_TOPIC_DOC": 4
+      },
+      "by_dataset": {
+        "sushi_sentences": 6896,
+        "sushi_documents": 16
+      },
+      "positives": 326,
+      "negatives": 6586,
+      "parents": 1,
+      "file_sha256": "85d367b30c7ae33d2d5979e37b7eee6446e68fc730c9c880839434a794604a3a"
+    },
+    "regression_paws_test": {
+      "pairs": 2000,
+      "by_class": {
+        "LEXICAL_HARD_NEGATIVE": 1093,
+        "PAWS_PARAPHRASE": 907
+      },
+      "by_dataset": {
+        "pawsx_es_test": 2000
+      },
+      "positives": 907,
+      "negatives": 1093,
+      "parents": 1946,
+      "file_sha256": "26132a329b4e0965ca59ec49e0a5eed19a5c7c979b38636e539ca4effc702cf3"
+    }
+  }
+}

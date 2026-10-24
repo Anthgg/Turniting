@@ -1,0 +1,28 @@
+{
+  "name": "F008_2_MODEL_LOCK",
+  "LOCKED": true,
+  "lockedAt": "2026-10-24T04:24:23Z",
+  "config": "B_RERANK",
+  "models": {
+    "reranker": {
+      "path": "/content/drive/MyDrive/turniting/f008_2/models/final/f008_2_locked_reranker",
+      "sha256": "9618638bfe4951314ecb5b5d4d36681455aef176e4edae3f86062dd2342bfd6a"
+    }
+  },
+  "frozen": {
+    "bm25": "k1 1.2, b 0.75",
+    "dense_base": "BAAI/bge-m3",
+    "reranker_base": "BAAI/bge-reranker-v2-m3"
+  },
+  "pair_threshold": 0.81640625,
+  "align": {
+    "tau_sem": 0.8,
+    "tau_rr": 0.81640625
+  },
+  "manifests_sha256": {
+    "train": "fbeb51e497139860b5ed536f3635b0f66f962444bb2f5b3c7fe08fe72221e438",
+    "validation": "8a6e0e3bb444bc48d234da8494fdece8ceb485b5d41a5260855fd208417de9bd",
+    "calibration": "134a33c1d9b0dd4db268efd7382e1b9a96b30180e6fc1f5ed233442544d2ea20",
+    "final_external_holdout": "b3107b39e0e7e02a30a8d82cdcbe831641a8d2d5fc1645dc645adab086d8a4c4"
+  }
+}

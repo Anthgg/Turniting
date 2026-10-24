@@ -1,0 +1,22 @@
+{
+  "base_model": "BAAI/bge-m3",
+  "loss": "CachedMultipleNegativesRankingLoss (in-batch + same-seed hard negatives)",
+  "triplets": 14290,
+  "pairs": 10670,
+  "batch_size": 64,
+  "gradient_accumulation": 1,
+  "effective_batch_size": 64,
+  "max_sequence_length": 256,
+  "learning_rate": 1e-05,
+  "epochs": 1,
+  "steps": 391,
+  "best_checkpoint": "/content/drive/MyDrive/turniting/f008_2/models/checkpoints/biencoder/checkpoint-391",
+  "best_eval_loss": 0.020523782819509506,
+  "training_duration_s": 147.3,
+  "bf16": true,
+  "fp16": false,
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+  "vram_gib": 95.0,
+  "cuda": "13.0",
+  "resumed_from": null
+}

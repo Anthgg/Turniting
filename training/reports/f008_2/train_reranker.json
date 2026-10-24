@@ -1,0 +1,21 @@
+{
+  "base_model": "BAAI/bge-reranker-v2-m3",
+  "loss": "BinaryCrossEntropy (PARTIAL = 0.5)",
+  "pairs": 62746,
+  "batch_size": 128,
+  "gradient_accumulation": 1,
+  "effective_batch_size": 128,
+  "max_sequence_length": 384,
+  "learning_rate": 1e-05,
+  "epochs": 1,
+  "steps": 491,
+  "best_checkpoint": "/content/drive/MyDrive/turniting/f008_2/models/checkpoints/reranker/checkpoint-400",
+  "best_eval_loss": 0.3307369351387024,
+  "training_duration_s": 212.9,
+  "bf16": true,
+  "fp16": false,
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+  "vram_gib": 95.0,
+  "cuda": "13.0",
+  "resumed_from": null
+}
