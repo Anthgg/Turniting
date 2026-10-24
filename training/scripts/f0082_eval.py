@@ -195,7 +195,8 @@ def retrieval(cfg, enc, rr, f: pd.DataFrame, extra: list[str]) -> dict:
 def span_docs(f: pd.DataFrame, n: int, seed: int) -> list[dict]:
     rng = random.Random(seed)
     pos = f[(f["label"] == 1) & (f["lang_b"] == "es")].drop_duplicates("text_a")
-    neg = f[f["pair_class"].isin(["LEXICAL_HARD_NEGATIVE", "NEGATION_HARD_NEGATIVE", "NUMBER_CHANGED_NEGATIVE", "ENTITY_CHANGED_NEGATIVE"])]
+    neg = f[f["pair_class"].isin(["LEXICAL_HARD_NEGATIVE", "NEGATION_HARD_NEGATIVE", "NUMBER_CHANGED_NEGATIVE", "ENTITY_CHANGED_NEGATIVE",
+                               "SAME_TOPIC_OR_VOCAB_NEGATIVE"])]
     negm = neg.groupby("text_a")["text_b"].first()
     docs = []
     P = pos.sample(frac=1.0, random_state=seed).itertuples(index=False)
@@ -227,6 +228,8 @@ def span_docs(f: pd.DataFrame, n: int, seed: int) -> list[dict]:
 def span_eval(enc, rr, docs: list[dict], tau_sem: float, tau_rr: float) -> dict:
     from f008_engine import CharNgram, align
 
+    if not docs:
+        return {"docs": 0}
     char = CharNgram()
     char.fit([d["source"] for d in docs] + [d["query"] for d in docs])
     tp = fp = fn = 0
