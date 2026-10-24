@@ -1,0 +1,67 @@
+{
+  "name": "F006_2_MODEL_LOCK",
+  "LOCKED": true,
+  "lockedAt": "2026-10-24T05:25:14Z",
+  "modelPath": "/content/drive/MyDrive/turniting/f006_2/models/final/f006_2_locked",
+  "modelSha256": "fa6f721b3dc5902ad38e3e8abe1b82779ad63efe54ce20936a703393a68c2b91",
+  "candidate": "F0062_A",
+  "checkpointStep": 1272,
+  "initFrom": "/content/drive/MyDrive/turniting/f006_1_1/models/experimental_f006_1_1",
+  "calibration": {
+    "option": "GLOBAL_PLATT",
+    "global": {
+      "method": "platt",
+      "params": {
+        "a": 0.6209088321764642,
+        "b": -1.527188346009895
+      }
+    },
+    "threshold_global": 0.7488090848942547,
+    "threshold_spanish": 0.7488090848942547
+  },
+  "datasetManifestSha256": {
+    "final": "c8fda484a36eac0c60526e29ea8c47dfc242dbf2794f9b68425406d65e5e50f3",
+    "validation": "a166c8b79427e55cb67c4ac0a508da50fdf24b531268c6ab284de08410a8551a",
+    "calibration": "3a083af27296f3349dc7b956faca6ebcc09cdc307bf2896da1fcb03b04e47992",
+    "train_extra": "2446e2f6eb9cfa022e15ca6c73d1f26c031b83fa2bbd5a09ba5d400df23f9e16"
+  },
+  "trainingConfig": {
+    "windows": 150000,
+    "human_share": 0.5,
+    "hard_ratio": 0.3,
+    "es_w": 2.5,
+    "aca_w": 1.5,
+    "para_frac": 0.3,
+    "emphasis": false,
+    "loss": "weighted",
+    "human_weight": 1.0,
+    "focal_gamma": 1.0,
+    "lr": 5e-06,
+    "epochs": 1,
+    "seed": 6006,
+    "hard_pool": "/content/drive/MyDrive/turniting/f006_2/datasets/splits/f006_2_hard_human_pool.parquet",
+    "es_mix": null,
+    "es_hard_pool": "/content/drive/MyDrive/turniting/f006_2/datasets/splits/f006_2_spanish_hard_pool.parquet",
+    "train_extra": "/content/drive/MyDrive/turniting/f006_2/datasets/splits/f006_2_train_extra.parquet",
+    "mixture": "f006_2",
+    "score": "f006_2",
+    "mix": [
+      0.0,
+      0.28,
+      0.22,
+      0.22,
+      0.13,
+      0.07,
+      0.08,
+      0.0,
+      0.0
+    ],
+    "token_weight": 0.6,
+    "new_only": true,
+    "hard_machine_pool": "/content/drive/MyDrive/turniting/f006_2/datasets/splits/f006_2_hard_machine_pool.parquet"
+  },
+  "trainingConfigSha256": "697311d15a58cb1d86e479fbb3688ca8bb4c1c7b1cfeea92b75f060fe493d489",
+  "seed": 6006,
+  "trainingCodeCommit": "389d771c07a0920a5a365cf69c13502ee8fc5244",
+  "lockCodeCommit": "389d771c07a0920a5a365cf69c13502ee8fc5244"
+}

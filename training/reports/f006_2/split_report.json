@@ -1,0 +1,381 @@
+{
+  "manifest_sha256": {
+    "final": "c8fda484a36eac0c60526e29ea8c47dfc242dbf2794f9b68425406d65e5e50f3"
+  },
+  "validation": {
+    "docs": 10848,
+    "humans": 5599,
+    "groups": 6075,
+    "by_primary": {
+      "academic": {
+        "docs": 3521,
+        "humans": 3073
+      },
+      "adversarial": {
+        "docs": 403,
+        "humans": 0
+      },
+      "ai_edited": {
+        "docs": 1016,
+        "humans": 185
+      },
+      "general": {
+        "docs": 1184,
+        "humans": 612
+      },
+      "mixed": {
+        "docs": 1214,
+        "humans": 226
+      },
+      "ood": {
+        "docs": 423,
+        "humans": 200
+      },
+      "span": {
+        "docs": 502,
+        "humans": 5
+      },
+      "spanish": {
+        "docs": 1152,
+        "humans": 635
+      },
+      "unseen_domain": {
+        "docs": 386,
+        "humans": 154
+      },
+      "unseen_generator": {
+        "docs": 1047,
+        "humans": 509
+      }
+    },
+    "datasets": {
+      "tdx_thesis_es": 2687,
+      "opai_bench": 1709,
+      "detectrl_x": 1584,
+      "mgtbench2_academic": 627,
+      "gradtex": 502,
+      "mdta": 432,
+      "gradtex_f0611": 365,
+      "beemo_f0611": 338,
+      "semeval2024_task8": 323,
+      "mage": 290,
+      "autextification2023": 234,
+      "academic_arxiv_gpt_gemini": 223,
+      "iberautextification": 215,
+      "coling2025_mgt_en": 183,
+      "claude_es_academic": 161,
+      "academic_abstracts_es": 110,
+      "cowsl2h": 99,
+      "f006_1_new_spanish": 98,
+      "scielo_es": 98,
+      "spanish_billion_words": 86,
+      "nigerian_academic": 70,
+      "openllmtext": 66,
+      "hc3": 63,
+      "m4": 61,
+      "seqxgpt": 54,
+      "turingbench": 49,
+      "outfox": 38,
+      "txd22": 35,
+      "raid": 20,
+      "hc3_chinese": 18,
+      "has_f0611": 10
+    },
+    "fine_labels": {
+      "HUMAN": 5599,
+      "MIXED": 1532,
+      "AI_GENERATED": 1488,
+      "AI_EDITED": 1335,
+      "PARAPHRASED_AI": 894
+    },
+    "generators": {
+      "human": 5604,
+      "gpt": 1551,
+      "gemini": 953,
+      "deepseek": 639,
+      "gemma": 612,
+      "llama": 429,
+      "mistral": 250,
+      "qwen": 247,
+      "bloom": 87,
+      "t5": 72,
+      "claude-code-subagent/sonnet": 65,
+      "claude-code-subagent/haiku": 64,
+      "unknown": 46,
+      "gpt-oss-older": 36,
+      "opt": 34,
+      "claude-code-subagent/opus": 32,
+      "moonshot": 27,
+      "cohere": 26,
+      "ai21.j2-ultra-v1": 24,
+      "claude": 7,
+      "dolly": 6,
+      "glm": 6,
+      "xlnet_large": 5,
+      "mpt-chat": 5,
+      "mpt": 5,
+      "transfo_xl": 3,
+      "grok": 3,
+      "grover_mega": 2,
+      "pi": 1,
+      "nova": 1
+    },
+    "spanish_docs": 4000,
+    "spanish_humans": 3322,
+    "span_docs": 1783
+  },
+  "calibration": {
+    "docs": 5770,
+    "humans": 2979,
+    "groups": 3134,
+    "by_primary": {
+      "academic": {
+        "docs": 2129,
+        "humans": 1871
+      },
+      "adversarial": {
+        "docs": 400,
+        "humans": 0
+      },
+      "ai_edited": {
+        "docs": 412,
+        "humans": 68
+      },
+      "general": {
+        "docs": 400,
+        "humans": 188
+      },
+      "mixed": {
+        "docs": 416,
+        "humans": 56
+      },
+      "ood": {
+        "docs": 400,
+        "humans": 212
+      },
+      "span": {
+        "docs": 413,
+        "humans": 6
+      },
+      "spanish": {
+        "docs": 400,
+        "humans": 205
+      },
+      "unseen_domain": {
+        "docs": 400,
+        "humans": 165
+      },
+      "unseen_generator": {
+        "docs": 400,
+        "humans": 208
+      }
+    },
+    "datasets": {
+      "tdx_thesis_es": 1675,
+      "opai_bench": 1098,
+      "detectrl_x": 616,
+      "mdta": 416,
+      "mgtbench2_academic": 246,
+      "semeval2024_task8": 233,
+      "gradtex": 211,
+      "mage": 199,
+      "beemo_f0611": 145,
+      "coling2025_mgt_en": 116,
+      "gradtex_f0611": 111,
+      "academic_arxiv_gpt_gemini": 97,
+      "claude_es_academic": 95,
+      "iberautextification": 85,
+      "autextification2023": 83,
+      "academic_abstracts_es": 40,
+      "outfox": 37,
+      "cowsl2h": 34,
+      "f006_1_new_spanish": 32,
+      "openllmtext": 29,
+      "spanish_billion_words": 27,
+      "nigerian_academic": 27,
+      "hc3": 22,
+      "scielo_es": 18,
+      "turingbench": 17,
+      "has_f0611": 14,
+      "txd22": 12,
+      "m4": 10,
+      "seqxgpt": 10,
+      "raid": 7,
+      "hc3_chinese": 7,
+      "beemo": 1
+    },
+    "fine_labels": {
+      "HUMAN": 2979,
+      "MIXED": 771,
+      "AI_EDITED": 729,
+      "AI_GENERATED": 675,
+      "PARAPHRASED_AI": 616
+    },
+    "generators": {
+      "human": 2987,
+      "gpt": 814,
+      "gemini": 571,
+      "gemma": 306,
+      "llama": 281,
+      "deepseek": 235,
+      "qwen": 197,
+      "mistral": 107,
+      "claude-code-subagent/sonnet": 43,
+      "unknown": 41,
+      "t5": 32,
+      "claude-code-subagent/haiku": 31,
+      "bloom": 29,
+      "opt": 24,
+      "claude-code-subagent/opus": 21,
+      "gpt-oss-older": 14,
+      "ai21.j2-ultra-v1": 8,
+      "cohere": 5,
+      "moonshot": 4,
+      "mpt-chat": 4,
+      "dolly": 4,
+      "glm": 2,
+      "xlnet_large": 2,
+      "pi": 2,
+      "mpt": 1,
+      "xlm": 1,
+      "grover_large": 1,
+      "transfo_xl": 1,
+      "grover_mega": 1,
+      "claude": 1
+    },
+    "spanish_docs": 2170,
+    "spanish_humans": 1880,
+    "span_docs": 1141
+  },
+  "ood": {
+    "docs": 2995,
+    "humans": 0,
+    "groups": 280,
+    "by_primary": {
+      "ood": {
+        "docs": 2995,
+        "humans": 0
+      }
+    },
+    "datasets": {
+      "spanish_synthetic_2026": 2995
+    },
+    "fine_labels": {
+      "AI_GENERATED": 2995
+    },
+    "generators": {
+      "qwen-2.5-0.5b": 1254,
+      "ministral-3b": 1047,
+      "llama-3.2-1b": 694
+    },
+    "spanish_docs": 2995,
+    "spanish_humans": 0,
+    "span_docs": 0
+  },
+  "final_metadata_only": {
+    "docs": 7017,
+    "humans": 4006,
+    "groups": 811,
+    "by_primary": {
+      "academic": {
+        "docs": 4006,
+        "humans": 4006
+      },
+      "unseen_generator": {
+        "docs": 3011,
+        "humans": 0
+      }
+    },
+    "datasets": {
+      "tdx_thesis_es": 4006,
+      "spanish_synthetic_2026": 3011
+    },
+    "fine_labels": {
+      "HUMAN": 4006,
+      "AI_GENERATED": 3011
+    },
+    "generators": {
+      "human": 4006,
+      "qwen-2.5-0.5b": 1324,
+      "ministral-3b": 958,
+      "llama-3.2-1b": 729
+    },
+    "spanish_docs": 7017,
+    "spanish_humans": 4006,
+    "span_docs": 0
+  },
+  "train_new_candidates": 13340,
+  "dedup": {
+    "rows_before": 78540,
+    "exact_within_new_removed": 2936,
+    "exact_vs_historical_removed": 0,
+    "near_vs_historical_spanish_academic_removed": 0,
+    "rows_after": 75604
+  },
+  "leakage": {
+    "TRAIN_vs_validation": {
+      "group": 0,
+      "exact": 0,
+      "parent": 0,
+      "source": 0,
+      "near": 0,
+      "lineage": 0
+    },
+    "TRAIN_vs_calibration": {
+      "group": 0,
+      "exact": 0,
+      "parent": 0,
+      "source": 0,
+      "near": 0,
+      "lineage": 0
+    },
+    "TRAIN_vs_ood": {
+      "group": 0,
+      "exact": 0,
+      "parent": 0,
+      "source": 0,
+      "near": 0,
+      "lineage": 0
+    },
+    "TRAIN_vs_final": {
+      "group": 0,
+      "exact": 0,
+      "parent": 0,
+      "source": 0,
+      "near": 0,
+      "lineage": 0
+    },
+    "FINAL_vs_validation": {
+      "group": 0,
+      "exact": 0,
+      "parent": 0,
+      "source": 0,
+      "near": 0
+    },
+    "FINAL_vs_calibration": {
+      "group": 0,
+      "exact": 0,
+      "parent": 0,
+      "source": 0,
+      "near": 0
+    },
+    "FINAL_vs_ood": {
+      "group": 0,
+      "exact": 0,
+      "parent": 0,
+      "source": 0,
+      "near": 0
+    },
+    "FINAL_vs_historical_holdout_exact": 0,
+    "FINAL_claude_rows": 0,
+    "result": "PASS"
+  },
+  "gates": {
+    "TRAIN_INTERSECT_VALIDATION": 0,
+    "TRAIN_INTERSECT_CALIBRATION": 0,
+    "TRAIN_INTERSECT_FINAL_HOLDOUT": 0,
+    "PARENT_OVERLAP": 0,
+    "SOURCE_LEAKAGE": 0,
+    "LINEAGE_LEAKAGE": 0
+  }
+}

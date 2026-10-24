@@ -1,0 +1,25 @@
+{
+  "name": "EXPERIMENTAL_F006_2_MODEL",
+  "status": "EXPERIMENTAL",
+  "active": false,
+  "promoted": false,
+  "storage_provider": "GOOGLE_DRIVE",
+  "logical_path": "MyDrive/turniting/f006_2/models/final/experimental_f006_2",
+  "SHA256": "fa6f721b3dc5902ad38e3e8abe1b82779ad63efe54ce20936a703393a68c2b91",
+  "size_bytes": 1131303450,
+  "training_phase": "F006_2",
+  "base_model": "microsoft/mdeberta-v3-base (via EXPERIMENTAL_F006_1_1_MODEL)",
+  "parent_model": "EXPERIMENTAL_F006_1_1_MODEL",
+  "candidate": "F0062_A",
+  "dataset_manifest_hash": {
+    "final": "c8fda484a36eac0c60526e29ea8c47dfc242dbf2794f9b68425406d65e5e50f3",
+    "validation": "a166c8b79427e55cb67c4ac0a508da50fdf24b531268c6ab284de08410a8551a",
+    "calibration": "3a083af27296f3349dc7b956faca6ebcc09cdc307bf2896da1fcb03b04e47992",
+    "train_extra": "2446e2f6eb9cfa022e15ca6c73d1f26c031b83fa2bbd5a09ba5d400df23f9e16"
+  },
+  "training_config_hash": "697311d15a58cb1d86e479fbb3688ca8bb4c1c7b1cfeea92b75f060fe493d489",
+  "calibration": {
+    "option": "GLOBAL_PLATT",
+    "threshold_global": 0.7488090848942547
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "rule": "HARD_HUMAN = human & (F006.1.1 flags MACHINE or top-decile human score); HARD_MACHINE = machine & (flags HUMAN or bottom-decile machine score); threshold unchanged; 70/30 group split train / independent",
+  "human_top_decile_score": 0.14512584073630408,
+  "machine_bottom_decile_score": 0.024157372534087625,
+  "candidates": {
+    "rows": 13340,
+    "humans": 12423,
+    "machines": 917
+  },
+  "hard_human": {
+    "total": 1244,
+    "flagged_machine": 33,
+    "train_part": 882,
+    "independent_part": 362,
+    "by_dataset": {
+      "f0062_tdx_thesis_es": 1244
+    }
+  },
+  "hard_machine": {
+    "total": 388,
+    "flagged_human": 388,
+    "train_part": 286,
+    "independent_part": 102,
+    "by_dataset": {
+      "f0062_claude_es_academic": 388
+    },
+    "by_class": {
+      "HUMAN_WITH_AI_INSERTS": 141,
+      "HUMAN_REVISED_BY_AI": 84,
+      "AI_WITH_HUMAN_INSERTS": 69,
+      "AI_REVISED": 50,
+      "AI_GENERATED": 44
+    }
+  },
+  "independent_groups": 253,
+  "independent_rows": 1897,
+  "fpr_f0611_on_new_train_humans_by_dataset": {
+    "f0062_tdx_thesis_es": 0.0027
+  },
+  "recall_f0611_on_new_train_machines_by_dataset": {
+    "f0062_claude_es_academic": 0.5769
+  }
+}
