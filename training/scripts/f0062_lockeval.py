@@ -135,7 +135,7 @@ def lock() -> int:
     shutil.copytree(RUNS / chosen / "best", mdir)
     cfg = r["calibration"]["config"]
     write_json(mdir / "calibration.json", {"selected": cfg["global"], "spanish": cfg.get("spanish"), "option": cfg["option"]})
-    write_json(mdir / "thresholds.json", {"GLOBAL_THRESHOLD": cfg["threshold_global"], "SPANISH_THRESHOLD": cfg["threshold_spanish"], "space": "calibrated",
+    write_json(mdir / "thresholds.json", {"BALANCED": {"threshold": cfg["threshold_global"]}, "GLOBAL_THRESHOLD": cfg["threshold_global"], "SPANISH_THRESHOLD": cfg["threshold_spanish"], "space": "calibrated",
                                           "chosen_on": "F006_2_CALIBRATION"})
     commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     write_json(mdir / "model_manifest.json", {"modelVersion": "F006_2_MODERN_SPANISH_ACADEMIC_HARDENING", "parentModel": "EXPERIMENTAL_F006_1_1_MODEL",
