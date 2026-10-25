@@ -190,6 +190,11 @@ def subset_masks(frame: pd.DataFrame) -> dict[str, np.ndarray]:
     m["spanish_non_academic"] = m["spanish"] & ~aca
     if "hard_human" in frame:
         m["hard_human"] = frame["hard_human"].fillna(False).values.astype(bool) & human
+    lang = frame["language"].astype(str).values
+    for l in ("es", "en", "pt", "fr", "de"):  # F006.3 per-language slices (reporting only for older modes)
+        m[f"lang_{l}"] = (lang == l) & (pr != "presentation_excluded")
+        m[f"academic_{l}"] = core & aca & (lang == l)
+    m["language_ood"] = ~np.isin(lang, ["es", "en", "pt", "fr", "de"]) & (pr != "presentation_excluded")
     return m
 
 
@@ -298,8 +303,44 @@ def _score_f0062(rep: dict) -> dict:
     return {"score": pos - pen, "positive": pos, "penalty": pen, "eligible": bool(eligible), "terms": terms, "fprs": fprs, "recall_all": rec, "mode": "f006_2"}
 
 
+F0063_WEIGHTS = {"es_macro_f1": 0.14, "en_macro_f1": 0.10, "pt_macro_f1": 0.05, "fr_macro_f1": 0.05, "de_macro_f1": 0.05,
+                 "academic_macro_f1": 0.15, "mixed_recall": 0.10, "ai_edited_macro_f1": 0.05, "unseen_generator_recall": 0.15,
+                 "ood_recall": 0.06, "span_token_f1": 0.10}
+F0063_PENALTIES = [("academic_fpr_es", 0.03, 4.0), ("academic_fpr_en", 0.03, 3.0), ("fpr_all_humans", 0.05, 3.0),
+                   ("unseen_generator_fpr", 0.10, 2.0), ("hard_human_fpr", 0.30, 1.0)]
+
+
+def _score_f0063(rep: dict) -> dict:
+    """F006_3_SELECTION_SCORE (fixed before any F006.3 training), same operating point (general-human FPR <= 0.04):
+    + 0.14 F1 es + 0.10 F1 en + 0.05 F1 pt/fr/de each + 0.15 F1 academic + 0.10 recall mixed + 0.05 F1 AI-edited
+    + 0.15 recall unseen generator + 0.06 recall OOD + 0.10 span token F1
+    - 4*max(0, FPR_aca_es - 0.03) - 3*max(0, FPR_aca_en - 0.03) - 3*max(0, FPR_all - 0.05) - 2*max(0, FPR_ugen - 0.10)
+    - 1*max(0, FPR_hard - 0.30) - 3*max(0, 0.85 - recall_all_machines)
+    eligible iff FPR_all <= 0.05 and academic FPR es / en <= 0.05. The F006.3 GATES (f0063_common.GATES) apply on top."""
+    def g(sub, key):
+        v = rep.get(sub, {}).get(key)
+        return None if v is None else float(v)
+
+    terms = {**{f"{l}_macro_f1": g(f"lang_{l}", "macro_f1") for l in ("es", "en", "pt", "fr", "de")},
+             "academic_macro_f1": g("academic", "macro_f1"), "mixed_recall": g("mixed", "recall"), "ai_edited_macro_f1": g("ai_edited", "macro_f1"),
+             "unseen_generator_recall": g("unseen_generator", "recall"), "ood_recall": g("ood", "recall"), "span_token_f1": g("span_head", "token_f1")}
+    fprs = {"fpr_all_humans": g("all", "fpr"), "academic_fpr_es": g("academic_es", "fpr"), "academic_fpr_en": g("academic_en", "fpr"),
+            "unseen_generator_fpr": g("unseen_generator", "fpr"), "hard_human_fpr": g("hard_human", "fpr")}
+    avail = {k: v for k, v in terms.items() if v is not None}
+    wsum = sum(F0063_WEIGHTS[k] for k in avail) or 1.0
+    pos = sum(F0063_WEIGHTS[k] * v for k, v in avail.items()) / wsum
+    pen = sum(w * max(0.0, fprs[k] - lim) for k, lim, w in F0063_PENALTIES if fprs.get(k) is not None)
+    rec = g("all", "recall")
+    pen += 3.0 * max(0.0, 0.85 - rec) if rec is not None else 0.0
+    eligible = all(fprs[k] is None or fprs[k] <= lim for k, lim in (("academic_fpr_es", 0.05), ("academic_fpr_en", 0.05))) and \
+        fprs["fpr_all_humans"] is not None and fprs["fpr_all_humans"] <= 0.05
+    return {"score": pos - pen, "positive": pos, "penalty": pen, "eligible": bool(eligible), "terms": terms, "fprs": fprs, "recall_all": rec, "mode": "f006_3"}
+
+
 def selection_score(rep: dict) -> dict:
-    """F006 / F006_1 / F006_1_1 / F006_2 selection score (see set_score) from a subset_report."""
+    """F006 / F006_1 / F006_1_1 / F006_2 / F006_3 selection score (see set_score) from a subset_report."""
+    if SCORE_MODE["mode"] == "f006_3":
+        return _score_f0063(rep)
     if SCORE_MODE["mode"] == "f006_2":
         return _score_f0062(rep)
     if SCORE_MODE["mode"] == "f006_1_1":

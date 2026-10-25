@@ -1,0 +1,108 @@
+{
+  "auditedAt": "2026-10-25T22:54:32Z",
+  "track": "A",
+  "states": [
+    "ALLOWED",
+    "NON_COMMERCIAL",
+    "RESEARCH_ONLY",
+    "UNDECLARED",
+    "PENDING_REVIEW",
+    "BLOCKED"
+  ],
+  "candidates": [
+    {
+      "dataset_id": "openalex_academic",
+      "source": "https://api.openalex.org (works, 2012-2020, has_abstract)",
+      "license": "CC0 (OpenAlex data)",
+      "license_status": "ALLOWED",
+      "train": "ALLOWED",
+      "languages": "es,en,pt,fr,de,it,nl",
+      "use": "HUMAN academic (split by venue; FINAL venues held out)",
+      "notes": "abstract text reconstructed from the OpenAlex inverted index; exact / near dedup against every historical source (academic_abstracts_es, scielo_es may overlap)"
+    },
+    {
+      "dataset_id": "aigtbench",
+      "source": "https://huggingface.co/datasets/tarryzhang/AIGTBench",
+      "revision": "6f1557d800b69df1a445ff5fff254971e8c45380",
+      "license": "Apache-2.0",
+      "license_status": "ALLOWED",
+      "train": "ALLOWED (GPT-4o / GPT-4o-mini / Llama-3.1 rows FINAL_ONLY)",
+      "languages": "en",
+      "use": "modern generators, social-media domain (unseen domain)",
+      "notes": "not part of F004-F006.2"
+    },
+    {
+      "dataset_id": "open_llm_multilingual",
+      "source": "generated on Colab with open models",
+      "license": "model licences: Apache-2.0 (Qwen2.5, Mistral-Nemo, OLMo-2, Granite-3.1), MIT (Phi-3.5)",
+      "license_status": "ALLOWED",
+      "train": "TRAIN roles only (Qwen2.5-14B, Mistral-Nemo-12B)",
+      "use": "AI_GENERATED / AI_REVISED / HUMAN_REVISED_BY_AI / inserts in ES EN PT FR DE; OLMo-2 = validation unseen proxy; Phi-3.5 + Granite-3.1 = FINAL_ONLY unseen generators"
+    },
+    {
+      "dataset_id": "claude_multilingual",
+      "source": "Claude Code subagents",
+      "license": "own generation",
+      "license_status": "ALLOWED",
+      "train": "TRAIN / VAL / CAL only, never FINAL",
+      "use": "multilingual paragraphs + structured mixed-language documents"
+    },
+    {
+      "dataset_id": "coling2025_mgt_multilingual",
+      "source": "https://huggingface.co/datasets/Jinyan1/COLING_2025_MGT_multingual",
+      "license": "none declared for the data (repository code Apache-2.0)",
+      "license_status": "UNDECLARED",
+      "train": "NO_TRAIN",
+      "notes": "also built largely from M4 / MULTITuDE families already used historically"
+    },
+    {
+      "dataset_id": "multitude",
+      "license_status": "BLOCKED",
+      "train": "NO_TRAIN",
+      "notes": "gated; still PENDING_ACCESS"
+    },
+    {
+      "dataset_id": "multisocial",
+      "license_status": "BLOCKED",
+      "train": "NO_TRAIN",
+      "notes": "restricted access"
+    },
+    {
+      "dataset_id": "detectrl_x",
+      "license_status": "ALLOWED",
+      "train": "NOT_NEW",
+      "notes": "already a V2 / F006.1 source (historical replay only)"
+    },
+    {
+      "dataset_id": "pan_generative_ai_2025_2026",
+      "license_status": "BLOCKED",
+      "train": "NO_TRAIN",
+      "notes": "Zenodo restricted records"
+    },
+    {
+      "dataset_id": "robust_finegrained_aigt_2504_11952",
+      "source": "arXiv 2504.11952",
+      "license": "no dataset release / licence found",
+      "license_status": "PENDING_REVIEW",
+      "train": "NO_TRAIN"
+    },
+    {
+      "dataset_id": "medaid_ml",
+      "license_status": "BLOCKED",
+      "train": "NO_TRAIN",
+      "notes": "restricted files (F006.2 audit)"
+    },
+    {
+      "dataset_id": "robot_talk",
+      "license_status": "PENDING_REVIEW",
+      "train": "NO_TRAIN",
+      "notes": "no public download / licence (F006.2 audit)"
+    },
+    {
+      "dataset_id": "tdx_thesis_es",
+      "license_status": "NON_COMMERCIAL",
+      "train": "CONTROLLED_REPLAY_ONLY",
+      "notes": "not new (F006.2)"
+    }
+  ]
+}

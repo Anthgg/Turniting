@@ -97,8 +97,35 @@ def sampler_weights(meta: pd.DataFrame, hard: np.ndarray, sp: dict, a) -> tuple[
         base = (m_w + norm(wh, es_hard & human, hsh * fh) + norm(w0, es & human & ~es_hard, hsh * fn)
                 + norm(w0, g_h & ~hard, hsh * fg * (1 - a.hard_ratio)) + norm(wh, g_h & hard, hsh * fg * a.hard_ratio))
         comp = {"base": 1.0, "human_component": {"spanish_hard": fh, "spanish_normal": fn, "global": fg}}
+    if a.mixture == "f006_3":
+        # replay = historical (V2 master + F006.2 extra, incl. F006.1.1 replay and TDX controlled replay); new = f0063_* rows.
+        # New components are spread by language with LANG_WEIGHT so English never dominates; MIXED stays MIXED (never MACHINE).
+        names = ["replay", "new_human", "new_machine", "mixed", "ai_edited", "robustness"]
+        mix = dict(zip(names, a.mix))
+        lang = meta["language"].astype(str).values
+        new = meta["dataset"].astype(str).str.startswith("f0063_").values
+        lw = {"es": 0.36, "en": 0.26, "pt": 0.12, "fr": 0.13, "de": 0.13}
+
+        def by_lang(w, mask, mass):
+            present = {l: v for l, v in lw.items() if (mask & (lang == l)).any()}
+            z = sum(present.values()) or 1.0
+            return sum((norm(w, mask & (lang == l), mass * v / z) for l, v in present.items()), np.zeros(len(meta)))
+
+        old = ~new
+        rep = base.copy()
+        rep[new] = 0.0
+        rep = norm(rep, old, 1.0)
+        if a.lang_balance:  # B5: half of the replay mass keeps the historical mix, half is re-spread over es/en/pt/fr/de
+            rep = 0.5 * rep + by_lang(rep, old & np.isin(lang, list(lw)), 0.5)
+        total = rep * mix["replay"]
+        total += by_lang(w0, new & human, mix["new_human"])
+        total += by_lang(w0, new & meta["fine_label"].isin([A.AI_GENERATED, A.PARAPHRASED_AI]).values, mix["new_machine"])
+        total += by_lang(w0, new & meta["fine_label"].isin([A.MIXED, A.HUMAN_EDITED_AI]).values, mix["mixed"])
+        total += by_lang(w0, new & meta["fine_label"].isin([A.AI_EDITED]).values, mix["ai_edited"])
+        total += norm(w0, adv, mix["robustness"])
+        return total, {**mix, "lang_balance": bool(a.lang_balance), "language_weights": lw}
     if a.mixture == "f006_2":
-        names = ["replay", "hard_human", "new_human_academic", "new_machine_es", "mixed", "ai_edited", "hard_machine", "txd_aux", "robustness"]
+        names =["replay", "hard_human", "new_human_academic", "new_machine_es", "mixed", "ai_edited", "hard_machine", "txd_aux", "robustness"]
         mix = dict(zip(names, a.mix))
         new = meta["dataset"].astype(str).str.startswith("f0062_").values
         scope = new if a.new_only else np.ones(len(meta), bool)  # candidate A: continual fine-tuning on the new data only
@@ -293,7 +320,7 @@ def _tok_docs(docs: list[dict]):
 
 def cache_key(a) -> str:
     keys = ["windows", "human_share", "hard_ratio", "es_w", "aca_w", "para_frac", "stage", "emphasis", "hard_pool", "seed",
-            "es_mix", "es_hard_pool", "train_extra", "mixture", "mix", "new_only", "hard_machine_pool"]
+            "es_mix", "es_hard_pool", "train_extra", "mixture", "mix", "new_only", "hard_machine_pool", "lang_balance"]
     s = json.dumps({k: getattr(a, k) for k in keys}, sort_keys=True, default=str)
     return hashlib.sha256(s.encode()).hexdigest()[:12]
 
@@ -449,12 +476,16 @@ def main() -> int:
     ap.add_argument("--es-hard-pool", default=None)
     ap.add_argument("--es-mix", default=None, help="Spanish-hard,Spanish-normal,global shares of the human component, e.g. 0.4,0.3,0.3")
     ap.add_argument("--train-extra", default=None)
-    ap.add_argument("--mixture", default="f006", choices=["f006", "f006_1", "f006_1_1", "f006_2"])
+    ap.add_argument("--mixture", default="f006", choices=["f006", "f006_1", "f006_1_1", "f006_2", "f006_3"])
     ap.add_argument("--mix", default="0.30,0.25,0.15,0.10,0.10,0.05,0.05", help="f006_1_1: replay,hard,spanish,mixed,span,edited,robust")
     ap.add_argument("--token-weight", type=float, default=None, help="override head-C loss weight (multi-task ablation)")
-    ap.add_argument("--score", default="f006", choices=["f006", "f006_1", "f006_1_1", "f006_2"])
+    ap.add_argument("--score", default="f006", choices=["f006", "f006_1", "f006_1_1", "f006_2", "f006_3"])
     ap.add_argument("--new-only", action="store_true", help="f006_2 candidate A: sample only the new F006.2 rows (no historical replay)")
     ap.add_argument("--hard-machine-pool", default=None, help="f006_2: ids of HARD_MACHINE train rows")
+    ap.add_argument("--lang-balance", action="store_true", help="f006_3 B5: replay mass re-spread by language (LANG_WEIGHT)")
+    ap.add_argument("--kd-teacher", default=None, help="f006_3 B4: frozen teacher checkpoint (F006.1.1) for KL distillation")
+    ap.add_argument("--kd-weight", type=float, default=0.5)
+    ap.add_argument("--kd-temp", type=float, default=2.0)
     ap.add_argument("--master", default="/content/f006work/master_v2")
     ap.add_argument("--val", default="/content/drive/MyDrive/turniting/f006/datasets/f006_validation.parquet")
     ap.add_argument("--drive", default="/content/drive/MyDrive/turniting/f006")
@@ -499,7 +530,13 @@ def main() -> int:
         f"aca={a.aca_w} para={a.para_frac} lr={a.lr}; validation {len(val):,} docs; view={icfg.get('view')} agg={icfg.get('aggregation')}")
 
     model = V3Detector.load(a.init).to(device)
-    probe = auto_batch(model, device, cfg["max_length"], 0.84, candidates=tuple(c for c in (32, 40, 48, 56, 64, 80, 96, 112, 128) if c <= int(os.environ.get("F006_MAX_MICRO", "128")))) \
+    teacher = None
+    if a.kd_teacher:
+        teacher = V3Detector.load(a.kd_teacher).to(device).eval()
+        for p_ in teacher.parameters():
+            p_.requires_grad_(False)
+        log(f"knowledge distillation: teacher {a.kd_teacher} weight {a.kd_weight} T {a.kd_temp}")
+    probe =auto_batch(model, device, cfg["max_length"], 0.84, candidates=tuple(c for c in (32, 40, 48, 56, 64, 80, 96, 112, 128) if c <= int(os.environ.get("F006_MAX_MICRO", "128")))) \
         if device.type == "cuda" else {"micro_batch": 4}
     micro = probe["micro_batch"]
     accum = max(1, round(cfg["effective_batch"] / micro))
@@ -584,6 +621,16 @@ def main() -> int:
                 with torch.autocast("cuda", dtype=amp_dtype, enabled=device.type == "cuda"):
                     out = model(ids, mask)
                 la = loss_a(out["a"].float(), batch["a"].to(device))
+                if teacher is not None:  # F006.3 B4: KL(student || teacher) on the binary and fine heads (anti-forgetting)
+                    with torch.no_grad(), torch.autocast("cuda", dtype=amp_dtype, enabled=device.type == "cuda"):
+                        tout = teacher(ids, mask)
+                    T = a.kd_temp
+                    pa_t = torch.sigmoid(tout["a"].float() / T).clamp(1e-6, 1 - 1e-6)
+                    pa_s = torch.sigmoid(out["a"].float() / T).clamp(1e-6, 1 - 1e-6)
+                    kd_a = (pa_t * (pa_t.log() - pa_s.log()) + (1 - pa_t) * ((1 - pa_t).log() - (1 - pa_s).log())).mean()
+                    kd_b = torch.nn.functional.kl_div(torch.log_softmax(out["b"].float() / T, -1), torch.log_softmax(tout["b"].float() / T, -1),
+                                                      log_target=True, reduction="batchmean")
+                    la = (1 - a.kd_weight) * la + a.kd_weight * (T * T) * (kd_a + kd_b)
                 lb = ce(out["b"].float(), batch["b"].to(device))
                 tl = batch["c"].to(device)
                 valid = tl != -100
