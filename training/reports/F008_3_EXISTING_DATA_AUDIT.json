@@ -1,0 +1,24 @@
+{
+  "auditedAt": "2026-10-26T03:50:17Z",
+  "track": "B",
+  "historical": {
+    "F008": [
+      "PAN-PC-11 (holdout lineage)",
+      "PAWS-X es"
+    ],
+    "F008.2": [
+      "PAWS-X es train / dev / test (test = regression)",
+      "Sushi (final)",
+      "STS-es MTEB test (OOD)",
+      "claude_pairs (train)"
+    ]
+  },
+  "f008_3_rules": {
+    "sushi": "never TRAIN; LONG_DISTANCE_PARAPHRASE_REGRESSION",
+    "paws_es_test": "REGRESSION only",
+    "flores": "dev / devtest article-disjoint from each other by construction; devtest only FINAL",
+    "claude": "never FINAL",
+    "lineage": "all transformations of one seed / article / paraphrase set share parent_source_id, lineage and translation_lineage; leakage counters must be 0 (STOP_BEFORE_TRAINING otherwise)"
+  },
+  "parmex": "NOT_USED"
+}
