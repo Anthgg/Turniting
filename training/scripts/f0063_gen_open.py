@@ -199,9 +199,12 @@ class Engine:
             return [o.outputs[0].text for o in outs]
         import torch
 
+        import os
+
+        bs = int(os.environ.get("GEN_BATCH", "128" if torch.cuda.get_device_properties(0).total_memory > 70 * 2**30 else "64"))
         res = []
-        for i in range(0, len(texts), 64):
-            enc = self.tok(texts[i:i + 64], return_tensors="pt", padding=True).to("cuda")
+        for i in range(0, len(texts), bs):
+            enc = self.tok(texts[i:i + bs], return_tensors="pt", padding=True).to("cuda")
             with torch.no_grad():
                 g = self.m.generate(**enc, do_sample=True, temperature=temp, top_p=0.95, max_new_tokens=950, pad_token_id=self.tok.pad_token_id)
             res += self.tok.batch_decode(g[:, enc["input_ids"].shape[1]:], skip_special_tokens=True)
